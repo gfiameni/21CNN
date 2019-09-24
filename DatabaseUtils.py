@@ -1,4 +1,4 @@
-
+import numpy as np
 
 class Database:
     def __init__(self, BoxesPath, ParametersPath, Redshifts, BoxType = "delta_T", BoxRes = 200, BoxSize = 300, WalkerID = 0, WalkerSteps = 10000):
@@ -41,12 +41,16 @@ class Database:
             Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=0) 
         return Box
 
+# def MiddleSlice(Box):
+#     BoxDim = Box.shape
+#     return Box[:, :, BoxDim[2] // 2].T
+
 def SliceBoxNTimesXY(Box, N):
     BoxDim = Box.shape
-    slices = np.zeros((2 * N, BoxDim[1], BoxDIM[0]))
+    slices = np.zeros((2 * N, BoxDim[1], BoxDim[0]))
     for x in range(N):
         slices[x] = Box[:, x * BoxDim[1] // N, :].T
     for y in range(N):
-        slices[y] = Box[:, :, y * BoxDIm[2] // N].T
+        slices[y+N] = Box[:, :, y * BoxDim[2] // N].T
 
     return slices
