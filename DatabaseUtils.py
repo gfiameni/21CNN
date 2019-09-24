@@ -28,29 +28,39 @@ class Database:
 
         filepath = self.CreateFilepath(RedshiftIndex, WalkerIndex)
         
-        return np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'), \
-                    count = int(self.BoxRes)**3).reshape((int(self.BoxRes), int(self.BoxRes), int(self.BoxRes)))
+        # return np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'), \
+        #             count = int(self.BoxRes)**3).reshape((int(self.BoxRes), int(self.BoxRes), int(self.BoxRes)))
+        f = np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'))
         
-    def CombineBoxes(self, WalkerIndex, NumberOfBoxes, StartIndex = 0):
+        #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
+        return f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2)))
+        
+    def CombineBoxes(self, WalkerIndex, NumberOfBoxes = 1e4, StartIndex = 0):
         """
         Connecting all boxes between StartIndex and StarIndex + NumberOfBoxes
         """
+        if NumberOfBoxes > self.NumBoxes:
+            NumberOfBoxes = self.NumBoxes
+        
         Box = self.LoadBox(StartIndex, WalkerIndex)
+        # print(Box.shape)
         for i in range(StartIndex + 1, StartIndex + NumberOfBoxes):
             #not sure about the axis = 0, 1, 2? It seems from 21cmFAST, it should be axis=0
-            Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=0) 
+            #but creating images gices that axis 2 is the right one
+            Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2) 
+            # print(i)
         return Box
 
-# def MiddleSlice(Box):
-#     BoxDim = Box.shape
-#     return Box[:, :, BoxDim[2] // 2].T
+def MiddleSlice(Box):
+    BoxDim = Box.shape
+    return Box[BoxDim[0] // 2, :, :]
 
 def SliceBoxNTimesXY(Box, N):
     BoxDim = Box.shape
-    slices = np.zeros((2 * N, BoxDim[1], BoxDim[0]))
+    slices = np.zeros((2 * N, BoxDim[1], BoxDim[2]))
     for x in range(N):
-        slices[x] = Box[:, x * BoxDim[1] // N, :].T
+        slices[x] = Box[x * BoxDim[0] // N, :, :]
     for y in range(N):
-        slices[y+N] = Box[:, :, y * BoxDim[2] // N].T
+        slices[y+N] = Box[:, y * BoxDim[1] // N, :]
 
     return slices
