@@ -27,8 +27,10 @@ def CreateParamData(db):
     for i in range(db.WalkerSteps):
         walker = db.WalkerAstroParams(i, ReturnType = "array")
         walkers.append(walker)
+    if i % 100 == 0:
+        print(i)
     return np.array(walkers)
 
 TotalData = CreateParamData(database)
 print(TotalData.shape)
-np.save(f"databaseParams", TotalData)
+np.save(f"../data/databaseParams", TotalData)

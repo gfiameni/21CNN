@@ -21,7 +21,7 @@ class Database:
         # print(filepath)
         return filepath
     def CreateParamFilepath(self, WalkerIndex):
-        filepath = f"{self.BoxesPath}/Walker_{self.WalkerID:.6f}_{WalkerIndex:.6f}.txt"
+        filepath = f"{self.ParametersPath}/Walker_{self.WalkerID:.6f}_{WalkerIndex:.6f}.txt"
         return filepath
 
     def LoadBox(self, RedshiftIndex, WalkerIndex):
