@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-import DatabaseUtils
+import database.DatabaseUtils as DatabaseUtils
 
 
 #define path to database, send to program as parameters if different from default
@@ -15,10 +15,12 @@ if len(sys.argv) <= 2:
 else:
     ParametersPath = sys.argv[2]
 
-Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503',
+Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503', \
             '013.25424', '015.51874', '018.36856', '022.02434', '026.82138', '033.28927', '034.50984']
+Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 
-database = DatabaseUtils.Database(BoxesPath, ParametersPath, Redshifts)
+
+database = DatabaseUtils.Database(BoxesPath, ParametersPath, Parameters, Redshifts)
 
 ##############TESTING##############
 # Box = database.CombineBoxes(9999, 12)
@@ -33,6 +35,8 @@ spa = 5
 def CreateSlicedData(db, SlicesPerAxis = spa):
     """
     Creating general sliced cubes without post or preprocessing
+    db == DatabaseUtils.Database object
+    SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
     """
     Box = db.CombineBoxes(0)
     # Box = db.CombineBoxes(9999)

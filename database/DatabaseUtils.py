@@ -1,7 +1,7 @@
 import numpy as np
 
 class Database:
-    def __init__(self, BoxesPath, ParametersPath, Redshifts, BoxType = "delta_T", BoxRes = 200, BoxSize = 300, WalkerID = 0, WalkerSteps = 10000):
+    def __init__(self, BoxesPath, ParametersPath, Parameters, Redshifts, BoxType = "delta_T", BoxRes = 200, BoxSize = 300, WalkerID = 0, WalkerSteps = 10000):
         self.BoxesPath = BoxesPath
         self.ParametersPath = ParametersPath
         self.BoxType = BoxType
@@ -10,6 +10,7 @@ class Database:
         self.WalkerID = WalkerID
         self.Redshifts = Redshifts
         self.WalkerSteps = WalkerSteps
+        self.Parameters = Parameters
 
         self.NumBoxes = len(Redshifts) - 1
 
@@ -18,6 +19,9 @@ class Database:
                    f"__zstart{self.Redshifts[RedshiftIndex]}_zend{self.Redshifts[RedshiftIndex + 1]}_" \
                    f"FLIPBOXES0_{self.BoxRes}_{self.BoxSize}Mpc_lighttravel"
         # print(filepath)
+        return filepath
+    def CreateParamFilepath(self, WalkerIndex):
+        filepath = f"{self.BoxesPath}/Walker_{self.WalkerID:.6f}_{WalkerIndex:.6f}.txt"
         return filepath
 
     def LoadBox(self, RedshiftIndex, WalkerIndex):
@@ -34,7 +38,6 @@ class Database:
         
         #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
         return f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2)))
-        
     def CombineBoxes(self, WalkerIndex, NumberOfBoxes = 1e4, StartIndex = 0):
         """
         Connecting all boxes between StartIndex and StarIndex + NumberOfBoxes
@@ -50,6 +53,30 @@ class Database:
             Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2) 
             # print(i)
         return Box
+
+    def WalkerAstroParams(self, WalkerIndex, ReturnType = "dict"):
+        """
+        Reads Astro params, saves in dict if ReturnType == "dict", else for ReturnType == "array" returns numpy.array
+        """
+        filepath = self.CreateParamFilepath(WalkerIndex)
+        d = {}
+        with open(filepath) as f:
+            for line in f:
+                (key, val) = line.split()
+                if key in self.Parameters:
+                    d[key] = float(val)
+
+        if ReturnType is "dict":
+            return d
+        else:
+            if ReturnType is not "array":
+                raise TypeError
+            a = []
+            for p in self.Parameters:
+                a.append(d[p])
+            return np.array(a)
+
+
 
 def MiddleSlice(Box):
     BoxDim = Box.shape
