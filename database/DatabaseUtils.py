@@ -62,6 +62,9 @@ class Database:
         d = {}
         with open(filepath) as f:
             for line in f:
+                if len(line.split()) != 2:
+                    continue
+
                 (key, val) = line.split()
                 if key in self.Parameters:
                     d[key] = float(val)

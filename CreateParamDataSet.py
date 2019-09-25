@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-import database.DatabaseUtils as DatabaseUtils
-
+from database import DatabaseUtils
 
 #define path to database, send to program as parameters if different from default
 if len(sys.argv) == 1:
@@ -27,10 +26,10 @@ def CreateParamData(db):
     for i in range(db.WalkerSteps):
         walker = db.WalkerAstroParams(i, ReturnType = "array")
         walkers.append(walker)
-    if i % 100 == 0:
-        print(i)
+        if i % 100 == 0:
+            print(i)
     return np.array(walkers)
 
 TotalData = CreateParamData(database)
 print(TotalData.shape)
-np.save(f"../data/databaseParams", TotalData)
+np.save(f"databaseParams", TotalData)
