@@ -35,9 +35,8 @@ class Database:
         # return np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'), \
         #             count = int(self.BoxRes)**3).reshape((int(self.BoxRes), int(self.BoxRes), int(self.BoxRes)))
         f = np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'))
-        
-        #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
-        return f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2)))
+        f = f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2))) #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
+        return f
     def CombineBoxes(self, WalkerIndex, NumberOfBoxes = 1e4, StartIndex = 0):
         """
         Connecting all boxes between StartIndex and StarIndex + NumberOfBoxes
@@ -49,7 +48,7 @@ class Database:
         # print(Box.shape)
         for i in range(StartIndex + 1, StartIndex + NumberOfBoxes):
             #not sure about the axis = 0, 1, 2? It seems from 21cmFAST, it should be axis=0
-            #but creating images gices that axis 2 is the right one
+            #but from created images, axis 2 is the right one
             Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2) 
             # print(i)
         return Box
