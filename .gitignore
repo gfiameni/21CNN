@@ -107,4 +107,4 @@ venv.bak/
 #mine stuff
 .vscode
 data/*
-
+*.code-workspace
