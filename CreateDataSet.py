@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-import database.DatabaseUtils as DatabaseUtils
+from database import DatabaseUtils
 
 
 #define path to database, send to program as parameters if different from default
@@ -20,7 +20,7 @@ Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '0
 Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 
 
-database = DatabaseUtils.Database(BoxesPath, ParametersPath, Parameters, Redshifts)
+database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
 ##############TESTING##############
 # Box = database.CombineBoxes(9999, 12)
@@ -38,24 +38,31 @@ def CreateSlicedData(db, SlicesPerAxis = spa):
     db == DatabaseUtils.Database object
     SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
     """
-    Box = db.CombineBoxes(0)
-    # Box = db.CombineBoxes(9999)
-    BoxSlices = DatabaseUtils.SliceBoxNTimesXY(Box, SlicesPerAxis)
-    # DataShape = (10,) + BoxSlices.shape
-    DataShape = (db.WalkerSteps,) + BoxSlices.shape #adding one WalkerSteps to dimension of FinalData
-    FinalData = np.empty(DataShape, dtype = BoxSlices.dtype)
-    FinalData[0] = BoxSlices
+    # Box = db.CombineBoxes(0)
+    # # Box = db.CombineBoxes(9999)
+    # BoxSlices = DatabaseUtils.SliceBoxNTimesXY(Box, SlicesPerAxis)
+    # # DataShape = (10,) + BoxSlices.shape
+    # DataShape = (db.WalkerSteps,) + BoxSlices.shape #adding one WalkerSteps to dimension of FinalData
+    # FinalData = np.empty(DataShape, dtype = BoxSlices.dtype)
+    # FinalData[0] = BoxSlices
 
-    for i in range(1, db.WalkerSteps):
-    # for i in range(1, 10):
-        # Box = db.CombineBoxes(9999)
+    # for i in range(1, db.WalkerSteps):
+    # # for i in range(1, 10):
+    #     # Box = db.CombineBoxes(9999)
+    #     Box = db.CombineBoxes(i)
+    #     BoxSlices = DatabaseUtils.SliceBoxNTimesXY(Box, SlicesPerAxis)
+    #     FinalData[i] = BoxSlices
+    #     if i%100 == 0:
+    #         print(i)
+
+    FinalData = []
+    for i in range(db.WalkerSteps):
         Box = db.CombineBoxes(i)
         BoxSlices = DatabaseUtils.SliceBoxNTimesXY(Box, SlicesPerAxis)
-        FinalData[i] = BoxSlices
+        FinalData.append(BoxSlices)
         if i%100 == 0:
             print(i)
-
-    return FinalData
+    return np.array(FinalData)
 
 TotalData = CreateSlicedData(database)
 print(TotalData.shape)

@@ -1,7 +1,7 @@
 import numpy as np
 
 class Database:
-    def __init__(self, BoxesPath, ParametersPath, Parameters, Redshifts, BoxType = "delta_T", BoxRes = 200, BoxSize = 300, WalkerID = 0, WalkerSteps = 10000):
+    def __init__(self, Parameters, Redshifts, BoxesPath = "", ParametersPath = "", BoxType = "delta_T", BoxRes = 200, BoxSize = 300, WalkerID = 0, WalkerSteps = 10000):
         self.BoxesPath = BoxesPath
         self.ParametersPath = ParametersPath
         self.BoxType = BoxType
