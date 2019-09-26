@@ -37,7 +37,6 @@ def NormalizeY(Y):
 def ReshapeY(Y, Xshape):
     Y = np.broadcast_to(Y, (Xshape[1],) + Y.shape)
     Y = np.swapaxes(Y, 0, 1)
-    assert Y.shape == Xshape
     return Y
 
 def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):

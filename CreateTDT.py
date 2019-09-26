@@ -36,7 +36,7 @@ print(f"Cut x-dim in half {DataX.shape}")
 #reshaping X and Y, so they have shape of (N, Nx, Nz)
 DataY = Filters.ReshapeY(DataY, DataX.shape)
 DataX = DataX.reshape(-1, DataX.shape[-2], DataX.shape[-1])
-DataY = DataY.reshape(-1, DataY.shape[-2], DataY.shape[-1])
+DataY = DataY.reshape(-1, DataY.shape[-1])
 
 #filtering X
 np.nan_to_num(DataX, copy=False)
