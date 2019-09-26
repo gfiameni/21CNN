@@ -28,8 +28,8 @@ print(f"data loaded X={DataX.shape}, Y={DataY.shape}")
 DataY = Filters.NormalizeY(DataY)
 
 #cutting X
-DataX = Filters.RemoveLargeZ(DataX, database, Z=12)
-print(f"Remove Z {DataX.shape}")
+DataX = DataX[..., :1000] #should be replaced in future with Filters.RemoveLargeZ
+print(f"Remove large Z {DataX.shape}")
 DataX = Filters.CutInX(DataX, N=2)
 print(f"Cut x-dim in half {DataX.shape}")
 
