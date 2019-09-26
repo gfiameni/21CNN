@@ -39,7 +39,7 @@ def ReshapeY(Y, Xshape):
     assert Y.shape == Xshape
     return Y
 
-def TDT(X, Y, pTrain, pDev, pTest, RandomSeed = 1312):
+def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
     assert np.abs(pTrain + pDev + pTest - 1) < 1e-3
     assert X.shape[0] == Y.shape[0]
 
@@ -47,10 +47,10 @@ def TDT(X, Y, pTrain, pDev, pTest, RandomSeed = 1312):
     n[0] = int(X.shape[0] * pTrain)
     n[1] = int(X.shape[0] * pDev)
     n[2] = X.shape[0] - n[0] - n[1]
-    indexArray = np.hstack((np.zeros(n[0], dtype=int), np.ones(n[1], dtype=int), 2*np.ones(n[2], dtype=int))
+    indexArray = np.hstack((np.zeros(n[0], dtype=int), np.ones(n[1], dtype=int), 2*np.ones(n[2], dtype=int)))
 
-    rs = np.random.RandomState(seed=RandomSeed)
-    indexArray = rs.permutation(indexArray)
+    RState = np.random.RandomState(seed=seed)
+    indexArray = RState.permutation(indexArray)
 
     tdt = []
     for i in range(3):

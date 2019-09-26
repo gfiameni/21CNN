@@ -56,6 +56,7 @@ pTrain = 0.8
 pDev = 0.1
 pTest = 0.1
 trainX, trainY, devX, devY, testX, testY = Filters.TDT(DataX, DataY, pTrain, pDev, pTest)
+print("train and test created, now saving...")
 
 np.save(f"{DataFilepath}train/X_tophat22_Z12_meanZ_{DataXname}", trainX)
 np.save(f"{DataFilepath}train/Y_tophat22_Z12_meanZ_{DataXname}", trainY)
