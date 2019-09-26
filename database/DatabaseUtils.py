@@ -93,3 +93,18 @@ def SliceBoxNTimesXY(Box, N):
         slices[y+N] = Box[:, y * BoxDim[1] // N, :]
 
     return slices
+
+def CreateSlicedData(db, SlicesPerAxis = 5):
+    """
+    Creating general sliced cubes without post or preprocessing
+    db == DatabaseUtils.Database object
+    SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
+    """
+    FinalData = []
+    for i in range(db.WalkerSteps):
+        Box = db.CombineBoxes(i)
+        BoxSlices = SliceBoxNTimesXY(Box, SlicesPerAxis)
+        FinalData.append(BoxSlices)
+        if i%100 == 0:
+            print(i)
+    return np.array(FinalData)

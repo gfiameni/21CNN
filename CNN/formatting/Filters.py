@@ -1,13 +1,15 @@
 import numpy as np
 from scipy.signal import correlate
+from astropy.cosmology import Planck15 as cosmo
+from astropy import units as u
 
 def RemoveLargeZ(data, db, Z=12):
-    #this should be fixed!, as data is not linear in Z
     minZ = float(db.Redshifts[0])
     maxZ = float(db.Redshifts[-1])
     if Z < minZ or Z > maxZ:
         raise ValueError(f"Z not in range ({minZ}, {maxZ})")
-    maxIndex = int((Z - minZ) / (maxZ - minZ) * data.shape[-1] + 0.5)
+    minD, maxD, D = np.array(cosmo.comoving_distance([minZ, maxZ, Z]))
+    maxIndex = int((D - minD) / (maxD - minD) * data.shape[-1] + 0.5)
     return data[..., :maxIndex]
 
 def CutInX (data, N = 2):
