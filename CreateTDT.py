@@ -28,7 +28,7 @@ print(f"data loaded X={DataX.shape}, Y={DataY.shape}")
 DataY = Filters.NormalizeY(DataY)
 
 #cutting X
-DataX = DataX[..., :1000] #should be replaced in future with Filters.RemoveLargeZ
+DataX = Filters.RemoveLargeZ(DataX, database, Z=12) #should be replaced in future with Filters.RemoveLargeZ
 print(f"Remove large Z {DataX.shape}")
 DataX = Filters.CutInX(DataX, N=2)
 print(f"Cut x-dim in half {DataX.shape}")
@@ -41,10 +41,10 @@ DataY = DataY.reshape(-1, DataY.shape[-1])
 #filtering X
 np.nan_to_num(DataX, copy=False)
 print("NaN's set to 0")
-DataX = Filters.TopHat(DataX, Nx = 2, Nz = 2)
-print(f"Top Hat 2, 2 {DataX.shape}")
 np.clip(DataX, deltaTmin, deltaTmax, out=DataX)
 print("large values clipped")
+DataX = Filters.TopHat(DataX, Nx = 2, Nz = 2)
+print(f"Top Hat 2, 2 {DataX.shape}")
 #removing mean for every Z for all images
 DataX = DataX - np.mean(DataX, axis=1, keepdims=True) #need to keepdims so that broadcasting works
 #normalizing X

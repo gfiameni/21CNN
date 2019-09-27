@@ -36,6 +36,7 @@ class Database:
         #             count = int(self.BoxRes)**3).reshape((int(self.BoxRes), int(self.BoxRes), int(self.BoxRes)))
         f = np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'))
         f = f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2))) #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
+        f = f.astype('float32')
         return f
     def CombineBoxes(self, WalkerIndex, NumberOfBoxes = 1e4, StartIndex = 0):
         """
@@ -49,8 +50,9 @@ class Database:
         for i in range(StartIndex + 1, StartIndex + NumberOfBoxes):
             #not sure about the axis = 0, 1, 2? It seems from 21cmFAST, it should be axis=0
             #but from created images, axis 2 is the right one
-            Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2) 
+            Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2)
             # print(i)
+        Box = Box.astype('float32')
         return Box
 
     def WalkerAstroParams(self, WalkerIndex, ReturnType = "dict"):
@@ -91,7 +93,8 @@ def SliceBoxNTimesXY(Box, N):
         slices[x] = Box[x * BoxDim[0] // N, :, :]
     for y in range(N):
         slices[y+N] = Box[:, y * BoxDim[1] // N, :]
-
+    
+    slices = slices.astype('float32')
     return slices
 
 def CreateSlicedData(db, SlicesPerAxis = 5):
@@ -107,4 +110,4 @@ def CreateSlicedData(db, SlicesPerAxis = 5):
         FinalData.append(BoxSlices)
         if i%100 == 0:
             print(i)
-    return np.array(FinalData)
+    return np.array(FinalData, dtype='float32')

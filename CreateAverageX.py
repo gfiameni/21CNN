@@ -22,15 +22,6 @@ Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 
 database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
-##############TESTING##############
-# Box = database.CombineBoxes(9999, 12)
-# BoxSlices = DatabaseUtils.SliceBoxNTimesXY(Box, 5)
-# fig=plt.figure(figsize=(10, 10))
-# for i in range(1, 10 + 1):
-#     fig.add_subplot(10, 1, i)
-#     plt.imshow(BoxSlices[i-1], cmap="gray")
-# plt.savefig('/home/dprelogovic/Documents/proba_slices.pdf')
-
 TotalData = DatabaseUtils.CreateSlicedData(database, SlicesPerAxis = spa)
 print(TotalData.shape)
-np.save(f"../data/database{spa}_float32", TotalData)
+np.save(f"../data/database{spa}", TotalData)
