@@ -53,7 +53,8 @@ print("large values clipped")
 DataX = Filters.TopHat(DataX, Nx = tophat[0], Nz = tophat[1])
 print(f"Top Hat 2, 2 {DataX.shape}")
 #removing mean for every Z for all images
-DataX = DataX - AverageX[:,np.newaxis] #not sure if I need to add axis or will it be broadcasted by itself
+# DataX = DataX - AverageX[:,np.newaxis] #not sure if I need to add axis or will it be broadcasted by itself
+DataX = DataX - AverageX
 print("mean removed")
 #normalizing X
 deltaTmin = np.amin(DataX)
