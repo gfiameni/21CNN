@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.signal import correlate
-from astropy.cosmology import Planck15 as cosmo
+from sklearn.utils import shuffle
+from astropy.cosmology import FlatLambdaCDM
 from astropy import units as u
 
 def RemoveLargeZ(data, db, Z=12):
@@ -8,6 +9,7 @@ def RemoveLargeZ(data, db, Z=12):
     maxZ = float(db.Redshifts[-1])
     if Z < minZ or Z > maxZ:
         raise ValueError(f"Z not in range ({minZ}, {maxZ})")
+    cosmo = FlatLambdaCDM(67.8, 0.3078)
     minD, maxD, D = np.array(cosmo.comoving_distance([minZ, maxZ, Z]))
     maxIndex = int((D - minD) / (maxD - minD) * data.shape[-1] + 0.5)
     return data[..., :maxIndex]
@@ -34,7 +36,7 @@ def TopHat(data, Nx = 1, Nz = 2):
 def NormalizeY(Y):
     min = np.amin(Y, axis=0)
     max = np.amax(Y, axis=0)
-    return (Y - min) / (max - min)
+    return (Y - min) / (max - min), min, max
 
 def ReshapeY(Y, Xshape):
     Y = np.broadcast_to(Y, (Xshape[1],) + Y.shape)
@@ -42,8 +44,11 @@ def ReshapeY(Y, Xshape):
     return Y
 
 def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
-    assert np.abs(pTrain + pDev + pTest - 1) < 1e-3
-    assert X.shape[0] == Y.shape[0]
+    """
+    Create Train Dev Test sets
+    all firstly seperated in parameter space, then shuffled and saved
+    """
+    assert np.abs(pTrain + pDev + pTest - 1) < 1e-5
 
     n = [0, 0, 0]
     n[0] = int(X.shape[0] * pTrain)
@@ -56,7 +61,11 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
 
     tdt = []
     for i in range(3):
-        tdt.append(X[indexArray==i])
-        tdt.append(Y[indexArray==i])
-    
+        dX = X[indexArray==i]
+        dY = Y[indexArray==i]
+        dX = dX.reshape(-1, dX.shape[-2], dX.shape[-1])
+        dY = dY.reshape(-1, dY.shape[-1])
+        dX, dY = shuffle(dX, dY, random_state = RState)
+        tdt.append(dX)
+        tdt.append(dY)
     return tdt

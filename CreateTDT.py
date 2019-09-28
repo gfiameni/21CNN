@@ -5,13 +5,7 @@
 import numpy as np
 from database import DatabaseUtils
 from CNN.formatting import Filters
-
-DataFilepath = "../data/"
-DataXname = "database5.npy"
-DataYname = "databaseParams.npy"
-
-deltaTmin = -250
-deltaTmax = 50
+import json
 
 #define database, paths not important at the moment
 Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503', \
@@ -19,38 +13,51 @@ Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '0
 Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 database = DatabaseUtils.Database(Parameters, Redshifts)
 
-#loading X and Y
+spa = 5
+
+DataFilepath = "../data/"
+DataXname = f"database{spa}_{database.Dtype}.npy"
+DataYname = f"databaseParams_{database.Dtype}.npy"
+AverageXname = f"database{spa}_averages_{database.Dtype}.npy"
+
+deltaTmin = -250
+deltaTmax = 50
+
+#loading X and Y and averages
 DataY = np.load(DataFilepath+DataYname)
 DataX = np.load(DataFilepath+DataXname)
-print(f"data loaded X={DataX.shape}, Y={DataY.shape}")
+AverageX = np.load(DataFilepath+AverageXname)
+print(f"data loaded X={DataX.shape}, Y={DataY.shape}, avgX={AverageX.shape}")
 
 #normalizing Y -> every parameter in [0, 1]
-DataY = Filters.NormalizeY(DataY)
+Ybackup = {}
+Ybackup['parameters'] = database.Parameters
+DataY, Ybackup['min'], Ybackup['max'] = Filters.NormalizeY(DataY)
+with open(DataFilepath+"databaseParams_min_max.txt", 'w') as f:
+    json.dump(Ybackup, f)
 
-#cutting X
-DataX = Filters.RemoveLargeZ(DataX, database, Z=12) #should be replaced in future with Filters.RemoveLargeZ
+#cutting X and AverageX
+DataX = Filters.RemoveLargeZ(DataX, database, Z=12)
+AverageX = Filters.RemoveLargeZ(AverageX, database, Z=12)
 print(f"Remove large Z {DataX.shape}")
 DataX = Filters.CutInX(DataX, N=2)
 print(f"Cut x-dim in half {DataX.shape}")
 
-#reshaping X and Y, so they have shape of (N, Nx, Nz)
-DataY = Filters.ReshapeY(DataY, DataX.shape)
-DataX = DataX.reshape(-1, DataX.shape[-2], DataX.shape[-1])
-DataY = DataY.reshape(-1, DataY.shape[-1])
-
 #filtering X
-np.nan_to_num(DataX, copy=False)
-print("NaN's set to 0")
+np.nan_to_num(DataX, copy=False, nan=deltaTmin, posinf=deltaTmax, neginf=deltaTmin)
+print(f"NaN's and infinities set to {deltaTmin}, {deltaTmax}")
 np.clip(DataX, deltaTmin, deltaTmax, out=DataX)
 print("large values clipped")
 DataX = Filters.TopHat(DataX, Nx = 2, Nz = 2)
 print(f"Top Hat 2, 2 {DataX.shape}")
 #removing mean for every Z for all images
-DataX = DataX - np.mean(DataX, axis=1, keepdims=True) #need to keepdims so that broadcasting works
+DataX = DataX - AverageX[:,np.newaxis] #not sure if I need to add axis or will it be broadcasted by itself
+print("mean removed")
 #normalizing X
 deltaTmin = np.amin(DataX)
 deltaTmax = np.amax(DataX)
 DataX = (DataX - deltaTmin) / (deltaTmax - deltaTmin)
+print("X normalized")
 
 pTrain = 0.8
 pDev = 0.1

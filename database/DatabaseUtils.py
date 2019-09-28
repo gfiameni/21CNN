@@ -1,7 +1,11 @@
 import numpy as np
 
 class Database:
-    def __init__(self, Parameters, Redshifts, BoxesPath = "", ParametersPath = "", BoxType = "delta_T", BoxRes = 200, BoxSize = 300, WalkerID = 0, WalkerSteps = 10000):
+    def __init__(self, Parameters, Redshifts, 
+                 BoxesPath = "", ParametersPath = "", 
+                 BoxType = "delta_T", BoxRes = 200, BoxSize = 300,
+                 WalkerID = 0, WalkerSteps = 10000, 
+                 Dtype = "float32"):
         self.BoxesPath = BoxesPath
         self.ParametersPath = ParametersPath
         self.BoxType = BoxType
@@ -11,6 +15,7 @@ class Database:
         self.Redshifts = Redshifts
         self.WalkerSteps = WalkerSteps
         self.Parameters = Parameters
+        self.Dtype = Dtype
 
         self.NumBoxes = len(Redshifts) - 1
 
@@ -18,7 +23,6 @@ class Database:
         filepath = f"{self.BoxesPath}/{self.BoxType}_{self.WalkerID:.6f}_{WalkerIndex:.6f}" \
                    f"__zstart{self.Redshifts[RedshiftIndex]}_zend{self.Redshifts[RedshiftIndex + 1]}_" \
                    f"FLIPBOXES0_{self.BoxRes}_{self.BoxSize}Mpc_lighttravel"
-        # print(filepath)
         return filepath
     def CreateParamFilepath(self, WalkerIndex):
         filepath = f"{self.ParametersPath}/Walker_{self.WalkerID:.6f}_{WalkerIndex:.6f}.txt"
@@ -32,11 +36,9 @@ class Database:
 
         filepath = self.CreateFilepath(RedshiftIndex, WalkerIndex)
         
-        # return np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'), \
-        #             count = int(self.BoxRes)**3).reshape((int(self.BoxRes), int(self.BoxRes), int(self.BoxRes)))
-        f = np.fromfile(open(filepath,'rb'), dtype = np.dtype('float32'))
+        f = np.fromfile(open(filepath,'rb'), dtype = np.dtype(self.Dtype))
         f = f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2))) #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
-        f = f.astype('float32')
+        f = f.astype(self.Dtype)
         return f
     def CombineBoxes(self, WalkerIndex, NumberOfBoxes = 1e4, StartIndex = 0):
         """
@@ -52,7 +54,7 @@ class Database:
             #but from created images, axis 2 is the right one
             Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2)
             # print(i)
-        Box = Box.astype('float32')
+        Box = Box.astype(self.Dtype)
         return Box
 
     def WalkerAstroParams(self, WalkerIndex, ReturnType = "dict"):
@@ -78,36 +80,47 @@ class Database:
             a = []
             for p in self.Parameters:
                 a.append(d[p])
-            return np.array(a)
+            return np.array(a, dtype = self.Dtype)
+
+
+    def SliceBoxNTimesXY(self, Box, N):
+        BoxDim = Box.shape
+        slices = np.zeros((2 * N, BoxDim[1], BoxDim[2]))
+        for x in range(N):
+            slices[x] = Box[x * BoxDim[0] // N, :, :]
+        for y in range(N):
+            slices[y+N] = Box[:, y * BoxDim[1] // N, :]
+        
+        slices = slices.astype(self.Dtype)
+        return slices
+
+    def CreateSlicedData(self, SlicesPerAxis = 5):
+        """
+        Creating general sliced cubes without post or preprocessing
+        db == DatabaseUtils.Database object
+        SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
+        """
+        FinalData = []
+        for i in range(self.WalkerSteps):
+            Box = self.CombineBoxes(i)
+            BoxSlices = self.SliceBoxNTimesXY(Box, SlicesPerAxis)
+            FinalData.append(BoxSlices)
+            if i%100 == 0:
+                print(i)
+        return np.array(FinalData, dtype=self.Dtype)
+
+    def CreateParamData(self):
+        walkers = []
+        for i in range(self.WalkerSteps):
+            walker = self.WalkerAstroParams(i, ReturnType = "array")
+            walkers.append(walker)
+            if i % 100 == 0:
+                print(i)
+        return np.array(walkers, dtype=self.Dtype)
+
 
 
 
 def MiddleSlice(Box):
     BoxDim = Box.shape
     return Box[BoxDim[0] // 2, :, :]
-
-def SliceBoxNTimesXY(Box, N):
-    BoxDim = Box.shape
-    slices = np.zeros((2 * N, BoxDim[1], BoxDim[2]))
-    for x in range(N):
-        slices[x] = Box[x * BoxDim[0] // N, :, :]
-    for y in range(N):
-        slices[y+N] = Box[:, y * BoxDim[1] // N, :]
-    
-    slices = slices.astype('float32')
-    return slices
-
-def CreateSlicedData(db, SlicesPerAxis = 5):
-    """
-    Creating general sliced cubes without post or preprocessing
-    db == DatabaseUtils.Database object
-    SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
-    """
-    FinalData = []
-    for i in range(db.WalkerSteps):
-        Box = db.CombineBoxes(i)
-        BoxSlices = SliceBoxNTimesXY(Box, SlicesPerAxis)
-        FinalData.append(BoxSlices)
-        if i%100 == 0:
-            print(i)
-    return np.array(FinalData, dtype='float32')
