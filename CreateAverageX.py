@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
@@ -23,7 +22,7 @@ Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
 averages = []
-for i in database.WalkerSteps:
+for i in range(database.WalkerSteps):
     Box = database.CombineBoxes(i)
     averages.append(np.mean(Box, axis=(0, 1), keepdims=False)[np.newaxis])
     if i%100 == 0:
