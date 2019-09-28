@@ -4,8 +4,8 @@ import sys
 from database import DatabaseUtils
 
 spa = 5 #SlicesPerAxis
-i1 = int(sys.argv[0])
-i2 = int(sys.argv[1])
+i1 = int(sys.argv[1])
+i2 = int(sys.argv[2])
 
 #define path to database, send to program as parameters if different from default
 
