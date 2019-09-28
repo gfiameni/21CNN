@@ -19,5 +19,5 @@ DataX = np.load(DataFilepath+DataXname)
 fig=plt.figure(figsize=(10, 10))
 for i in range(1, 10 + 1):
     fig.add_subplot(10, 1, i)
-    plt.imshow(DataX[100*i, i+5], cmap="gray")
+    plt.imshow(DataX[100*i, i], cmap="gray")
 plt.savefig('DatabaseTest.pdf')
