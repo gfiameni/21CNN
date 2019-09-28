@@ -4,7 +4,7 @@ import sys
 
 from database import DatabaseUtils
 
-spa = 10
+spa = 5
 
 #define path to database, send to program as parameters if different from default
 if len(sys.argv) == 1:
@@ -22,6 +22,12 @@ Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 
 database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
-TotalData = DatabaseUtils.CreateSlicedData(database, SlicesPerAxis = spa)
-print(TotalData.shape)
-np.save(f"../data/database{spa}", TotalData)
+averages = []
+for i in database.WalkerSteps:
+    Box = database.CombineBoxes(i)
+    averages.append(np.mean(Box, axis=(0, 1), keepdims=False)[np.newaxis])
+    if i%100 == 0:
+        print(i)
+averages = np.array(averages, dtype='float32')
+print(averages.shape)
+np.save(f"../data/database{spa}_averages_float32", averages)
