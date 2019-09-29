@@ -8,17 +8,6 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Convolution2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization
 from keras.models import Sequential
 
-
-# ### save files
-# model_template = '%s_2D'
-# model_file = model_template%(paramName[paramNum]) + name
-# history_file = model_file + '_history'
-# prediction_file = model_file + '_pred'
-# prediction_file_val = model_file + '_pred_val'
-
-# ### save folder
-# CNN_folder = 'CNN_save/'
-
 ### to use openMP
 ### export OMP_NUM_THREADS=2
 
@@ -39,8 +28,6 @@ def modelNN(
     Nfilter1 = 8, ### First convolution
     Nfilter2 = 16, ### 2nd convolution
     Nfilter3 = 64, ### First Dense
-    batch_size = 20, ### number of sub sample, /!\ has to be a diviseur of the training set
-    epochs = 200   ### number of passage over the full data set
     ):
     if( batchNorm ):
         use_bias=False
@@ -109,3 +96,4 @@ def modelNN(
     ##############################    
     model.summary(line_length=120) 
 
+    return model

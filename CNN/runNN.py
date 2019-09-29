@@ -36,17 +36,29 @@ devX = devX[..., np.newaxis]
 
 
 ######################
+### CREATING MODEL ###
+######################
+from architectures import NGillet
+model = NGillet.modelNN(input_shape = trainX.shape[1:])
+
+######################
 ### LEARNING PHASE ###
 ######################
 
+### Network PARAMETERS
+### LOSS FUNCTION
+loss = 'mean_squared_error' ### classic loss function for regression, see also 'mae'
+### DEFINE THE OPTIMIZER
+optimizer = 'RMSprop' #'adagrad'  #'adadelta' #'adam' # 'adamax' # 'Nadam' # 'RMSprop' # sgd
 ### DEFINE THE LEARNING RATE
+factor=0.5
+patience=5
 
 ### set the learning rate callback
 callbacks_list=[]
-if( 1 ):
-    from keras.callbacks import LearningRateScheduler, ReduceLROnPlateau
-    lrate = ReduceLROnPlateau( monitor='loss', factor=factor, patience=patience )
-    callbacks_list.append( lrate )
+from keras.callbacks import LearningRateScheduler, ReduceLROnPlateau
+lrate = ReduceLROnPlateau( monitor='loss', factor=factor, patience=patience )
+callbacks_list.append( lrate )
 
 ### to print the Learning Rate
 from keras.callbacks import Callback, EarlyStopping
@@ -72,13 +84,26 @@ model.compile( loss=loss,
                metrics=[coeff_determination] )
 
 ### THE LEARNING FUNCTION
-history = model.fit( LC_train, Param_train,
+batch_size = 20, ### number of sub sample, /!\ has to be a diviseur of the training set
+epochs = 50   ### number of passage over the full data set
+
+history = model.fit( trainX, trainY,
                      epochs=epochs,
                      batch_size=batch_size,
                      callbacks=callbacks_list,
-                     validation_data=( LC_test, Param_test ),
+                     validation_data=(devX, devY),
                      verbose=True )
 
+
+
+### save files
+model_file = '2D_Filter55_1batchNorm'
+history_file = model_file + '_history'
+prediction_file = model_file + '_pred'
+prediction_file_val = model_file + '_pred_val'
+
+### save folder
+CNN_folder = 'NGillet_save/'
 np.save( CNN_folder + history_file, history.history )
 
 ########################
@@ -102,19 +127,19 @@ save_model( model, CNN_folder + model_file )
 ### PREDICTION ###
 ##################
 
-predictions = model.predict( LC_test, verbose=True )
+predictions = model.predict( testX, verbose=True )
 
 ### PRINT SCORE
-if all4:  
-    print( 'R2: ', 1 - (((predictions[:,0] - Param_test[:,0])**2).sum(axis=0)) / ((predictions[:,0] - predictions[:,0].mean(axis=0) )**2).sum(axis=0) )
-    print( 'R2: ', 1 - (((predictions[:,1] - Param_test[:,1])**2).sum(axis=0)) / ((predictions[:,1] - predictions[:,1].mean(axis=0) )**2).sum(axis=0) )
-    print( 'R2: ', 1 - (((predictions[:,2] - Param_test[:,2])**2).sum(axis=0)) / ((predictions[:,2] - predictions[:,2].mean(axis=0) )**2).sum(axis=0) )
-    print( 'R2: ', 1 - (((predictions[:,3] - Param_test[:,3])**2).sum(axis=0)) / ((predictions[:,3] - predictions[:,3].mean(axis=0) )**2).sum(axis=0) )
-else: 
-    print( 'R2: ', 1 - (((predictions[:,0] - Param_test[:,paramNum])**2).sum(axis=0)) / ((predictions[:,0] - predictions[:,0].mean(axis=0) )**2).sum(axis=0) )
+# if all4:  
+print( 'R2: ', 1 - (((predictions[:,0] - testY[:,0])**2).sum(axis=0)) / ((predictions[:,0] - predictions[:,0].mean(axis=0) )**2).sum(axis=0) )
+print( 'R2: ', 1 - (((predictions[:,1] - testY[:,1])**2).sum(axis=0)) / ((predictions[:,1] - predictions[:,1].mean(axis=0) )**2).sum(axis=0) )
+print( 'R2: ', 1 - (((predictions[:,2] - testY[:,2])**2).sum(axis=0)) / ((predictions[:,2] - predictions[:,2].mean(axis=0) )**2).sum(axis=0) )
+print( 'R2: ', 1 - (((predictions[:,3] - testY[:,3])**2).sum(axis=0)) / ((predictions[:,3] - predictions[:,3].mean(axis=0) )**2).sum(axis=0) )
+# else: 
+#     print( 'R2: ', 1 - (((predictions[:,0] - Param_test[:,paramNum])**2).sum(axis=0)) / ((predictions[:,0] - predictions[:,0].mean(axis=0) )**2).sum(axis=0) )
 
 np.save( CNN_folder + prediction_file, predictions )
 
 ### Predict the validation, to be use only at the end end end ....
-predictions_val = model.predict( LC_val, verbose=True )
+predictions_val = model.predict( devX, verbose=True )
 np.save( CNN_folder + prediction_file_val, predictions_val )
