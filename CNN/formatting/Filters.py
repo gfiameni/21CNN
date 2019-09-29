@@ -48,6 +48,8 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
     Create Train Dev Test sets
     all firstly seperated in parameter space, then shuffled and saved
     """
+    Y = ReshapeY(Y, X.shape)
+    
     assert np.abs(pTrain + pDev + pTest - 1) < 1e-5
 
     n = [0, 0, 0]
