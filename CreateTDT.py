@@ -35,6 +35,8 @@ print(f"data loaded X={DataX.shape}, Y={DataY.shape}, avgX={AverageX.shape}")
 Ybackup = {}
 Ybackup['parameters'] = database.Parameters
 DataY, Ybackup['min'], Ybackup['max'] = Filters.NormalizeY(DataY)
+Ybackup['min'] = Ybackup['min'].tolist()
+Ybackup['max'] = Ybackup['max'].tolist()
 with open(DataFilepath+"databaseParams_min_max.txt", 'w') as f:
     json.dump(Ybackup, f)
 
