@@ -26,4 +26,4 @@ for i in range(i1, i2):
         print(i)
 averages = np.array(averages, dtype=database.Dtype)
 print(averages.shape)
-np.save(f"../data/database{spa}_averages_{database.Dtype}_{i1:5d}_{i2:5d}", averages)
+np.save(f"../data/database{spa}_averages_{database.Dtype}_{i1:05d}_{i2:05d}", averages)
