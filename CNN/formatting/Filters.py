@@ -10,7 +10,7 @@ def RemoveLargeZ(data, db, Z=12):
     if Z < minZ or Z > maxZ:
         raise ValueError(f"Z not in range ({minZ}, {maxZ})")
     cosmo = FlatLambdaCDM(67.8, 0.3078)
-    minD, maxD, D = np.array(cosmo.comoving_distance([minZ, maxZ, Z]))
+    minD, maxD, D = np.array(cosmo.comoving_distance(np.array([minZ, maxZ, Z])))
     maxIndex = int((D - minD) / (maxD - minD) * data.shape[-1] + 0.5)
     return data[..., :maxIndex]
 

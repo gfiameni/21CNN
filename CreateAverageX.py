@@ -23,7 +23,7 @@ database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPa
 averages = []
 for i in range(database.WalkerSteps):
     Box = database.CombineBoxes(i)
-    averages.append(np.mean(Box, axis=(0, 1), keepdims=False)[np.newaxis])
+    averages.append(np.nanmean(Box, axis=(0, 1), dtype='float32', keepdims=True))
     if i%100 == 0:
         print(i)
 averages = np.array(averages, dtype=database.Dtype)
