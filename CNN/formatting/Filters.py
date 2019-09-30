@@ -68,6 +68,8 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
         dX = dX.reshape(-1, dX.shape[-2], dX.shape[-1])
         dY = dY.reshape(-1, dY.shape[-1])
         dX, dY = shuffle(dX, dY, random_state = RState)
+        dX = dX.astype(np.float32)
+        dY = dY.astype(np.float32)
         tdt.append(dX)
         tdt.append(dY)
     return tdt

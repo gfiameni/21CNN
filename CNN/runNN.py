@@ -12,41 +12,41 @@ from keras import backend as K
 
 K.set_image_data_format('channels_last')
 
-############################
-### LIMIT GPU USAGE      ###
-############################
-#https://www.tensorflow.org/guide/gpu
-MaxGB = 10.5
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-  # Restrict TensorFlow to only allocate MaxGB of memory on the first GPU
-  try:
-    tf.config.experimental.set_virtual_device_configuration(
-        gpus[0],
-        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=int(MaxGB*1024))])
-    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-  except RuntimeError as e:
-    # Virtual devices must be set before GPUs have been initialized
-    print(e)
+# ############################
+# ### LIMIT GPU USAGE      ###
+# ############################
+# #https://www.tensorflow.org/guide/gpu
+# MaxGB = 10.5
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# if gpus:
+#   # Restrict TensorFlow to only allocate MaxGB of memory on the first GPU
+#   try:
+#     tf.config.experimental.set_virtual_device_configuration(
+#         gpus[0],
+#         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=int(MaxGB*1024))])
+#     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+#     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+#   except RuntimeError as e:
+#     # Virtual devices must be set before GPUs have been initialized
+#     print(e)
 
 ############################
 ### LOAD DADA: LIGHTCONE ###
 ############################
 DataFilepath = "../../data/"
-DataXname = f"database5_float32.npy"
+DataXname = "database5_float32.npy"
 pTrain = 0.8
 pDev = 0.1
 pTest = 0.1
 tophat = [2, 2]
 Zmax = 12
 
-trainX = np.load(f"{DataFilepath}train/X_{pTrain:.1f}_tophat{tophat[0]}{tophat[1]}_Z{Zmax}_meanZ_{DataXname}")
-trainY = np.load(f"{DataFilepath}train/Y_{pTrain:.1f}_tophat{tophat[0]}{tophat[1]}_Z{Zmax}_meanZ_{DataXname}")
-testX  = np.load(f"{DataFilepath}test/X_{pTest:.1f}_tophat{tophat[0]}{tophat[1]}_Z{Zmax}_meanZ_{DataXname}")
-testY  = np.load(f"{DataFilepath}test/Y_{pTest:.1f}_tophat{tophat[0]}{tophat[1]}_Z{Zmax}_meanZ_{DataXname}")
-devX   = np.load(f"{DataFilepath}dev/X_{pTest:.1f}_tophat{tophat[0]}{tophat[1]}_Z{Zmax}_meanZ_{DataXname}")
-devY   = np.load(f"{DataFilepath}dev/Y_{pTest:.1f}_tophat{tophat[0]}{tophat[1]}_Z{Zmax}_meanZ_{DataXname}")
+trainX = np.load(DataFilepath + 'train/X_'+"0.8_tophat22_Z12_meanZ_database5_float32.npy")
+trainY = np.load(DataFilepath + 'train/Y_'+"0.8_tophat22_Z12_meanZ_database5_float32.npy")
+testX  = np.load(DataFilepath + 'test/X_'+"0.1_tophat22_Z12_meanZ_database5_float32.npy")
+testY  = np.load(DataFilepath + 'test/Y_'+"0.1_tophat22_Z12_meanZ_database5_float32.npy")
+devX   = np.load(DataFilepath + 'dev/X_'+"0.1_tophat22_Z12_meanZ_database5_float32.npy")
+devY   = np.load(DataFilepath + 'dev/Y_'+"0.1_tophat22_Z12_meanZ_database5_float32.npy")
 ### adjustment of data dimention -> channels_last
 trainX = trainX[..., np.newaxis]
 testX = testX[..., np.newaxis]
@@ -62,12 +62,14 @@ model = NGillet.modelNN(input_shape = trainX.shape[1:])
 ######################
 ### LEARNING PHASE ###
 ######################
+from keras.optimizers import RMSprop
 
 ### Network PARAMETERS
 ### LOSS FUNCTION
 loss = 'mean_squared_error' ### classic loss function for regression, see also 'mae'
 ### DEFINE THE OPTIMIZER
-optimizer = 'RMSprop' #'adagrad'  #'adadelta' #'adam' # 'adamax' # 'Nadam' # 'RMSprop' # sgd
+# optimizer = 'RMSprop' #'adagrad'  #'adadelta' #'adam' # 'adamax' # 'Nadam' # 'RMSprop' # sgd
+opt = RMSprop(lr=0.1)
 ### DEFINE THE LEARNING RATE
 factor=0.5
 patience=5
@@ -98,12 +100,12 @@ callbacks_list.append( early_stopping )
 
 ### model compilations
 model.compile( loss=loss,
-               optimizer=optimizer,
+               optimizer=opt,
                metrics=[coeff_determination] )
 
 ### THE LEARNING FUNCTION
-batch_size = 20, ### number of sub sample, /!\ has to be a diviseur of the training set
-epochs = 50   ### number of passage over the full data set
+batch_size = 2**3 ### number of sub sample, /!\ has to be a diviseur of the training set
+epochs = 200   ### number of passage over the full data set
 
 history = model.fit( trainX, trainY,
                      epochs=epochs,
