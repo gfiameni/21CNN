@@ -121,7 +121,7 @@ prediction_file = model_file + '_pred'
 prediction_file_val = model_file + '_pred_val'
 
 ### save folder
-CNN_folder = 'NGillet_save/'
+CNN_folder = 'data_save/NGillet/'
 np.save( CNN_folder + history_file, history.history )
 
 ########################
