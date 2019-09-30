@@ -4,6 +4,8 @@ import sys
 from database import DatabaseUtils
 
 spa = 5 #SlicesPerAxis
+deltaTmin = -250
+deltaTmax = 50
 
 #define path to database, send to program as parameters if different from default
 if len(sys.argv) == 1:
@@ -23,9 +25,11 @@ database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPa
 averages = []
 for i in range(database.WalkerSteps):
     Box = database.CombineBoxes(i)
-    averages.append(np.nanmean(Box, axis=(0, 1), dtype='float32', keepdims=True))
+    np.nan_to_num(Box, copy=False, nan=deltaTmin, posinf=deltaTmax, neginf=deltaTmin)
+    np.clip(Box, deltaTmin, deltaTmax, out=Box)
+    averages.append(np.mean(Box, axis=(0, 1), dtype=database.Dtype, keepdims=True))
     if i%100 == 0:
         print(i)
 averages = np.array(averages, dtype=database.Dtype)
 print(averages.shape)
-np.save(f"../data/database{spa}_averages_{database.Dtype}", averages)
+np.save(f"../data/database{spa}_averages_{database.Dtype}_clipped", averages)

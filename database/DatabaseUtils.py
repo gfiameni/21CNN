@@ -5,7 +5,7 @@ class Database:
                  BoxesPath = "", ParametersPath = "", 
                  BoxType = "delta_T", BoxRes = 200, BoxSize = 300,
                  WalkerID = 0, WalkerSteps = 10000, 
-                 Dtype = "float32"):
+                 Dtype = np.float32):
         self.BoxesPath = BoxesPath
         self.ParametersPath = ParametersPath
         self.BoxType = BoxType
