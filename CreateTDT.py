@@ -58,16 +58,17 @@ np.nan_to_num(DataX, copy=False, nan=deltaTmin, posinf=deltaTmax, neginf=deltaTm
 print(f"NaN's and infinities set to {deltaTmin}, {deltaTmax}")
 np.clip(DataX, deltaTmin, deltaTmax, out=DataX)
 print("large values clipped")
-DataX = Filters.TopHat(DataX, Nx = tophat[0], Nz = tophat[1])
-AverageX = Filters.TopHat(AverageX, Nx = 1, Nz = tophat[1])
-print(f"Top Hat 2, 2 {DataX.shape}")
+
 #removing mean for every Z for all images
 if RemoveMean:
     DataX = DataX - AverageX
     print("mean removed")
+DataX = Filters.TopHat(DataX, Nx = tophat[0], Nz = tophat[1])
+# AverageX = Filters.TopHat(AverageX, Nx = 1, Nz = tophat[1])
+print(f"Top Hat 2, 2 {DataX.shape}")
+if RemoveMean:
     deltaTmin = np.amin(DataX)
     deltaTmax = np.amax(DataX)
-
 DataX = (DataX - deltaTmin) / (deltaTmax - deltaTmin)
 print("X normalized")
 

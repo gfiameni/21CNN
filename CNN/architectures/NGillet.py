@@ -37,6 +37,12 @@ def modelNN(
         activation = 'linear' ### 'linear' 'relu'
 
     model = Sequential()
+    ### PRE-CONV1
+    model.add( Convolution2D( Nfilter1, (5, 5), activation=activation, 
+                            input_shape=input_shape, name='PreConv-1', padding=padding, use_bias=use_bias ) )
+    ### PRE-CONV2
+    model.add( Convolution2D( Nfilter1, (5, 5), activation=activation, 
+                            input_shape=input_shape, name='PreConv-2', padding=padding, use_bias=use_bias ) )
 
     ### CONV 1
     model.add( Convolution2D( Nfilter1, filter_size, activation=activation, 
