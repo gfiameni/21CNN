@@ -24,7 +24,7 @@ spa = 5
 DataFilepath = "../data/"
 DataXname = f"database{spa}_{database.Dtype}.npy"
 DataYname = f"databaseParams_{database.Dtype}.npy"
-AverageXname = f"database{spa}_averages_{database.Dtype}.npy"
+AverageXname = f"database{spa}_averages_{database.Dtype}_clipped.npy"
 
 deltaTmin = -250
 deltaTmax = 50
