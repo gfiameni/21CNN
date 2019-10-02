@@ -57,7 +57,7 @@ plt.close()
 fig=plt.figure(figsize=(10, 10))
 for i in range(10):
     fig.add_subplot(10, 1, i+1)
-    Box = database.CombineBoxes(WalkerIndex[images*i//10], 5)
+    Box = database.CombineBoxes(WalkerIndex[images*i//10][0], 5)
     slice = DatabaseUtils.MiddleSlice(Box)
     plt.pcolormesh(slice, vmin = 0, vmax = 1, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
