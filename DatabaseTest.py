@@ -54,6 +54,8 @@ for i in range(10):
 plt.savefig('Database_train_tophat_withoutmean.pdf')
 plt.close()
 
+print()
+
 fig=plt.figure(figsize=(10, 10))
 for i in range(10):
     fig.add_subplot(10, 1, i+1)
@@ -63,6 +65,7 @@ for i in range(10):
     Box = database.CombineBoxes(WI[0], 5)
     slices = database.SliceBoxNTimesXY(Box, 5)
     slices = Filters.CutInX(slices)
+    print(slices.shape)
     plt.pcolormesh(slices[WI[1]], vmin = -250, vmax = 50, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
 plt.savefig('Real_Database_train.pdf')
