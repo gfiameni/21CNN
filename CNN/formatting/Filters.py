@@ -43,7 +43,7 @@ def ReshapeY(Y, Xshape):
     Y = np.swapaxes(Y, 0, 1)
     return Y
 
-def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
+def TDT(X, Y, pTrain, pDev, pTest, seed = 1312, WalkerSteps = 0):
     """
     Create Train Dev Test sets
     all firstly seperated in parameter space, then shuffled and saved
@@ -61,15 +61,34 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312):
     RState = np.random.RandomState(seed=seed)
     indexArray = RState.permutation(indexArray)
 
-    tdt = []
-    for i in range(3):
-        dX = X[indexArray==i]
-        dY = Y[indexArray==i]
-        dX = dX.reshape(-1, dX.shape[-2], dX.shape[-1])
-        dY = dY.reshape(-1, dY.shape[-1])
-        dX, dY = shuffle(dX, dY, random_state = RState)
-        dX = dX.astype(np.float32)
-        dY = dY.astype(np.float32)
-        tdt.append(dX)
-        tdt.append(dY)
+    if WalkerSteps:
+        tdt = []
+        WalkerIndex = np.arange(1, WalkerSteps+1)
+        WalkerIndex = ReshapeY(WalkerIndex, X.shape)
+        for i in range(3):
+            dX = X[indexArray==i]
+            dY = Y[indexArray==i]
+            dWI = WalkerIndex[indexArray==i]
+            dX = dX.reshape(-1, dX.shape[-2], dX.shape[-1])
+            dY = dY.reshape(-1, dY.shape[-1])
+            dWI = dWI.reshape(-1, dWI.shape[-1])
+            dX, dY, dWI = shuffle(dX, dY, dWI, random_state = RState)
+            # dX = dX.astype(np.float32)
+            # dY = dY.astype(np.float32)
+            dWI = dWI.astype(int)
+            tdt.append(dX)
+            tdt.append(dY)
+            tdt.append(dWI)
+    else:
+        tdt = []
+        for i in range(3):
+            dX = X[indexArray==i]
+            dY = Y[indexArray==i]
+            dX = dX.reshape(-1, dX.shape[-2], dX.shape[-1])
+            dY = dY.reshape(-1, dY.shape[-1])
+            dX, dY = shuffle(dX, dY, random_state = RState)
+            dX = dX.astype(np.float32)
+            dY = dY.astype(np.float32)
+            tdt.append(dX)
+            tdt.append(dY)
     return tdt

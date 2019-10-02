@@ -58,10 +58,10 @@ devX = devX[..., np.newaxis]
 ######################
 from architectures import NGillet
 model = NGillet.modelNN(input_shape = trainX.shape[1:], 
-                        filter_size=(10, 10), 
+                        filter_size=(5, 5), 
                         Nfilter1=16, Nfilter2=32, Nfilter3=64, 
-                        FirstbatchNorm=False,
-                        use_dropout=0,
+                        # FirstbatchNorm=False,
+                        # use_dropout=0,
                         )
 
 
