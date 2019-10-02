@@ -7,7 +7,7 @@ from database import DatabaseUtils
 from CNN.formatting import Filters
 import json
 
-RemoveMean = False
+RemoveMean = True
 if RemoveMean:
     rm = "_meanZ"
 else:
