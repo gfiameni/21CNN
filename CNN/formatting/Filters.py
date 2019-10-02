@@ -16,6 +16,7 @@ def RemoveLargeZ(data, db, Z=12):
 
 def CutInX (data, N = 2):
     dataDim = data.shape
+    print(data.shape)
     bounds = list(range(0, dataDim[-2] + 1, dataDim[-2] // N))
     dataCut = data[..., bounds[0]:bounds[1], :]
     for i in range(1, N):
