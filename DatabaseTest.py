@@ -27,7 +27,7 @@ database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPa
 
 DataFilepath = "../data/train/"
 DataXname = "X_0.8_tophat22_Z12_database5_float32.npy"
-DataYname = "X_0.8_tophat22_Z12_database5_float32.npy"
+DataYname = "Y_0.8_tophat22_Z12_database5_float32.npy"
 Yparamsname = "../data/databaseParams_min_max.txt"
 WalkerIndexname = "X_0.8_WalkerIndex.npy"
 # DataYname = f"databaseParams_{database.Dtype}.npy"
