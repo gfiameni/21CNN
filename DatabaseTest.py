@@ -59,7 +59,7 @@ for i in range(10):
     fig.add_subplot(10, 1, i+1)
     Box = database.CombineBoxes(WalkerIndex[images*i//10][0], 5)
     slice = DatabaseUtils.MiddleSlice(Box)
-    plt.pcolormesh(slice, vmin = 0, vmax = 1, cmap=EoR_colour,shading='gouraud')
+    plt.pcolormesh(slice, vmin = -250, vmax = 50, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
 plt.savefig('Real_Database_train.pdf')
 plt.close()
