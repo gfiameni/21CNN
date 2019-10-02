@@ -54,11 +54,15 @@ for i in range(10):
 plt.savefig('Database_train_tophat_withoutmean.pdf')
 plt.close()
 
-fig=plt.figure(figsize=(10, 10))
+fig=plt.figure(figsize=(10, 20))
 for i in range(10):
     fig.add_subplot(10, 1, i+1)
-    Box = database.CombineBoxes(WalkerIndex[images*i//10][0], 5)
-    slice = DatabaseUtils.MiddleSlice(Box)
+    WI = WalkerIndex[images*i//10]
+    Box = database.CombineBoxes(WI[0], 5)
+    if(WI[1] < 5):
+        slice = Box[WI[1] * Box.shape[0] // 5, :, :]
+    else:
+        slice = Box[:, (WI[1]-5) * Box.shape[1] // 5, :]
     plt.pcolormesh(slice, vmin = -250, vmax = 50, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
 plt.savefig('Real_Database_train.pdf')
