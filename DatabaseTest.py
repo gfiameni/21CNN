@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import json
+import sys
 
 from database import DatabaseUtils
 from CNN.formatting import Filters
