@@ -7,7 +7,7 @@ from database import DatabaseUtils
 from CNN.formatting import Filters
 import json
 
-RemoveMean = True
+RemoveMean = False
 if RemoveMean:
     rm = "_meanZ"
 else:
@@ -29,7 +29,7 @@ AverageXname = f"database{spa}_averages_{database.Dtype}_clipped.npy"
 deltaTmin = -250
 deltaTmax = 50
 tophat = [2, 2]
-Zmax = 12
+Zmax = 30
 
 #loading X and Y and averages
 DataY = np.load(DataFilepath+DataYname)
@@ -64,7 +64,6 @@ if RemoveMean:
     DataX = DataX - AverageX
     print("mean removed")
 DataX = Filters.TopHat(DataX, Nx = tophat[0], Nz = tophat[1])
-# AverageX = Filters.TopHat(AverageX, Nx = 1, Nz = tophat[1])
 print(f"Top Hat 2, 2 {DataX.shape}")
 if RemoveMean:
     deltaTmin = np.amin(DataX)

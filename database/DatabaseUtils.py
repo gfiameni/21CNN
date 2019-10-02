@@ -94,14 +94,17 @@ class Database:
         slices = slices.astype(self.Dtype)
         return slices
 
-    def CreateSlicedData(self, SlicesPerAxis = 5):
+    def CreateSlicedData(self, SlicesPerAxis = 5, walkers = []):
         """
         Creating general sliced cubes without post or preprocessing
         db == DatabaseUtils.Database object
         SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
         """
+        if len(walkers) == 0:
+            walkers = range(self.WalkersSteps)
+        
         FinalData = []
-        for i in range(self.WalkerSteps):
+        for i in walkers:
             Box = self.CombineBoxes(i)
             BoxSlices = self.SliceBoxNTimesXY(Box, SlicesPerAxis)
             FinalData.append(BoxSlices)
@@ -109,14 +112,17 @@ class Database:
                 print(i)
         return np.array(FinalData, dtype=self.Dtype)
 
-    def CreateParamData(self):
-        walkers = []
-        for i in range(self.WalkerSteps):
-            walker = self.WalkerAstroParams(i, ReturnType = "array")
-            walkers.append(walker)
+    def CreateParamData(self, walkers = []):
+        if len(walkers) == 0:
+            walkers = range(self.WalkerSteps)
+        
+        walkerParams = []
+        for i in walkers:
+            p = self.WalkerAstroParams(i, ReturnType = "array")
+            walkerParams.append(p)
             if i % 100 == 0:
                 print(i)
-        return np.array(walkers, dtype=self.Dtype)
+        return np.array(walkerParams, dtype=self.Dtype)
 
 
 

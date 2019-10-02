@@ -57,16 +57,17 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312, WalkerSteps = 0):
     n[1] = int(X.shape[0] * pDev)
     n[2] = X.shape[0] - n[0] - n[1]
     indexArray = np.hstack((np.zeros(n[0], dtype=int), np.ones(n[1], dtype=int), 2*np.ones(n[2], dtype=int)))
-
+    print(indexArray)
     RState = np.random.RandomState(seed=seed)
     indexArray = RState.permutation(indexArray)
+    print(indexArray)
 
     if WalkerSteps:
         tdt = []
         WalkerIndex = np.zeros((X.shape[0], X.shape[1], 2))
         for i in range(X.shape[0]):
             for j in range(X.shape[1]):
-                WalkerIndex[i, j] = [i+1, j]
+                WalkerIndex[i, j] = [i, j]
         # print(WalkerIndex.shape)
         # WalkerIndex = ReshapeY(WalkerIndex, X.shape)
         # print(WalkerIndex.shape)
@@ -78,8 +79,8 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312, WalkerSteps = 0):
             dY = dY.reshape(-1, dY.shape[-1])
             dWI = dWI.reshape(-1, dWI.shape[-1])
             dX, dY, dWI = shuffle(dX, dY, dWI, random_state = RState)
-            # dX = dX.astype(np.float32)
-            # dY = dY.astype(np.float32)
+            dX = dX.astype(np.float32)
+            dY = dY.astype(np.float32)
             dWI = dWI.astype(int)
             tdt.append(dX)
             tdt.append(dY)
