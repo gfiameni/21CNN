@@ -16,11 +16,10 @@ def RemoveLargeZ(data, db, Z=12):
 
 def CutInX (data, N = 2):
     dataDim = data.shape
-    print(data.shape)
     bounds = list(range(0, dataDim[-2] + 1, dataDim[-2] // N))
     dataCut = data[..., bounds[0]:bounds[1], :]
     for i in range(1, N):
-        dataCut = np.concatenate((dataCut, data[..., bounds[i]:bounds[i+1], :]), axis=1)
+        dataCut = np.concatenate((dataCut, data[..., bounds[i]:bounds[i+1], :]), axis=len(dataDim)-3)
     return dataCut
 
 def TopHat(data, Nx = 1, Nz = 2):
