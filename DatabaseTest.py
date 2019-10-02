@@ -26,8 +26,8 @@ Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
 DataFilepath = "../data/train/"
-DataXname = "X_0.8_tophat22_Z12_database5_float32.npy"
-DataYname = "Y_0.8_tophat22_Z12_database5_float32.npy"
+DataXname = "X_0.8_tophat22_Z12_meanZ_database5_float32.npy"
+DataYname = "Y_0.8_tophat22_Z12_meanZ_database5_float32.npy"
 Yparamsname = "../data/databaseParams_min_max.txt"
 WalkerIndexname = "X_0.8_WalkerIndex.npy"
 # DataYname = f"databaseParams_{database.Dtype}.npy"
@@ -51,19 +51,19 @@ for i in range(10):
     plt.pcolormesh(DataX[images*i//10], vmin = 0, vmax = 1, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
     print(DataY[images*i//10] * (Yparams['max'] - Yparams['min']) + Yparams['min'], WalkerIndex[images*i//10])
-plt.savefig('Database_train_tophat_withmean.pdf')
+plt.savefig('Database_train_tophat_withoutmean.pdf')
 plt.close()
 
-fig=plt.figure(figsize=(10, 20))
+fig=plt.figure(figsize=(10, 10))
 for i in range(10):
     fig.add_subplot(10, 1, i+1)
     WI = WalkerIndex[images*i//10]
+    WalkerAstroParams = database.WalkerAstroParams(WI[0], ReturnType="array")
+    print(WalkerAstroParams, WI)
     Box = database.CombineBoxes(WI[0], 5)
-    if(WI[1] < 5):
-        slice = Box[WI[1] * Box.shape[0] // 5, :, :]
-    else:
-        slice = Box[:, (WI[1]-5) * Box.shape[1] // 5, :]
-    plt.pcolormesh(slice, vmin = -250, vmax = 50, cmap=EoR_colour,shading='gouraud')
+    slices = database.SliceBoxNTimesXY(Box, 5)
+    slices = Filters.CutInX(slices)
+    plt.pcolormesh(slices[WI[1]], vmin = -250, vmax = 50, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
 plt.savefig('Real_Database_train.pdf')
 plt.close()
