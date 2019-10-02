@@ -4,25 +4,36 @@ import matplotlib.pyplot as plt
 import matplotlib
 import json
 
+from database import DatabaseUtils
+from CNN.formatting import Filters
+
 EoR_colour = matplotlib.colors.LinearSegmentedColormap.from_list('mycmap', [(0, 'white'),(0.33, 'yellow'),(0.5, 'orange'),(0.68, 'red'),(0.833, 'black'),(0.87, 'blue'),(1, 'cyan')])
 plt.register_cmap(cmap=EoR_colour)
 
+if len(sys.argv) == 1:
+    BoxesPath = "/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/LightConeBoxes"
+else:
+    BoxesPath = sys.argv[1]
+if len(sys.argv) <= 2:
+    ParametersPath = "/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/GridPositions"
+else:
+    ParametersPath = sys.argv[2]
 
-# Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503', \
-#             '013.25424', '015.51874', '018.36856', '022.02434', '026.82138', '033.28927', '034.50984']
-# Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
-# database = DatabaseUtils.Database(Parameters, Redshifts)
-
-# spa = 5
+Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503', \
+            '013.25424', '015.51874', '018.36856', '022.02434', '026.82138', '033.28927', '034.50984']
+Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
+database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
 DataFilepath = "../data/train/"
 DataXname = "X_0.8_tophat22_Z12_database5_float32.npy"
 DataYname = "Y_0.8_tophat22_Z12_database5_float32.npy"
 Yparamsname = "../data/databaseParams_min_max.txt"
+WalkerIndexname = "X_0.8_WalkerIndex.npy"
 # DataYname = f"databaseParams_{database.Dtype}.npy"
 
 DataX = np.load(DataFilepath+DataXname)
 DataY = np.load(DataFilepath+DataYname)
+WalkerIndex = np.load(DataFilepath+WalkerIndexname)
 with open(Yparamsname, "r") as f:
     Yparams = json.loads(f.read())
 Yparams['min'] = np.array(Yparams['min'])
@@ -38,5 +49,17 @@ for i in range(10):
     fig.add_subplot(10, 1, i+1)
     plt.pcolormesh(DataX[images*i//10], vmin = 0, vmax = 1, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
-    print(DataY[images*i//10] * (Yparams['max'] - Yparams['min']) + Yparams['min'])
+    print(DataY[images*i//10] * (Yparams['max'] - Yparams['min']) + Yparams['min'], WalkerIndex[images*i//10])
 plt.savefig('Database_train_tophat_withmean.pdf')
+plt.close()
+
+fig=plt.figure(figsize=(10, 10))
+for i in range(10):
+    fig.add_subplot(10, 1, i+1)
+    Box = database.CombineBoxes(WalkerIndex[images*i//10], 5)
+    slice = DatabaseUtils.MiddleSlice(Box)
+    plt.pcolormesh(slice, vmin = 0, vmax = 1, cmap=EoR_colour,shading='gouraud')
+    # plt.imshow(DataX[images*i//10], cmap="gray")
+plt.savefig('Real_Database_train.pdf')
+plt.close()
+
