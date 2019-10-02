@@ -63,9 +63,12 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312, WalkerSteps = 0):
 
     if WalkerSteps:
         tdt = []
-        WalkerIndex = np.arange(1, WalkerSteps+1)[:, np.newaxis]
+        WalkerIndex = np.zeros((X.shape[0], X.shape[1], 2))
+        for i in range(X.shape[0]):
+            for j in range(X.shape[1]):
+                WalkerIndex[i, j] = [i+1, j%10]
         # print(WalkerIndex.shape)
-        WalkerIndex = ReshapeY(WalkerIndex, X.shape)
+        # WalkerIndex = ReshapeY(WalkerIndex, X.shape)
         # print(WalkerIndex.shape)
         for i in range(3):
             dX = X[indexArray==i]

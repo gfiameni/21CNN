@@ -26,8 +26,8 @@ Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
 database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
 
 DataFilepath = "../data/train/"
-DataXname = "X_0.8_tophat22_Z12_database5_float32.npy"
-DataYname = "Y_0.8_tophat22_Z12_database5_float32.npy"
+DataXname = "X_0.8_tophat22_Z12_meanZ_database5_float32.npy"
+DataYname = "X_0.8_tophat22_Z12_meanZ_database5_float32.npy"
 Yparamsname = "../data/databaseParams_min_max.txt"
 WalkerIndexname = "X_0.8_WalkerIndex.npy"
 # DataYname = f"databaseParams_{database.Dtype}.npy"
@@ -51,7 +51,7 @@ for i in range(10):
     plt.pcolormesh(DataX[images*i//10], vmin = 0, vmax = 1, cmap=EoR_colour,shading='gouraud')
     # plt.imshow(DataX[images*i//10], cmap="gray")
     print(DataY[images*i//10] * (Yparams['max'] - Yparams['min']) + Yparams['min'], WalkerIndex[images*i//10])
-plt.savefig('Database_train_tophat_withmean.pdf')
+plt.savefig('Database_train_tophat_withoutmean.pdf')
 plt.close()
 
 fig=plt.figure(figsize=(10, 10))
