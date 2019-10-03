@@ -41,12 +41,12 @@ pTest = 0.1
 tophat = [2, 2]
 Zmax = 12
 
-trainX = np.load(DataFilepath + 'train/X_'+"0.8_tophat22_Z12_database5_float32.npy")
-trainY = np.load(DataFilepath + 'train/Y_'+"0.8_tophat22_Z12_database5_float32.npy")
-testX  = np.load(DataFilepath + 'test/X_'+"0.1_tophat22_Z12_database5_float32.npy")
-testY  = np.load(DataFilepath + 'test/Y_'+"0.1_tophat22_Z12_database5_float32.npy")
-devX   = np.load(DataFilepath + 'dev/X_'+"0.1_tophat22_Z12_database5_float32.npy")
-devY   = np.load(DataFilepath + 'dev/Y_'+"0.1_tophat22_Z12_database5_float32.npy")
+trainX = np.load(DataFilepath + 'train/X_'+"0.8_tophat22_Z30_database5_float32.npy")
+trainY = np.load(DataFilepath + 'train/Y_'+"0.8_tophat22_Z30_database5_float32.npy")
+testX  = np.load(DataFilepath + 'test/X_'+"0.1_tophat22_Z30_database5_float32.npy")
+testY  = np.load(DataFilepath + 'test/Y_'+"0.1_tophat22_Z30_database5_float32.npy")
+devX   = np.load(DataFilepath + 'dev/X_'+"0.1_tophat22_Z30_database5_float32.npy")
+devY   = np.load(DataFilepath + 'dev/Y_'+"0.1_tophat22_Z30_database5_float32.npy")
 ### adjustment of data dimention -> channels_last
 trainX = trainX[..., np.newaxis]
 testX = testX[..., np.newaxis]
@@ -58,11 +58,17 @@ devX = devX[..., np.newaxis]
 ######################
 from architectures import NGillet
 model = NGillet.modelNN(input_shape = trainX.shape[1:], 
-                        filter_size=(5, 5), 
-                        Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+                        # filter_size=(5, 5), 
+                        # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
                         # FirstbatchNorm=False,
                         # use_dropout=0,
                         )
+# model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:], 
+#                         # filter_size=(5, 5), 
+#                         Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+#                         # FirstbatchNorm=False,
+#                         # use_dropout=0,
+#                         )
 
 
 ######################
@@ -123,7 +129,7 @@ history = model.fit( trainX, trainY,
 
 
 ### save files
-model_file = '2D_Filter1010_1batchNorm_WithMean'
+model_file = '2D_Filter55_1batchNorm_WithMean_Z30_tophat22'
 history_file = model_file + '_history'
 prediction_file = model_file + '_pred'
 prediction_file_val = model_file + '_pred_val'
