@@ -3,20 +3,26 @@ import sys
 import os
 
 ############################
-### KERAS BACKEND        ###
+### KERAS BACKEND and LIMIT GPU
 ############################
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-
 import tensorflow as tf
-from keras import backend as K
 
+from keras.backend.tensorflow_backend import set_session
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.85 #setting the percentage of GPU usage
+#config.gpu_options.visible_device_list = "0" #for picking only some devices
+set_session(tf.Session(config=config)) #passing tf session to keras!
+
+from keras import backend as K
 K.set_image_data_format('channels_last')
 
+######### not working for now
 # ############################
 # ### LIMIT GPU USAGE      ###
 # ############################
 # #https://www.tensorflow.org/guide/gpu
-# MaxGB = 10.5
+# MaxGB = 10
 # gpus = tf.config.experimental.list_physical_devices('GPU')
 # if gpus:
 #   # Restrict TensorFlow to only allocate MaxGB of memory on the first GPU
@@ -35,19 +41,26 @@ K.set_image_data_format('channels_last')
 ############################
 DataFilepath = "../../data/"
 DataXname = "database5_float32.npy"
+RemovedMean = True
+if RemovedMean:
+    rm = "meanZ_"
+else:
+    rm = ""
 pTrain = 0.8
 pDev = 0.1
 pTest = 0.1
 tophat = [2, 2]
-Zmax = 12
-
-trainX = np.load(DataFilepath + 'train/X_'+"0.8_tophat22_Z30_database5_float32.npy")
-trainY = np.load(DataFilepath + 'train/Y_'+"0.8_tophat22_Z30_database5_float32.npy")
-testX  = np.load(DataFilepath + 'test/X_'+"0.1_tophat22_Z30_database5_float32.npy")
-testY  = np.load(DataFilepath + 'test/Y_'+"0.1_tophat22_Z30_database5_float32.npy")
-devX   = np.load(DataFilepath + 'dev/X_'+"0.1_tophat22_Z30_database5_float32.npy")
-devY   = np.load(DataFilepath + 'dev/Y_'+"0.1_tophat22_Z30_database5_float32.npy")
-### adjustment of data dimention -> channels_last
+Zmax = 30
+DataType = ("tophat{}{}_Z{}_{}" + DataXname).format(*tophat, Zmax, rm)
+print(DataType)
+TDTfile = "{}/{}_{:.1f}_" + DataType
+trainX = np.load(DataFilepath + TDTfile.format("train", "X", pTrain))
+trainY = np.load(DataFilepath + TDTfile.format("train", "Y", pTrain))
+testX  = np.load(DataFilepath + TDTfile.format("test", "X", pTest))
+testY  = np.load(DataFilepath + TDTfile.format("test", "Y", pTest))
+devX   = np.load(DataFilepath + TDTfile.format("dev", "X", pDev))
+devY   = np.load(DataFilepath + TDTfile.format("dev", "Y", pDev))
+### adjustment of data dimension -> channels_last
 trainX = trainX[..., np.newaxis]
 testX = testX[..., np.newaxis]
 devX = devX[..., np.newaxis]
@@ -57,18 +70,18 @@ devX = devX[..., np.newaxis]
 ### CREATING MODEL ###
 ######################
 from architectures import NGillet
-model = NGillet.modelNN(input_shape = trainX.shape[1:], 
-                        # filter_size=(5, 5), 
-                        # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
-                        # FirstbatchNorm=False,
-                        # use_dropout=0,
-                        )
-# model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:], 
+# model = NGillet.modelNN(input_shape = trainX.shape[1:], 
 #                         # filter_size=(5, 5), 
-#                         Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+#                         # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
 #                         # FirstbatchNorm=False,
 #                         # use_dropout=0,
 #                         )
+model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:], 
+                        # filter_size=(5, 5), 
+                        Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+                        # FirstbatchNorm=False,
+                        # use_dropout=0,
+                        )
 
 
 ######################
@@ -129,13 +142,14 @@ history = model.fit( trainX, trainY,
 
 
 ### save files
-model_file = '2D_Filter55_1batchNorm_WithMean_Z30_tophat22'
+model_file = "2D_Filter55_1batchNorm"
 history_file = model_file + '_history'
 prediction_file = model_file + '_pred'
 prediction_file_val = model_file + '_pred_val'
 
 ### save folder
-CNN_folder = 'data_save/NGillet/'
+CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper".format(*tophat, Zmax, rm)
+os.makedirs(CNN_folder, exist_ok=True)
 np.save( CNN_folder + history_file, history.history )
 
 ########################
