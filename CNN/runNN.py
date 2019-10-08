@@ -8,11 +8,14 @@ import os
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 import tensorflow as tf
 
-from keras.backend.tensorflow_backend import set_session
+#setting up GPU
 config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.85 #setting the percentage of GPU usage
 #config.gpu_options.visible_device_list = "0" #for picking only some devices
-set_session(tf.Session(config=config)) #passing tf session to keras!
+
+#passing tf session to keras!
+from keras.backend.tensorflow_backend import set_session
+set_session(tf.Session(config=config)) 
 
 from keras import backend as K
 K.set_image_data_format('channels_last')
@@ -41,7 +44,7 @@ K.set_image_data_format('channels_last')
 ############################
 DataFilepath = "../../data/"
 DataXname = "database5_float32.npy"
-RemovedMean = True
+RemovedMean = False
 if RemovedMean:
     rm = "meanZ_"
 else:
@@ -82,7 +85,14 @@ model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:],
                         # FirstbatchNorm=False,
                         # use_dropout=0,
                         )
-
+#load some old weights
+tophat_old = [2, 2]
+Zmax_old = 30
+rm_old = "meanZ_"
+model_file = "tophat22_Z30_meanZ_deeper2D_Filter55_1batchNorm"
+weights_file = model_file + '_weights.h5'
+CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper_good/".format(*tophat_old, Zmax_old, rm_old)
+model.load_weights(CNN_folder + weights_file)
 
 ######################
 ### LEARNING PHASE ###
@@ -148,7 +158,7 @@ prediction_file = model_file + '_pred'
 prediction_file_val = model_file + '_pred_val'
 
 ### save folder
-CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper".format(*tophat, Zmax, rm)
+CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper/".format(*tophat, Zmax, rm)
 os.makedirs(CNN_folder, exist_ok=True)
 np.save( CNN_folder + history_file, history.history )
 
