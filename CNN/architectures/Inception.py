@@ -3,27 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-
-from . import get_submodules_from_kwargs
-from . import imagenet_utils
-from .imagenet_utils import decode_predictions
-from .imagenet_utils import _obtain_input_shape
-
-
-WEIGHTS_PATH = (
-    'https://github.com/fchollet/deep-learning-models/'
-    'releases/download/v0.5/'
-    'inception_v3_weights_tf_dim_ordering_tf_kernels.h5')
-WEIGHTS_PATH_NO_TOP = (
-    'https://github.com/fchollet/deep-learning-models/'
-    'releases/download/v0.5/'
-    'inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5')
-
-backend = None
-layers = None
-models = None
-keras_utils = None
-
+import keras
+backend = keras.backend
+layers = keras.layers
+models = keras.models
+keras_utils = keras.utils
 
 def conv2d_bn(x,
               filters,
@@ -68,15 +52,12 @@ def conv2d_bn(x,
     x = layers.Activation('relu', name=name)(x)
     return x
 
-
-
-def InceptionV3(include_top=True,
-                weights='imagenet',
-                input_tensor=None,
+def InceptionV3(dense_layers_pow2 = range(8, 2, -1),
+                dropout = 0.2,
+                # weights='imagenet',
+                # input_tensor=None,
                 input_shape=None,
-                pooling=None,
-                classes=1000,
-                **kwargs):
+                ):
     """Instantiates the Inception v3 architecture.
 
     Optionally loads weights pre-trained on ImageNet.
@@ -121,48 +102,55 @@ def InceptionV3(include_top=True,
             or invalid input shape.
     """
     global backend, layers, models, keras_utils
-    backend, layers, models, keras_utils = get_submodules_from_kwargs(kwargs)
+    # backend, layers, models, keras_utils = get_submodules_from_kwargs(kwargs)
 
-    if not (weights in {'imagenet', None} or os.path.exists(weights)):
-        raise ValueError('The `weights` argument should be either '
-                         '`None` (random initialization), `imagenet` '
-                         '(pre-training on ImageNet), '
-                         'or the path to the weights file to be loaded.')
+    # if not (weights in {'imagenet', None} or os.path.exists(weights)):
+    #     raise ValueError('The `weights` argument should be either '
+    #                      '`None` (random initialization), `imagenet` '
+    #                      '(pre-training on ImageNet), '
+    #                      'or the path to the weights file to be loaded.')
 
-    if weights == 'imagenet' and include_top and classes != 1000:
-        raise ValueError('If using `weights` as `"imagenet"` with `include_top`'
-                         ' as true, `classes` should be 1000')
+    # if weights == 'imagenet' and include_top and classes != 1000:
+    #     raise ValueError('If using `weights` as `"imagenet"` with `include_top`'
+    #                      ' as true, `classes` should be 1000')
 
     # Determine proper input shape
-    input_shape = _obtain_input_shape(
-        input_shape,
-        default_size=299,
-        min_size=75,
-        data_format=backend.image_data_format(),
-        require_flatten=include_top,
-        weights=weights)
+    # input_shape = _obtain_input_shape(
+    #     input_shape,
+    #     default_size=299,
+    #     min_size=75,
+    #     data_format=backend.image_data_format(),
+    #     require_flatten=include_top,
+    #     weights=weights)
 
-    if input_tensor is None:
-        img_input = layers.Input(shape=input_shape)
-    else:
-        if not backend.is_keras_tensor(input_tensor):
-            img_input = layers.Input(tensor=input_tensor, shape=input_shape)
-        else:
-            img_input = input_tensor
+    # input_shape = input_shape
+
+    # if input_tensor is None:
+    #     img_input = layers.Input(shape=input_shape)
+    # else:
+    #     if not backend.is_keras_tensor(input_tensor):
+    #         img_input = layers.Input(tensor=input_tensor, shape=input_shape)
+    #     else:
+    #         img_input = input_tensor
+
+    img_input = layers.Input(shape=input_shape)
 
     if backend.image_data_format() == 'channels_first':
         channel_axis = 1
     else:
         channel_axis = 3
 
-    x = conv2d_bn(img_input, 32, 3, 3, strides=(2, 2), padding='valid')
+    # x = conv2d_bn(img_input, 32, 3, 3, strides=(2, 2), padding='valid')
+    x = conv2d_bn(img_input, 32, 3, 3, padding='valid')
     x = conv2d_bn(x, 32, 3, 3, padding='valid')
     x = conv2d_bn(x, 64, 3, 3)
-    x = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
+    # x = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
 
     x = conv2d_bn(x, 80, 1, 1, padding='valid')
     x = conv2d_bn(x, 192, 3, 3, padding='valid')
-    x = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
+    # x = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
+    x = layers.MaxPooling2D((2, 2), strides=(2, 2))(x)
+
 
     # mixed 0: 35 x 35 x 256
     branch1x1 = conv2d_bn(x, 64, 1, 1)
@@ -344,41 +332,44 @@ def InceptionV3(include_top=True,
             [branch1x1, branch3x3, branch3x3dbl, branch_pool],
             axis=channel_axis,
             name='mixed' + str(9 + i))
-    if include_top:
-        # Classification block
-        x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
-        x = layers.Dense(classes, activation='softmax', name='predictions')(x)
-    else:
-        if pooling == 'avg':
-            x = layers.GlobalAveragePooling2D()(x)
-        elif pooling == 'max':
-            x = layers.GlobalMaxPooling2D()(x)
+
+
+    x = layers.GlobalAveragePooling2D(name='avg_pool')(x)
+    x = layers.Dropout(dropout)(x)
+    x = layers.Dense(2**10, activation='relu', name=f'dense{2**10}')(x)
+
+    for i in dense_layers_pow2:
+        x = layers.Dense(2**i, activation='relu', name=f'dense{2**i}')(x)
+
+    x = layers.Dense(4, activation='relu', name = 'out')(x)
+
 
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.
-    if input_tensor is not None:
-        inputs = keras_utils.get_source_inputs(input_tensor)
-    else:
-        inputs = img_input
+    # if input_tensor is not None:
+    #     inputs = keras_utils.get_source_inputs(input_tensor)
+    # else:
+    #     inputs = img_input
+    inputs = img_input
     # Create model.
     model = models.Model(inputs, x, name='inception_v3')
 
-    # Load weights.
-    if weights == 'imagenet':
-        if include_top:
-            weights_path = keras_utils.get_file(
-                'inception_v3_weights_tf_dim_ordering_tf_kernels.h5',
-                WEIGHTS_PATH,
-                cache_subdir='models',
-                file_hash='9a0d58056eeedaa3f26cb7ebd46da564')
-        else:
-            weights_path = keras_utils.get_file(
-                'inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                WEIGHTS_PATH_NO_TOP,
-                cache_subdir='models',
-                file_hash='bcbd6486424b2319ff4ef7d526e38f63')
-        model.load_weights(weights_path)
-    elif weights is not None:
-        model.load_weights(weights)
+    # # Load weights.
+    # if weights == 'imagenet':
+    #     if include_top:
+    #         weights_path = keras_utils.get_file(
+    #             'inception_v3_weights_tf_dim_ordering_tf_kernels.h5',
+    #             WEIGHTS_PATH,
+    #             cache_subdir='models',
+    #             file_hash='9a0d58056eeedaa3f26cb7ebd46da564')
+    #     else:
+    #         weights_path = keras_utils.get_file(
+    #             'inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5',
+    #             WEIGHTS_PATH_NO_TOP,
+    #             cache_subdir='models',
+    #             file_hash='bcbd6486424b2319ff4ef7d526e38f63')
+    #     model.load_weights(weights_path)
+    # elif weights is not None:
+    #     model.load_weights(weights)
 
     return model
