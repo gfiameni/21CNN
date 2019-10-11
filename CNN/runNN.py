@@ -96,7 +96,7 @@ devX = devX[..., np.newaxis]
 # model.load_weights(CNN_folder + weights_file)
 
 from architectures import Inception
-model = Inception.V3(input_shape=trainX.shape[1:])
+model = Inception.V3_reduced(input_shape=trainX.shape[1:])
 
 ######################
 ### LEARNING PHASE ###
