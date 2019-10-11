@@ -10,7 +10,7 @@ import tensorflow as tf
 
 #setting up GPU
 config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.85 #setting the percentage of GPU usage
+config.gpu_options.per_process_gpu_memory_fraction = 0.8 #setting the percentage of GPU usage
 #config.gpu_options.visible_device_list = "0" #for picking only some devices
 
 #passing tf session to keras!
