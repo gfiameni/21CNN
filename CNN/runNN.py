@@ -44,7 +44,7 @@ K.set_image_data_format('channels_last')
 ############################
 DataFilepath = "../../data/"
 DataXname = "database5_float32.npy"
-RemovedMean = False
+RemovedMean = True
 if RemovedMean:
     rm = "meanZ_"
 else:
@@ -72,13 +72,13 @@ devX = devX[..., np.newaxis]
 ######################
 ### CREATING MODEL ###
 ######################
-from architectures import NGillet
-model = NGillet.modelNN(input_shape = trainX.shape[1:], 
-                        # filter_size=(5, 5), 
-                        # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
-                        # FirstbatchNorm=False,
-                        # use_dropout=0,
-                        )
+# from architectures import NGillet
+# model = NGillet.modelNN(input_shape = trainX.shape[1:], 
+#                         # filter_size=(5, 5), 
+#                         # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+#                         # FirstbatchNorm=False,
+#                         # use_dropout=0,
+#                         )
 # model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:], 
 #                         # filter_size=(5, 5), 
 #                         Nfilter1=16, Nfilter2=32, Nfilter3=64, 
@@ -93,6 +93,9 @@ model = NGillet.modelNN(input_shape = trainX.shape[1:],
 # weights_file = model_file + '_weights.h5'
 # CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper_good/".format(*tophat_old, Zmax_old, rm_old)
 # model.load_weights(CNN_folder + weights_file)
+
+from architectures import Inception
+model = Inception.V3(input_shape=trainX.shape[1:])
 
 ######################
 ### LEARNING PHASE ###
@@ -152,13 +155,13 @@ history = model.fit( trainX, trainY,
 
 
 ### save files
-model_file = "2D_Filter55_1batchNorm"
-history_file = model_file + '_history'
-prediction_file = model_file + '_pred'
-prediction_file_val = model_file + '_pred_val'
+model_file = 'model'
+history_file ='history'
+prediction_file = 'pred'
+prediction_file_val = 'pred_val'
 
 ### save folder
-CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper/".format(*tophat, Zmax, rm)
+CNN_folder = "data_save/Inception/tophat{}{}_Z{}_{}/".format(*tophat, Zmax, rm)
 os.makedirs(CNN_folder, exist_ok=True)
 np.save( CNN_folder + history_file, history.history )
 

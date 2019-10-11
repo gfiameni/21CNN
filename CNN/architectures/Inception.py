@@ -52,7 +52,7 @@ def conv2d_bn(x,
     x = layers.Activation('relu', name=name)(x)
     return x
 
-def InceptionV3(dense_layers_pow2 = range(8, 2, -1),
+def V3(dense_layers_pow2 = range(8, 2, -1),
                 dropout = 0.2,
                 # weights='imagenet',
                 # input_tensor=None,
