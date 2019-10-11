@@ -101,7 +101,7 @@ class Database:
         SlicesPerAxis -> cube is sliced in equal intervals SlicesPerAxis times in X and Y
         """
         if len(walkers) == 0:
-            walkers = range(self.WalkersSteps)
+            walkers = range(self.WalkerSteps)
         
         FinalData = []
         for i in walkers:

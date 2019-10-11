@@ -54,7 +54,7 @@ pDev = 0.1
 pTest = 0.1
 tophat = [2, 2]
 Zmax = 30
-DataType = ("tophat{}{}_Z{}_{}" + DataXname).format(*tophat, Zmax, rm)
+DataType = f"tophat{tophat[0]}{tophat[1]}_Z{Zmax}_{rm}" + DataXname
 print(DataType)
 TDTfile = "{}/{}_{:.1f}_" + DataType
 trainX = np.load(DataFilepath + TDTfile.format("train", "X", pTrain))
@@ -73,26 +73,26 @@ devX = devX[..., np.newaxis]
 ### CREATING MODEL ###
 ######################
 from architectures import NGillet
-# model = NGillet.modelNN(input_shape = trainX.shape[1:], 
-#                         # filter_size=(5, 5), 
-#                         # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
-#                         # FirstbatchNorm=False,
-#                         # use_dropout=0,
-#                         )
-model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:], 
+model = NGillet.modelNN(input_shape = trainX.shape[1:], 
                         # filter_size=(5, 5), 
-                        Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+                        # Nfilter1=16, Nfilter2=32, Nfilter3=64, 
                         # FirstbatchNorm=False,
                         # use_dropout=0,
                         )
-#load some old weights
-tophat_old = [2, 2]
-Zmax_old = 30
-rm_old = "meanZ_"
-model_file = "tophat22_Z30_meanZ_deeper2D_Filter55_1batchNorm"
-weights_file = model_file + '_weights.h5'
-CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper_good/".format(*tophat_old, Zmax_old, rm_old)
-model.load_weights(CNN_folder + weights_file)
+# model = NGillet.modelNN_deeper(input_shape = trainX.shape[1:], 
+#                         # filter_size=(5, 5), 
+#                         Nfilter1=16, Nfilter2=32, Nfilter3=64, 
+#                         # FirstbatchNorm=False,
+#                         # use_dropout=0,
+#                         )
+# #load some old weights
+# tophat_old = [2, 2]
+# Zmax_old = 30
+# rm_old = "meanZ_"
+# model_file = "tophat22_Z30_meanZ_deeper2D_Filter55_1batchNorm"
+# weights_file = model_file + '_weights.h5'
+# CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper_good/".format(*tophat_old, Zmax_old, rm_old)
+# model.load_weights(CNN_folder + weights_file)
 
 ######################
 ### LEARNING PHASE ###
