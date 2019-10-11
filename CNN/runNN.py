@@ -53,7 +53,7 @@ pTrain = 0.8
 pDev = 0.1
 pTest = 0.1
 tophat = [2, 2]
-Zmax = 30
+Zmax = 12
 DataType = f"tophat{tophat[0]}{tophat[1]}_Z{Zmax}_{rm}" + DataXname
 print(DataType)
 TDTfile = "{}/{}_{:.1f}_" + DataType

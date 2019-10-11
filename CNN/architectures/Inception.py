@@ -341,7 +341,7 @@ def V3(dense_layers_pow2 = range(8, 2, -1),
     for i in dense_layers_pow2:
         x = layers.Dense(2**i, activation='relu', name=f'dense{2**i}')(x)
 
-    x = layers.Dense(4, activation='relu', name = 'out')(x)
+    x = layers.Dense(4, activation='linear', name = 'out')(x)
 
 
     # Ensure that the model takes into account
