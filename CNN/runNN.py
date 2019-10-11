@@ -10,8 +10,9 @@ import tensorflow as tf
 
 #setting up GPU
 config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.8 #setting the percentage of GPU usage
+config.gpu_options.per_process_gpu_memory_fraction = 0.75 #setting the percentage of GPU usage
 #config.gpu_options.visible_device_list = "0" #for picking only some devices
+config.gpu_options.allow_growth = True
 
 #passing tf session to keras!
 from keras.backend.tensorflow_backend import set_session
@@ -107,7 +108,7 @@ from keras.optimizers import RMSprop
 loss = 'mean_squared_error' ### classic loss function for regression, see also 'mae'
 ### DEFINE THE OPTIMIZER
 # optimizer = 'RMSprop' #'adagrad'  #'adadelta' #'adam' # 'adamax' # 'Nadam' # 'RMSprop' # sgd
-opt = RMSprop(lr=0.01)
+opt = RMSprop(lr=0.1)
 ### DEFINE THE LEARNING RATE
 factor=0.5
 patience=5
@@ -142,7 +143,7 @@ model.compile( loss=loss,
                metrics=[coeff_determination] )
 
 ### THE LEARNING FUNCTION
-batch_size = 20 ### number of sub sample, /!\ has to be a diviseur of the training set
+batch_size = 10 ### number of sub sample, /!\ has to be a diviseur of the training set
 epochs = 200   ### number of passage over the full data set
 
 history = model.fit( trainX, trainY,
