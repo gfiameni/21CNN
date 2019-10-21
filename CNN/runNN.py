@@ -10,8 +10,8 @@ import tensorflow as tf
 
 #setting up GPU
 config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.75 #setting the percentage of GPU usage
-#config.gpu_options.visible_device_list = "0" #for picking only some devices
+config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
+config.gpu_options.visible_device_list = "0" #for picking only some devices
 config.gpu_options.allow_growth = True
 
 #passing tf session to keras!
@@ -96,7 +96,7 @@ devX = devX[..., np.newaxis]
 # model.load_weights(CNN_folder + weights_file)
 
 from architectures import Inception
-model = Inception.V3_reduced(input_shape=trainX.shape[1:])
+model = Inception.V3(input_shape=trainX.shape[1:])
 
 ######################
 ### LEARNING PHASE ###
@@ -143,7 +143,7 @@ model.compile( loss=loss,
                metrics=[coeff_determination] )
 
 ### THE LEARNING FUNCTION
-batch_size = 10 ### number of sub sample, /!\ has to be a diviseur of the training set
+batch_size = 20 ### number of sub sample, /!\ has to be a diviseur of the training set
 epochs = 200   ### number of passage over the full data set
 
 history = model.fit( trainX, trainY,
