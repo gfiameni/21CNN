@@ -162,7 +162,7 @@ prediction_file = 'pred'
 prediction_file_val = 'pred_val'
 
 ### save folder
-CNN_folder = "data_save/Inception/tophat{}{}_Z{}_{}/".format(*tophat, Zmax, rm)
+CNN_folder = "data_save/Inception/tophat{}{}_Z{}_{}2/".format(*tophat, Zmax, rm)
 os.makedirs(CNN_folder, exist_ok=True)
 np.save( CNN_folder + history_file, history.history )
 
@@ -200,6 +200,6 @@ print( 'R2: ', 1 - (((predictions[:,3] - testY[:,3])**2).sum(axis=0)) / ((predic
 
 np.save( CNN_folder + prediction_file, predictions )
 
-### Predict the validation, to be use only at the end end end ....
-predictions_val = model.predict( devX, verbose=True )
+### Predict the test, to be use only at the end end end ....
+predictions_val = model.predict( testX, verbose=True )
 np.save( CNN_folder + prediction_file_val, predictions_val )
