@@ -95,20 +95,20 @@ devX = devX[..., np.newaxis]
 # CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper_good/".format(*tophat_old, Zmax_old, rm_old)
 # model.load_weights(CNN_folder + weights_file)
 
-from architectures import Inception
-model = Inception.V3(input_shape=trainX.shape[1:])
+from architectures import DNN
+model = DNN.Model(input_shape=trainX.shape[1:])
 
 ######################
 ### LEARNING PHASE ###
 ######################
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop, Adam, SGD
 
 ### Network PARAMETERS
 ### LOSS FUNCTION
 loss = 'mean_squared_error' ### classic loss function for regression, see also 'mae'
 ### DEFINE THE OPTIMIZER
 # optimizer = 'RMSprop' #'adagrad'  #'adadelta' #'adam' # 'adamax' # 'Nadam' # 'RMSprop' # sgd
-opt = RMSprop(lr=0.1)
+opt =RMSprop(lr=0.1)
 ### DEFINE THE LEARNING RATE
 factor=0.5
 patience=5
@@ -162,7 +162,7 @@ prediction_file = 'pred'
 prediction_file_val = 'pred_val'
 
 ### save folder
-CNN_folder = "data_save/Inception/tophat{}{}_Z{}_{}2/".format(*tophat, Zmax, rm)
+CNN_folder = "data_save/DNN/tophat{}{}_Z{}_{}/".format(*tophat, Zmax, rm)
 os.makedirs(CNN_folder, exist_ok=True)
 np.save( CNN_folder + history_file, history.history )
 
