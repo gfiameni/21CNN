@@ -2,7 +2,7 @@ import numpy as np
 # from scipy.signal import correlate
 from sklearn.utils import shuffle
 
-def basicTDT(X, Y, pTrain, pVal, pTest, seed = 1312):
+def basicTVT(X, Y, pTrain, pVal, pTest, seed = 1312):
     assert np.abs(pTrain + pVal + pTest - 1) < 1e-5
     n = [0, 0, 0]
     n[0] = int(X.shape[0] * pTrain)
