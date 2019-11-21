@@ -1,10 +1,15 @@
 #!/bin/bash
+export OMP_NUM_THREADS=4
+export OPENBLAS_NUM_THREADS=4 
+export MKL_NUM_THREADS=6
+export VECLIB_MAXIMUM_THREADS=4
+export NUMEXPR_NUM_THREADS=6
 task(){
-   python Create3Data.py "$1";
-   echo "$1"
+   echo $1;
+   python Create3Data.py $1;
 }
 
-N=100
+N=50
 (
 for k in {0..9999}; do 
    ((i=i%N)); ((i++==0)) && wait
