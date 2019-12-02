@@ -36,7 +36,7 @@ def TopHat(data, Nx = 1, Nz = 2):
 def BoxCar3D (data, Nx = 4, Ny = 4, Nz = 4):
     dataDim = data.shape
     kernelDim = (1,) * (len(dataDim) - 3) + (Nx, Ny, Nz)
-    kernel = np.ones(kernelDim) / (Nx * Nz)
+    kernel = np.ones(kernelDim) / (Nx * Ny * Nz)
     #[..., ::N] -> google "Ellipsis", ... skips all dimensions in between, and ::N takes every Nth element
     return correlate(data, kernel, mode="valid", method="direct")[..., ::Nx, ::Ny, ::Nz]
 
