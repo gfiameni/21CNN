@@ -1,5 +1,5 @@
 import numpy as np
-from utilities import basicTVT
+from CNN.formatting import Filters
 import json
 DataLoc = "/astro/home/david.prelogovic/data/"
 XName = "data3D_boxcar444_sliced22_float32.npy"
@@ -29,7 +29,7 @@ print("Y.shape", Y.shape)
 XX = {}
 YY = {}
 
-XX["train"], YY["train"], XX["val"], YY["val"], XX["test"], YY["test"] = basicTVT(X, Y, 0.8, 0.1, 0.1)
+XX["train"], YY["train"], XX["val"], YY["val"], XX["test"], YY["test"] = Filters.basicTVT(X, Y, 0.8, 0.1, 0.1)
 
 for sort in ['train', 'val', 'test']:
     XX[sort] = XX[sort].astype(np.float32)

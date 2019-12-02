@@ -203,9 +203,3 @@ np.save( CNN_folder + prediction_file, predictions )
 ### Predict the test, to be use only at the end end end ....
 predictions_val = model.predict( testX, verbose=True )
 np.save( CNN_folder + prediction_file_val, predictions_val )
-
-
-import keras
-keras.metrics.mean_squared_error()
-keras.backend.square
-tf.square
