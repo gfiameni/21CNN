@@ -1,5 +1,6 @@
 import numpy as np
 from utilities import basicTVT
+import json
 DataLoc = "/astro/home/david.prelogovic/data/"
 XName = "data3D_boxcar444_sliced22_float32.npy"
 YName = "databaseParams_float32.npy"
@@ -28,10 +29,10 @@ print("Y.shape", Y.shape)
 XX = {}
 YY = {}
 
-XX["train"], YY["train"], XX["val"], YY["val"], XX["test"], YY["test"] = basicTDT(X, Y, 0.8, 0.1, 0.1)
+XX["train"], YY["train"], XX["val"], YY["val"], XX["test"], YY["test"] = basicTVT(X, Y, 0.8, 0.1, 0.1)
 
 for sort in ['train', 'val', 'test']:
     XX[sort] = XX[sort].astype(np.float32)
     YY[sort] = YY[sort].astype(np.float32)
-    np.save(f"{dataLoc}{sort}/X_{XName}", XX[sort])
-    np.save(f"{dataLoc}{sort}/Y_{XName}", YY[sort])
+    np.save(f"{DataLoc}{sort}/X_{XName}", XX[sort])
+    np.save(f"{DataLoc}{sort}/Y_{XName}", YY[sort])

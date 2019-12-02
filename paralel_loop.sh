@@ -6,7 +6,7 @@ export VECLIB_MAXIMUM_THREADS=4
 export NUMEXPR_NUM_THREADS=6
 task(){
    echo $1;
-   python Create3Data.py $1;
+   python CreateAverageXpart.py $1;
 }
 
 N=50
