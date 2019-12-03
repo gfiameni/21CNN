@@ -45,8 +45,6 @@ class SummarySpaceModel3D:
         x = self.conv2d_bn(x, 128, (5, 5))
         x = self.conv2d_bn(x, 128, (5, 5))
         x = keras.layers.TimeDistributed(keras.layers.Flatten())(x)
-        if self.AuxHP.Dropout:
-            x = keras.layers.TimeDistributed(keras.layers.Dropout(self.AuxHP.Dropout))(x)
         
         for i in self.RNNsizes:
             x = self.RNNLayer(i, return_sequences=True)(x)
@@ -57,6 +55,9 @@ class SummarySpaceModel3D:
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
 
+        if self.AuxHP.Dropout:
+            x = keras.layers.TimeDistributed(keras.layers.Dropout(self.AuxHP.Dropout))(x)
+            
         for i in self.FCsizes[1:]:
             x = keras.layers.Dense(i, activation=self.AuxHP.ActivationFunction[0])(x)
             if self.AuxHP.BatchNormalization == True:

@@ -116,13 +116,14 @@ def basicTVT(X, Y, pTrain, pVal, pTest, seed = 1312):
     RState = np.random.RandomState(seed=seed)
     indexArray = RState.permutation(indexArray)
     
-    tdt = []
-    for i in range(3):
-        dX = X[indexArray==i]
-        dY = Y[indexArray==i]
-        dX, dY = shuffle(dX, dY, random_state = RState)
-        dX = dX.astype(np.float32)
-        dY = dY.astype(np.float32)
-        tdt.append(dX)
-        tdt.append(dY)
-    return tdt
+    dX = {}
+    dY = {}
+    for key, i in zip(['train', 'val', 'test'], [0, 1, 2]):
+        dX[key] = X[indexArray==i]
+        dY[key] = Y[indexArray==i]
+        dX[key], dY[key] = shuffle(dX[key], dY[key], random_state = RState)
+        dX[key] = dX[key].astype(np.float32)
+        dY[key] = dY[key].astype(np.float32)
+        # tdt.append(dX)
+        # tdt.append(dY)
+    return dX, dY

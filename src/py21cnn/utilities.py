@@ -6,7 +6,7 @@ from tensorflow import keras
 class Data:
     def __init__(
         self,
-        filepath,
+        filepath = None,
         dimensionality = 2,
         removed_average = True,
         normalized = True,
@@ -24,8 +24,10 @@ class Data:
             default_formatting = ['clipped_-250_+50', 'NaN_removed']
             if self.dimensionality == 2:
                 default_formatting.append('boxcar22')
+                default_formatting.append('5slices')
             if self.dimensionality == 3:
                 default_formatting.append('boxcar444')
+                default_formatting.append('sliced22')
             default_formatting.sort()
             self.formatting = default_formatting
         else:
