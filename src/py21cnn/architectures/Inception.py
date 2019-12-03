@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import keras
+from tensorflow import keras
 backend = keras.backend
 layers = keras.layers
 models = keras.models

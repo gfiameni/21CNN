@@ -42,13 +42,13 @@ class Data:
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
     def loadTVT(self, pTVT = [0.8, 0.1, 0.1]):
-        X = {}
-        Y = {}
+        self.X = {}
+        self.Y = {}
         Hash = self.hash()
         for p, key in zip(pTVT, ['train', 'val', 'test']):
-            X[key] = np.load(f"{self.filepath}X_{key}_{p:.2f}_{Hash}.npy")
-            Y[key] = np.load(f"{self.filepath}Y_{key}_{p:.2f}_{Hash}.npy")
-        return X, Y
+            self.X[key] = np.load(f"{self.filepath}X_{key}_{p:.2f}_{Hash}.npy")
+            self.Y[key] = np.load(f"{self.filepath}Y_{key}_{p:.2f}_{Hash}.npy")
+        # return self.X, self.Y
 
 
 class AuxiliaryHyperparameters:
@@ -85,3 +85,12 @@ class AuxiliaryHyperparameters:
     def hash(self):
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
+
+def coef_determination(y_true, y_pred):
+        SS_res = keras.backend.sum(keras.backend.square( y_true-y_pred )) 
+        SS_tot = keras.backend.sum(keras.backend.square( y_true - keras.backend.mean(y_true) ) )
+#         loss = tf.keras.backend.mean(tf.keras.backend.square(y_pred - y_true), axis=-1)
+        return ( 1 - SS_res/(SS_tot + keras.backend.epsilon()))
+
+def run_model(Model, Data, AuxHP):
+    pass
