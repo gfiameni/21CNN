@@ -117,9 +117,10 @@ def run_model(model, Data, AuxHP, inputs):
         keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
         keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
         keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
+        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=25, verbose=True),
     ]
     if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau( monitor='loss', factor=0.5, patience=20, verbose=True))
+        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=20, verbose=True))
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
@@ -152,10 +153,19 @@ def run_model(model, Data, AuxHP, inputs):
                             verbose=2,
                             )
     
-    prediction = model.predict(Data.X['test'])
-    for i in range(4):
-        print(f"R2: {R2_numpy(Data.Y['test'][:, 0], prediction[:, 0])}")
+    prediction = model.predict(Data.X['test'], verbose=True)
     np.save(f"{filepath}_prediction.npy", prediction)
+
+    with open(f"{filepath}_summary.txt", "w") as f:
+        f.write(f"{str(Data)}\n")
+        f.write(f"{str(AuxHP)}\n")
+        f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
+        for i in range(4):
+            print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
+            f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
+        f.write("\n")
+        f.write(model.summary())
+
 
 
     
