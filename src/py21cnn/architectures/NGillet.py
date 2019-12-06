@@ -2,11 +2,11 @@ import numpy as np
 from time import time
 import sys, argparse, textwrap
 
-from keras.layers import Activation
-from keras.layers.advanced_activations import LeakyReLU
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import LeakyReLU
 
-from keras.layers import Convolution2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization
-from keras.models import Sequential
+from tensorflow.keras.layers import Convolution2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization
+from tensorflow.keras.models import Sequential
 
 ### to use openMP
 ### export OMP_NUM_THREADS=2

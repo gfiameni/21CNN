@@ -9,16 +9,16 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 import tensorflow as tf
 
 #setting up GPU
-config = tf.ConfigProto()
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
 config.gpu_options.visible_device_list = "0" #for picking only some devices
 config.gpu_options.allow_growth = True
 
 #passing tf session to keras!
-from keras.backend.tensorflow_backend import set_session
+from tensorflow.compat.v1.keras.backend import set_session
 set_session(tf.Session(config=config)) 
 
-from keras import backend as K
+from tensorflow.keras import backend as K
 K.set_image_data_format('channels_last')
 
 ######### not working for now
@@ -95,13 +95,13 @@ devX = devX[..., np.newaxis]
 # CNN_folder = "data_save/NGillet/tophat{}{}_Z{}_{}deeper_good/".format(*tophat_old, Zmax_old, rm_old)
 # model.load_weights(CNN_folder + weights_file)
 
-from architectures import DNN
+from src.py21cnn.architectures import DNN
 model = DNN.Model(input_shape=trainX.shape[1:])
 
 ######################
 ### LEARNING PHASE ###
 ######################
-from keras.optimizers import RMSprop, Adam, SGD
+from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 
 ### Network PARAMETERS
 ### LOSS FUNCTION
@@ -120,7 +120,7 @@ lrate = ReduceLROnPlateau( monitor='loss', factor=factor, patience=patience )
 callbacks_list.append( lrate )
 
 ### to print the Learning Rate
-from keras.callbacks import Callback, EarlyStopping
+from tensorflow.keras.callbacks import Callback, EarlyStopping
 class LR_tracer(Callback):
     def on_epoch_begin(self, epoch, logs={}):
         lr = K.eval( self.model.optimizer.lr )

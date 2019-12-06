@@ -1,3 +1,4 @@
+import os
 import hashlib
 import numpy as np
 import tensorflow as tf
@@ -43,23 +44,27 @@ class Data:
     def hash(self):
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
-    def loadTVT(self, pTVT = [0.8, 0.1, 0.1]):
+    def loadTVT(self, model_type = None, pTVT = [0.8, 0.1, 0.1]):
         self.X = {}
         self.Y = {}
         Hash = self.hash()
         for p, key in zip(pTVT, ['train', 'val', 'test']):
             self.X[key] = np.load(f"{self.filepath}X_{key}_{p:.2f}_{Hash}.npy")
+            if model_type == "RNN":
+                self.X[key] = np.swapaxes(self.X[key], -1, -self.dimensionality) #swapping to get time dimension on right place
+            self.X[key] = self.X[key][..., np.newaxis]
             self.Y[key] = np.load(f"{self.filepath}Y_{key}_{p:.2f}_{Hash}.npy")
+        self.shape = self.X['test'].shape[1:]
         # return self.X, self.Y
 
 
 class AuxiliaryHyperparameters:
     def __init__(
         self,
-        # Loss = {"instance": None, "name": "mse"},
-        Loss = [None, "mse"],
+        # Loss = {"instance": keras.losses.mean_squared_error, "name": "mse"},
+        Loss = [keras.losses.mean_squared_error, "mse"],
         # Optimizer = {"instance": keras.optimizers.RMSprop(), "name": "RMSprop"},
-        Optimizer = [keras.optimizers.RMSprop(), "RMSprop"],
+        Optimizer = [keras.optimizers.RMSprop, "RMSprop", {}],
         LearningRate = 0.01,
         # ActivationFunction = {"instance": keras.activations.relu(), "name": "relu"},
         ActivationFunction = [keras.activations.relu, "relu"],
@@ -72,11 +77,11 @@ class AuxiliaryHyperparameters:
         self.Loss = Loss
         self.Optimizer = Optimizer
         self.LearningRate = LearningRate
-        self.Optimizer[0].lr = LearningRate
+        self.Optimizer[2]["learning_rate"] = self.LearningRate
         self.ActivationFunction = ActivationFunction
         self.BatchNormalization = BatchNormalization
         self.Dropout = Dropout
-        self.ReducingLR = False
+        self.ReducingLR = ReducingLR
         self.BatchSize = BatchSize
         self.Epochs = Epochs
 
@@ -88,11 +93,69 @@ class AuxiliaryHyperparameters:
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
 
-def coef_determination(y_true, y_pred):
-        SS_res = keras.backend.sum(keras.backend.square( y_true-y_pred )) 
-        SS_tot = keras.backend.sum(keras.backend.square( y_true - keras.backend.mean(y_true) ) )
-#         loss = tf.keras.backend.mean(tf.keras.backend.square(y_pred - y_true), axis=-1)
-        return ( 1 - SS_res/(SS_tot + keras.backend.epsilon()))
+def R2(y_true, y_pred):
+        SS_res = keras.backend.sum(keras.backend.square(y_true-y_pred)) 
+        SS_tot = keras.backend.sum(keras.backend.square(y_true - keras.backend.mean(y_true)))
+        return (1 - SS_res/(SS_tot + keras.backend.epsilon()))
 
-def run_model(Model, Data, AuxHP):
-    pass
+def R2_numpy(y_true, y_pred):
+        SS_res = np.sum((y_true - y_pred)**2) 
+        SS_tot = np.sum((y_true - np.mean(y_true))**2)
+        return (1 - SS_res/(SS_tot + 1e-7))
+
+def run_model(model, Data, AuxHP, inputs):
+
+    filepath = f"{inputs.saving_location}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
+
+    class LR_tracer(keras.callbacks.Callback):
+        def on_epoch_begin(self, epoch, logs={}):
+            lr = keras.backend.eval( self.model.optimizer.lr )
+            print(' LR: %.10f '%(lr))
+
+    callbacks = [
+        LR_tracer(),
+        keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
+        keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
+        keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
+    ]
+    if AuxHP.ReducingLR == True:
+        callbacks.append(keras.callbacks.ReduceLROnPlateau( monitor='loss', factor=0.5, patience=20, verbose=True))
+
+    # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
+    # else, compile the model and run it
+    if os.path.exists(f"{filepath}.log") == True:
+        model = keras.model.load_model(f"{filepath}_last.hdf5")
+        
+        with open(f"{filepath}.log") as f:
+            number_of_epochs_trained = sum(1 for line in f) - 1 #the first line is description
+        if number_of_epochs_trained >= AuxHP.Epochs:
+            raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
+        else:
+            history = model.fit( Data.X['train'], Data.Y['train'],
+                                epochs=AuxHP.Epochs,
+                                batch_size=AuxHP.BatchSize - number_of_epochs_trained,
+                                callbacks=callbacks,
+                                validation_data=(Data.X['val'], Data.Y['train']),
+                                verbose=2,
+                                )
+    else:
+        model.compile(  loss=AuxHP.Loss[0],
+                        optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
+                        metrics = [R2])
+
+
+        history = model.fit( Data.X['train'], Data.Y['train'],
+                            epochs=AuxHP.Epochs,
+                            batch_size=AuxHP.BatchSize,
+                            callbacks=callbacks,
+                            validation_data=(Data.X['val'], Data.Y['val']),
+                            verbose=2,
+                            )
+    
+    prediction = model.predict(Data.X['test'])
+    for i in range(4):
+        print(f"R2: {R2_numpy(Data.Y['test'][:, 0], prediction[:, 0])}")
+    np.save(f"{filepath}_prediction.npy", prediction)
+
+
+    

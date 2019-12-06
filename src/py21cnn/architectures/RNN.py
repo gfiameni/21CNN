@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 
-class SummarySpaceModel3D:
+class SummarySpace3D:
     def __init__(self, 
                 InputShape, 
                 # Data, 
@@ -57,7 +57,7 @@ class SummarySpaceModel3D:
 
         if self.AuxHP.Dropout:
             x = keras.layers.TimeDistributed(keras.layers.Dropout(self.AuxHP.Dropout))(x)
-            
+
         for i in self.FCsizes[1:]:
             x = keras.layers.Dense(i, activation=self.AuxHP.ActivationFunction[0])(x)
             if self.AuxHP.BatchNormalization == True:
@@ -65,6 +65,6 @@ class SummarySpaceModel3D:
 
         x = keras.layers.Dense(4)(x)
 
-        model = keras.models.Model(inputs = img_input, outputs = x, name= "RNN_SummarySpaceModel3D")
-        print(model.summary())
-        return model
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= "RNN_SummarySpace3D")
+        print(self.model.summary())
+        return self.model
