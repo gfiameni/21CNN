@@ -150,7 +150,7 @@ def run_model(model, Data, AuxHP, inputs):
                         metrics = [R2])
 
 
-        history = model.fit( Data.X['train'], Data.Y['train'],
+        history = model.fit(Data.X['train'], Data.Y['train'],
                             epochs=AuxHP.Epochs,
                             batch_size=AuxHP.BatchSize,
                             callbacks=callbacks,
