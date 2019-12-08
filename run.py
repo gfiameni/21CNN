@@ -34,7 +34,7 @@ print("INPUTS: ", inputs)
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
 
 def leakyrelu(x):
-    return keras.layers.relu(x, alpha=0.1)
+    return keras.activations.relu(x, alpha=0.1)
 
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
