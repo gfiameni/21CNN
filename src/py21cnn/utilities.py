@@ -77,7 +77,7 @@ class AuxiliaryHyperparameters:
         self.Loss = Loss
         self.Optimizer = Optimizer
         self.LearningRate = LearningRate
-        self.Optimizer[2]["learning_rate"] = self.LearningRate
+        self.Optimizer[2]["lr"] = self.LearningRate
         self.ActivationFunction = ActivationFunction
         self.BatchNormalization = BatchNormalization
         self.Dropout = Dropout
