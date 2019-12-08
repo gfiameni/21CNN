@@ -58,7 +58,7 @@ HyP["BatchNormalization"] = [True, False]
 HyP["ActivationFunction"] = [
                             [keras.activations.relu, "relu"],
                             # [keras.layers.LeakyReLU(alpha=0.1), "leakyrelu"],
-                            [leakyrelu, "leakyrelu"]
+                            [leakyrelu, "leakyrelu"],
                             [keras.activations.elu, "elu"],
                             # [keras.activations.selu, "selu"],
                             [keras.activations.exponential, "exponential"],
