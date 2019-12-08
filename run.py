@@ -1,11 +1,21 @@
+import tensorflow as tf
+import keras
+# #setting up GPU
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
+config.gpu_options.visible_device_list = "0" #for picking only some devices
+# config.gpu_options.allow_growth = True
+config.log_device_placement=True
+keras.backend.set_session(tf.Session(config=config))
+keras.backend.set_image_data_format('channels_last')
+
+import src.py21cnn.utilities as utilities
+import numpy as np
 import sys
 import importlib
 import argparse
-import src.py21cnn.utilities as utilities
-# from src.py21cnn.architectures import *
-import tensorflow as tf
-from tensorflow import keras
 import itertools
+
 
 parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
@@ -20,8 +30,11 @@ parser.add_argument('--epochs', type=int, default=200)
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
-print("inputs: ", inputs)
+print("INPUTS: ", inputs)
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
+
+def leakyrelu(x):
+    return keras.layers.relu(x, alpha=0.1)
 
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
@@ -44,7 +57,8 @@ HyP["BatchSize"] = [20, 200]
 HyP["BatchNormalization"] = [True, False]
 HyP["ActivationFunction"] = [
                             [keras.activations.relu, "relu"],
-                            [keras.layers.LeakyReLU(alpha=0.1), "leakyrelu"],
+                            # [keras.layers.LeakyReLU(alpha=0.1), "leakyrelu"],
+                            [leakyrelu, "leakyrelu"]
                             [keras.activations.elu, "elu"],
                             # [keras.activations.selu, "selu"],
                             [keras.activations.exponential, "exponential"],
@@ -61,6 +75,9 @@ Data = utilities.Data(filepath=inputs.data_location,
                       removed_average=inputs.removed_average, 
                       Zmax=inputs.Zmax)
 Data.loadTVT(model_type=inputs.model[0])
+
+print("HYPERPARAMETERS:", str(HP))
+print("DATA", str(Data))
 
 ModelClass = ModelClassObject(Data.shape, HP)
 ModelClass.build()

@@ -2,7 +2,7 @@ import os
 import hashlib
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+import keras
 
 class Data:
     def __init__(
@@ -125,7 +125,12 @@ def run_model(model, Data, AuxHP, inputs):
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
     if os.path.exists(f"{filepath}.log") == True:
-        model = keras.model.load_model(f"{filepath}_last.hdf5")
+        #if activation is leakyrelu import custom object
+        if AuxHP.ActivationFunction[1] == "leakyrelu":
+            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects={AuxHP.ActivationFunction[1]: AuxHP.ActivationFunction[0]})
+        else:
+            model = keras.models.load_model(f"{filepath}_last.hdf5")
+        model.summary()
         
         with open(f"{filepath}.log") as f:
             number_of_epochs_trained = sum(1 for line in f) - 1 #the first line is description
@@ -140,7 +145,7 @@ def run_model(model, Data, AuxHP, inputs):
                                 verbose=2,
                                 )
     else:
-        model.compile(  loss=AuxHP.Loss[0],
+        model.compile(  loss=AuxHP.Loss[1],
                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
                         metrics = [R2])
 
