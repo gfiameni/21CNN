@@ -135,7 +135,8 @@ def run_model(model, Data, AuxHP, inputs):
         model.summary()
         
         with open(f"{filepath}.log") as f:
-            number_of_epochs_trained = sum(1 for line in f) - 1  #the first line is description
+            number_of_lines = len(f.readlines())
+            number_of_epochs_trained = number_of_lines - 1  #the first line is description
         if number_of_epochs_trained >= AuxHP.Epochs:
             raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
 
