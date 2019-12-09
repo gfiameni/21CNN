@@ -139,12 +139,15 @@ def run_model(model, Data, AuxHP, inputs):
         if number_of_epochs_trained >= AuxHP.Epochs:
             raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
 
+        model.evaluate(Data.X['train'], Data.Y['train'], verbose=True)
+        model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
+
         history = model.fit(Data.X['train'], Data.Y['train'],
                             epochs=AuxHP.Epochs,
                             batch_size=AuxHP.BatchSize - number_of_epochs_trained,
                             callbacks=callbacks,
-                            validation_data=(Data.X['val'], Data.Y['train']),
-                            verbose=2,
+                            validation_data=(Data.X['val'], Data.Y['val']),
+                            verbose=True,
                             )
     else:
         model.compile(  loss=AuxHP.Loss[1],
@@ -157,7 +160,7 @@ def run_model(model, Data, AuxHP, inputs):
                             batch_size=AuxHP.BatchSize,
                             callbacks=callbacks,
                             validation_data=(Data.X['val'], Data.Y['val']),
-                            verbose=2,
+                            verbose=True,
                             )
     
     prediction = model.predict(Data.X['test'], verbose=True)
