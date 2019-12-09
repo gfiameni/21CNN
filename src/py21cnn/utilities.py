@@ -4,7 +4,7 @@ import hashlib
 import numpy as np
 import tensorflow as tf
 # import keras
-form tensorflow import keras
+from tensorflow import keras
 
 class Data:
     def __init__(
