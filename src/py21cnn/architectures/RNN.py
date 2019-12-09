@@ -1,13 +1,13 @@
 import tensorflow as tf
 import keras
-from tensorflow.compat.v1.keras.layers import CuDNNLSTM
+# from tensorflow.compat.v1.keras.layers import CuDNNLSTM
 
 class SummarySpace3D:
     def __init__(self, 
                 InputShape, 
                 # Data, 
                 AuxiliaryHP, 
-                RNNLayer = CuDNNLSTM,
+                RNNLayer = keras.layers.CuDNNLSTM,
                 RNNsizes = [128, 64, 64],
                 FCsizes = [32, 16, 8],
                 ):
