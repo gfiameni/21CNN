@@ -124,33 +124,33 @@ def run_model(model, Data, AuxHP, inputs):
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
-if os.path.exists(f"{filepath}_last.hdf5") == True:
-    custom_obj = {}
-    custom_obj["R2"] = R2
-    #if activation is leakyrelu add to custom_obj
-    if AuxHP.ActivationFunction[1] == "leakyrelu":
-        custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
-    
-    model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
-    model.summary()
-    
-    with open(f"{filepath}.log") as f:
-        number_of_lines = len(f.readlines())
-        number_of_epochs_trained = number_of_lines - 1  #the first line is description
-        print(number_of_epochs_trained)
-        if number_of_epochs_trained >= AuxHP.Epochs:
-            raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
+    if os.path.exists(f"{filepath}_last.hdf5") == True:
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
+        if AuxHP.ActivationFunction[1] == "leakyrelu":
+            custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
+        
+        model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+        model.summary()
+        
+        with open(f"{filepath}.log") as f:
+            number_of_lines = len(f.readlines())
+            number_of_epochs_trained = number_of_lines - 1  #the first line is description
+            print(number_of_epochs_trained)
+            if number_of_epochs_trained >= AuxHP.Epochs:
+                raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
 
-        model.evaluate(Data.X['train'], Data.Y['train'], verbose=True)
-        model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
+            model.evaluate(Data.X['train'], Data.Y['train'], verbose=True)
+            model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
 
-        history = model.fit(Data.X['train'], Data.Y['train'],
-                            epochs=AuxHP.Epochs - number_of_epochs_trained,
-                            batch_size=AuxHP.BatchSize,
-                            callbacks=callbacks,
-                            validation_data=(Data.X['val'], Data.Y['val']),
-                            verbose=True,
-                            )
+            history = model.fit(Data.X['train'], Data.Y['train'],
+                                epochs=AuxHP.Epochs - number_of_epochs_trained,
+                                batch_size=AuxHP.BatchSize,
+                                callbacks=callbacks,
+                                validation_data=(Data.X['val'], Data.Y['val']),
+                                verbose=True,
+                                )
     else:
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
