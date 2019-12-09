@@ -1,8 +1,10 @@
 import os
+import time
 import hashlib
 import numpy as np
 import tensorflow as tf
-import keras
+# import keras
+form tensorflow import keras
 
 class Data:
     def __init__(
@@ -93,6 +95,24 @@ class AuxiliaryHyperparameters:
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
 
+
+
+class TimeHistory(keras.callbacks.Callback):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def on_train_begin(self, logs={}):
+        self.file = open(self.filename, 'a')
+
+    def on_epoch_begin(self, batch, logs={}):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs={}):
+        self.file.write(f"{time.time() - self.epoch_time_start}\n")
+    def on_train_end(self, logs={}):
+        self.file.close()
+
+
 def R2(y_true, y_pred):
         SS_res = keras.backend.sum(keras.backend.square(y_true-y_pred)) 
         SS_tot = keras.backend.sum(keras.backend.square(y_true - keras.backend.mean(y_true)))
@@ -114,6 +134,7 @@ def run_model(model, Data, AuxHP, inputs):
 
     callbacks = [
         LR_tracer(),
+        TimeHistory(f"{filepath}_time.txt"),
         keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
         keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
         keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
@@ -127,6 +148,7 @@ def run_model(model, Data, AuxHP, inputs):
     if os.path.exists(f"{filepath}_last.hdf5") == True:
         custom_obj = {}
         custom_obj["R2"] = R2
+        custom_obj["TimeHistory"] = TimeHistry
         #if activation is leakyrelu add to custom_obj
         if AuxHP.ActivationFunction[1] == "leakyrelu":
             custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
@@ -149,7 +171,7 @@ def run_model(model, Data, AuxHP, inputs):
                                 batch_size=AuxHP.BatchSize,
                                 callbacks=callbacks,
                                 validation_data=(Data.X['val'], Data.Y['val']),
-                                verbose=True,
+                                verbose=2,
                                 )
     else:
         model.compile(  loss=AuxHP.Loss[1],
@@ -162,7 +184,7 @@ def run_model(model, Data, AuxHP, inputs):
                             batch_size=AuxHP.BatchSize,
                             callbacks=callbacks,
                             validation_data=(Data.X['val'], Data.Y['val']),
-                            verbose=True,
+                            verbose=2,
                             )
     
     prediction = model.predict(Data.X['test'], verbose=True)

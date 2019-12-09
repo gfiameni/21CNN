@@ -1,5 +1,7 @@
 import tensorflow as tf
-import keras
+# import keras
+from tensorflow import keras
+
 # #setting up GPU
 config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage

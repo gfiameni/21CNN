@@ -1,5 +1,6 @@
 import tensorflow as tf
-import keras
+# import keras
+from tensorflow import keras
 # from tensorflow.compat.v1.keras.layers import CuDNNLSTM
 
 class SummarySpace3D:
