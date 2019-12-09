@@ -91,8 +91,13 @@ class AuxiliaryHyperparameters:
         S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[1]}"
         S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}__Epochs:{self.Epochs:05d}"
         return S
+    def hashstring(self):
+        #differences from __str__ in not including epochs
+        S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[1]}"
+        S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}"
+        return S
     def hash(self):
-        return hashlib.md5(self.__str__().encode()).hexdigest()
+        return hashlib.md5(self.hashstring().encode()).hexdigest()
 
 
 
