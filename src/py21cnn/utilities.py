@@ -124,19 +124,20 @@ def run_model(model, Data, AuxHP, inputs):
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
-    if os.path.exists(f"{filepath}_lasy.hdf5") == True:
-        custom_obj = {}
-        custom_obj["R2"] = R2
-        #if activation is leakyrelu add to custom_obj
-        if AuxHP.ActivationFunction[1] == "leakyrelu":
-            custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
-        
-        model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
-        model.summary()
-        
-        with open(f"{filepath}.log") as f:
-            number_of_lines = len(f.readlines())
-            number_of_epochs_trained = number_of_lines - 1  #the first line is description
+if os.path.exists(f"{filepath}_last.hdf5") == True:
+    custom_obj = {}
+    custom_obj["R2"] = R2
+    #if activation is leakyrelu add to custom_obj
+    if AuxHP.ActivationFunction[1] == "leakyrelu":
+        custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
+    
+    model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+    model.summary()
+    
+    with open(f"{filepath}.log") as f:
+        number_of_lines = len(f.readlines())
+        number_of_epochs_trained = number_of_lines - 1  #the first line is description
+        print(number_of_epochs_trained)
         if number_of_epochs_trained >= AuxHP.Epochs:
             raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
 
