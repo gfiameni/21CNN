@@ -124,26 +124,28 @@ def run_model(model, Data, AuxHP, inputs):
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
-    if os.path.exists(f"{filepath}.log") == True:
-        #if activation is leakyrelu import custom object
+    if os.path.exists(f"{filepath}_lasy.hdf5") == True:
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
         if AuxHP.ActivationFunction[1] == "leakyrelu":
-            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects={AuxHP.ActivationFunction[1]: AuxHP.ActivationFunction[0]})
-        else:
-            model = keras.models.load_model(f"{filepath}_last.hdf5")
+            custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
+        
+        model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
         model.summary()
         
         with open(f"{filepath}.log") as f:
-            number_of_epochs_trained = sum(1 for line in f) - 1 #the first line is description
+            number_of_epochs_trained = sum(1 for line in f) - 1  #the first line is description
         if number_of_epochs_trained >= AuxHP.Epochs:
             raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
-        else:
-            history = model.fit( Data.X['train'], Data.Y['train'],
-                                epochs=AuxHP.Epochs,
-                                batch_size=AuxHP.BatchSize - number_of_epochs_trained,
-                                callbacks=callbacks,
-                                validation_data=(Data.X['val'], Data.Y['train']),
-                                verbose=2,
-                                )
+
+        history = model.fit(Data.X['train'], Data.Y['train'],
+                            epochs=AuxHP.Epochs,
+                            batch_size=AuxHP.BatchSize - number_of_epochs_trained,
+                            callbacks=callbacks,
+                            validation_data=(Data.X['val'], Data.Y['train']),
+                            verbose=2,
+                            )
     else:
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
@@ -169,8 +171,9 @@ def run_model(model, Data, AuxHP, inputs):
             print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
             f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
         f.write("\n")
-        f.write(model.summary())
-
-
+        # f.write(model.summary())
+        stringlist = []
+        model.summary(print_fn=lambda x: stringlist.append(x))
+        f.write("\n".join(stringlist))
 
     
