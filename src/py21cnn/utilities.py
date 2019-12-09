@@ -143,8 +143,8 @@ def run_model(model, Data, AuxHP, inputs):
         model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
 
         history = model.fit(Data.X['train'], Data.Y['train'],
-                            epochs=AuxHP.Epochs,
-                            batch_size=AuxHP.BatchSize - number_of_epochs_trained,
+                            epochs=AuxHP.Epochs - number_of_epochs_trained,
+                            batch_size=AuxHP.BatchSize,
                             callbacks=callbacks,
                             validation_data=(Data.X['val'], Data.Y['val']),
                             verbose=True,
@@ -167,8 +167,8 @@ def run_model(model, Data, AuxHP, inputs):
     np.save(f"{filepath}_prediction.npy", prediction)
 
     with open(f"{filepath}_summary.txt", "w") as f:
-        f.write(f"{str(Data)}\n")
-        f.write(f"{str(AuxHP)}\n")
+        f.write(f"DATA: {str(Data)}\n")
+        f.write(f"HYPARAMETERS: {str(AuxHP)}\n")
         f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
         for i in range(4):
             print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
