@@ -142,6 +142,7 @@ def run_model(model, Data, AuxHP, inputs):
     callbacks = [
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
+        keras.callbacks.TerminateOnNaN(),
         keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
         keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
         keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
