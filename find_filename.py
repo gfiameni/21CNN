@@ -57,7 +57,6 @@ HyP["ActivationFunction"] = [
                             # [keras.activations.tanh, "tanh"],
                             ]
 
-
 HyP_list = list(itertools.product(*HyP.values()))
 HP_dict = dict(zip(HyP.keys(), HyP_list[inputs.HyperparameterIndex]))
 HP = utilities.AuxiliaryHyperparameters(**HP_dict)
