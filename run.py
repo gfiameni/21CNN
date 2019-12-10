@@ -41,6 +41,11 @@ def leakyrelu(x):
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
 HyP["Epochs"] = [inputs.epochs]
+HyP["LearningRate"] = [0.1, 0.01, 0.001, 0.0001]
+HyP["Dropout"] = [0, 0.3]
+HyP["ReducingLR"] = [True]
+HyP["BatchSize"] = [20, 100]
+HyP["BatchNormalization"] = [True, False]
 HyP["Optimizer"] = [
                     [keras.optimizers.RMSprop, "RMSprop", {}],
                     [keras.optimizers.SGD, "SGD", {}],
@@ -52,18 +57,13 @@ HyP["Optimizer"] = [
                     [keras.optimizers.Adamax, "Adamax", {}],
                     [keras.optimizers.Nadam, "Nadam", {}],
                     ]
-HyP["LearningRate"] = [0.1, 0.01, 0.001, 0.0001]
-HyP["Dropout"] = [0, 0.3]
-HyP["ReducingLR"] = [True]
-HyP["BatchSize"] = [200, 20]
-HyP["BatchNormalization"] = [True, False]
 HyP["ActivationFunction"] = [
                             [keras.activations.relu, "relu"],
                             # [keras.layers.LeakyReLU(alpha=0.1), "leakyrelu"],
                             [leakyrelu, "leakyrelu"],
                             [keras.activations.elu, "elu"],
-                            # [keras.activations.selu, "selu"],
-                            [keras.activations.exponential, "exponential"],
+                            [keras.activations.selu, "selu"],
+                            # [keras.activations.exponential, "exponential"],
                             # [keras.activations.tanh, "tanh"],
                             ]
 

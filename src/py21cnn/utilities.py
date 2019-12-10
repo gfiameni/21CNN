@@ -160,8 +160,11 @@ def run_model(model, Data, AuxHP, inputs):
         #if activation is leakyrelu add to custom_obj
         if AuxHP.ActivationFunction[1] == "leakyrelu":
             custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
-        
-        model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+        #if loading last model fails for some reason, load the best one
+        try:
+            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+        except:
+            model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
         model.summary()
         
         with open(f"{filepath}.log") as f:
