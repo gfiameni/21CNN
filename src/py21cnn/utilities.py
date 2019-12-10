@@ -172,7 +172,8 @@ def run_model(model, Data, AuxHP, inputs):
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
             print(number_of_epochs_trained)
             if number_of_epochs_trained >= AuxHP.Epochs:
-                raise ValueError('number_of_epochs >= AuxiliaryHyperparameters.Epochs')
+                print(number_of_epochs_trained, ">=", AuxHP.Epochs)
+                raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
 
             model.evaluate(Data.X['train'], Data.Y['train'], verbose=True)
             model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
