@@ -69,7 +69,7 @@ class AuxiliaryHyperparameters:
         Optimizer = [keras.optimizers.RMSprop, "RMSprop", {}],
         LearningRate = 0.01,
         # ActivationFunction = {"instance": keras.activations.relu(), "name": "relu"},
-        ActivationFunction = [keras.activations.relu, "relu"],
+        ActivationFunction = ["relu", {"activation": keras.activations.relu, "kernel_initializer": keras.initializers.he_uniform()}],
         BatchNormalization = True,
         Dropout = 0.2,
         ReducingLR = False, 
@@ -88,12 +88,12 @@ class AuxiliaryHyperparameters:
         self.Epochs = Epochs
 
     def __str__(self):
-        S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[1]}"
+        S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[0]}"
         S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}__Epochs:{self.Epochs:05d}"
         return S
     def hashstring(self):
         #differences from __str__ in not including epochs
-        S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[1]}"
+        S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[0]}"
         S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}"
         return S
     def hash(self):
@@ -158,8 +158,8 @@ def run_model(model, Data, AuxHP, inputs):
         custom_obj["R2"] = R2
         custom_obj["TimeHistory"] = TimeHistory
         #if activation is leakyrelu add to custom_obj
-        if AuxHP.ActivationFunction[1] == "leakyrelu":
-            custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]
+        if AuxHP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
         #if loading last model fails for some reason, load the best one
         try:
             model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
@@ -179,7 +179,8 @@ def run_model(model, Data, AuxHP, inputs):
             model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
 
             history = model.fit(Data.X['train'], Data.Y['train'],
-                                epochs=AuxHP.Epochs - number_of_epochs_trained,
+                                initial_epoch=number_of_epochs_trained+1,
+                                epochs=AuxHP.Epochs,
                                 batch_size=AuxHP.BatchSize,
                                 callbacks=callbacks,
                                 validation_data=(Data.X['val'], Data.Y['val']),
@@ -205,7 +206,7 @@ def run_model(model, Data, AuxHP, inputs):
     with open(f"{filepath}_summary.txt", "w") as f:
         f.write(f"DATA: {str(Data)}\n")
         f.write(f"HYPARAMETERS: {str(AuxHP)}\n")
-        f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
+        # f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
         for i in range(4):
             print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
             f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")

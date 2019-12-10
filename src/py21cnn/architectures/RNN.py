@@ -24,7 +24,7 @@ class SummarySpace3D:
                                                             kernel_size, 
                                                             strides=strides, 
                                                             padding=padding,
-                                                            activation = self.AuxHP.ActivationFunction[0]))(x)
+                                                            **self.AuxHP.ActivationFunction[1]))(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
         return x
@@ -33,7 +33,7 @@ class SummarySpace3D:
                                                             kernel_size, 
                                                             strides=strides, 
                                                             padding=padding,
-                                                            activation = self.AuxHP.ActivationFunction[0]))(x)
+                                                            **self.AuxHP.ActivationFunction[1]))(x)
         return x
 
     def build(self):
@@ -58,10 +58,14 @@ class SummarySpace3D:
             x = keras.layers.BatchNormalization()(x)
 
         if self.AuxHP.Dropout:
-            x = keras.layers.Dropout(self.AuxHP.Dropout)(x)
+            if self.AuxHP.ActivationFunction[0] == "selu":
+                dropout_layer = keras.layers.AlphaDropout
+            else:
+                dropout_layer = keras.layers.Dropout
+            x = dropout_layer(self.AuxHP.Dropout)(x)
 
         for i in self.FCsizes[1:]:
-            x = keras.layers.Dense(i, activation=self.AuxHP.ActivationFunction[0])(x)
+            x = keras.layers.Dense(i, **self.AuxHP.ActivationFunction[1])(x)
             if self.AuxHP.BatchNormalization == True:
                 x = keras.layers.BatchNormalization()(x)
 

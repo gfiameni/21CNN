@@ -59,11 +59,11 @@ HyP["Optimizer"] = [
                     [keras.optimizers.Nadam, "Nadam", {}],
                     ]
 HyP["ActivationFunction"] = [
-                            [keras.activations.relu, "relu"],
+                            ["relu", {"activation": keras.activations.relu, "kernel_initializer": keras.initializers.he_uniform()}],
                             # [keras.layers.LeakyReLU(alpha=0.1), "leakyrelu"],
-                            [leakyrelu, "leakyrelu"],
-                            [keras.activations.elu, "elu"],
-                            [keras.activations.selu, "selu"],
+                            ["leakyrelu", {"activation": leakyrelu, "kernel_initializer": keras.initializers.he_uniform()}],
+                            ["elu", {"activation": keras.activations.elu, "kernel_initializer": keras.initializers.he_uniform()}],
+                            ["selu", {"activation": keras.activations.selu, "kernel_initializer": keras.initializers.lecun_normal()}],
                             # [keras.activations.exponential, "exponential"],
                             # [keras.activations.tanh, "tanh"],
                             ]
