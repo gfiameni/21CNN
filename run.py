@@ -28,6 +28,7 @@ parser.add_argument('--saving_location', type=str, default="/scratch/../../")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(768), default=0)
 parser.add_argument('--epochs', type=int, default=200)
+parser.add_argument('--file_prefix', type=str, default="")
 
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)

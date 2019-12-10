@@ -132,7 +132,7 @@ def R2_numpy(y_true, y_pred):
 
 def run_model(model, Data, AuxHP, inputs):
 
-    filepath = f"{inputs.saving_location}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
+    filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
 
     class LR_tracer(keras.callbacks.Callback):
         def on_epoch_begin(self, epoch, logs={}):
