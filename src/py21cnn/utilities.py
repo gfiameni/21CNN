@@ -114,6 +114,8 @@ class TimeHistory(keras.callbacks.Callback):
 
     def on_epoch_end(self, batch, logs={}):
         self.file.write(f"{time.time() - self.epoch_time_start}\n")
+        self.file.flush()
+        os.fsync(self.file.fileno())
     def on_train_end(self, logs={}):
         self.file.close()
 
