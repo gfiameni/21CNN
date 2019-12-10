@@ -155,7 +155,7 @@ def run_model(model, Data, AuxHP, inputs):
     if os.path.exists(f"{filepath}_last.hdf5") == True:
         custom_obj = {}
         custom_obj["R2"] = R2
-        custom_obj["TimeHistory"] = TimeHistry
+        custom_obj["TimeHistory"] = TimeHistory
         #if activation is leakyrelu add to custom_obj
         if AuxHP.ActivationFunction[1] == "leakyrelu":
             custom_obj[AuxHP.ActivationFunction[1]] = AuxHP.ActivationFunction[0]

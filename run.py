@@ -55,7 +55,7 @@ HyP["Optimizer"] = [
 HyP["LearningRate"] = [0.1, 0.01, 0.001, 0.0001]
 HyP["Dropout"] = [0, 0.3]
 HyP["ReducingLR"] = [True]
-HyP["BatchSize"] = [20, 200]
+HyP["BatchSize"] = [200, 20]
 HyP["BatchNormalization"] = [True, False]
 HyP["ActivationFunction"] = [
                             [keras.activations.relu, "relu"],
