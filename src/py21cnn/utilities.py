@@ -175,8 +175,8 @@ def run_model(model, Data, AuxHP, inputs):
                 print(number_of_epochs_trained, ">=", AuxHP.Epochs)
                 raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
 
-            model.evaluate(Data.X['train'], Data.Y['train'], verbose=True)
-            model.evaluate(Data.X['val'], Data.Y['val'], verbose=True)
+            model.evaluate(Data.X['train'], Data.Y['train'], verbose=False)
+            model.evaluate(Data.X['val'], Data.Y['val'], verbose=False)
 
             history = model.fit(Data.X['train'], Data.Y['train'],
                                 initial_epoch=number_of_epochs_trained+1,
