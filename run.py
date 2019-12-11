@@ -26,7 +26,7 @@ parser.add_argument('--Zmax', type=int, default=30)
 parser.add_argument('--data_location', type=str, default="/scratch/../../")
 parser.add_argument('--saving_location', type=str, default="/scratch/../../")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
-parser.add_argument('--HyperparameterIndex', type=int, choices=range(768), default=0)
+parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--file_prefix', type=str, default="")
 
@@ -42,8 +42,8 @@ def leakyrelu(x):
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
 HyP["Epochs"] = [inputs.epochs]
-HyP["LearningRate"] = [0.1, 0.01, 0.001, 0.0001]
-HyP["Dropout"] = [0, 0.3]
+HyP["LearningRate"] = [0.01, 0.001, 0.0001]
+HyP["Dropout"] = [0.2, 0.5]
 HyP["ReducingLR"] = [True]
 HyP["BatchSize"] = [20, 100]
 HyP["BatchNormalization"] = [True, False]

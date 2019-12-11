@@ -118,13 +118,16 @@ class TimeHistory(keras.callbacks.Callback):
         os.fsync(self.file.fileno())
     def on_train_end(self, logs={}):
         self.file.close()
+class LR_tracer(keras.callbacks.Callback):
+    def on_epoch_begin(self, epoch, logs={}):
+        lr = keras.backend.eval( self.model.optimizer.lr )
+        print(' LR: %.10f '%(lr))
 
 
 def R2(y_true, y_pred):
         SS_res = keras.backend.sum(keras.backend.square(y_true-y_pred)) 
         SS_tot = keras.backend.sum(keras.backend.square(y_true - keras.backend.mean(y_true)))
         return (1 - SS_res/(SS_tot + keras.backend.epsilon()))
-
 def R2_numpy(y_true, y_pred):
         SS_res = np.sum((y_true - y_pred)**2) 
         SS_tot = np.sum((y_true - np.mean(y_true))**2)
@@ -134,11 +137,6 @@ def run_model(model, Data, AuxHP, inputs):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
 
-    class LR_tracer(keras.callbacks.Callback):
-        def on_epoch_begin(self, epoch, logs={}):
-            lr = keras.backend.eval( self.model.optimizer.lr )
-            print(' LR: %.10f '%(lr))
-
     callbacks = [
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
@@ -146,17 +144,17 @@ def run_model(model, Data, AuxHP, inputs):
         keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
         keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
         keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
-        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=25, verbose=True),
+        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
     ]
     if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=20, verbose=True))
+        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
     if os.path.exists(f"{filepath}_last.hdf5") == True:
         custom_obj = {}
         custom_obj["R2"] = R2
-        custom_obj["TimeHistory"] = TimeHistory
+        # custom_obj["TimeHistory"] = TimeHistory
         #if activation is leakyrelu add to custom_obj
         if AuxHP.ActivationFunction[0] == "leakyrelu":
             custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
@@ -179,7 +177,7 @@ def run_model(model, Data, AuxHP, inputs):
             model.evaluate(Data.X['val'], Data.Y['val'], verbose=False)
 
             history = model.fit(Data.X['train'], Data.Y['train'],
-                                initial_epoch=number_of_epochs_trained+1,
+                                initial_epoch=number_of_epochs_trained,
                                 epochs=AuxHP.Epochs,
                                 batch_size=AuxHP.BatchSize,
                                 callbacks=callbacks,
@@ -200,7 +198,7 @@ def run_model(model, Data, AuxHP, inputs):
                             verbose=2,
                             )
     
-    prediction = model.predict(Data.X['test'], verbose=True)
+    prediction = model.predict(Data.X['test'], verbose=False)
     np.save(f"{filepath}_prediction.npy", prediction)
 
     with open(f"{filepath}_summary.txt", "w") as f:

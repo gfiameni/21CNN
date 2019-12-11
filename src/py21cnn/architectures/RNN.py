@@ -1,14 +1,15 @@
 import tensorflow as tf
 # import keras
 from tensorflow import keras
-# from tensorflow.compat.v1.keras.layers import CuDNNLSTM
+from tensorflow.compat.v1.keras.layers import CuDNNLSTM
 
 class SummarySpace3D:
     def __init__(self, 
                 InputShape, 
                 # Data, 
                 AuxiliaryHP, 
-                RNNLayer = keras.layers.CuDNNLSTM,
+                # RNNLayer = keras.layers.CuDNNLSTM,
+                RNNLayer = CuDNNLSTM,
                 RNNsizes = [128, 64, 64],
                 FCsizes = [32, 16, 8],
                 ):
@@ -18,6 +19,10 @@ class SummarySpace3D:
         self.RNNLayer = RNNLayer
         self.RNNsizes = RNNsizes
         self.FCsizes = FCsizes
+        if self.AuxHP.ActivationFunction[0] == "selu":
+            self.DropoutLayer = keras.layers.AlphaDropout
+        else:
+            self.DropoutLayer = keras.layers.Dropout
     
     def conv2d_bn(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
         x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
@@ -44,10 +49,14 @@ class SummarySpace3D:
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
 
-        x = self.conv2d_bn(x, 128, (5, 5))
-        x = self.conv2d_bn(x, 128, (5, 5))
+        x = self.conv2d_bn(x, 128, (4, 4))
+        x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D())(x)
         x = keras.layers.TimeDistributed(keras.layers.Flatten())(x)
-        
+        x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout))(x)
+        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)        
+
         for i in self.RNNsizes:
             x = self.RNNLayer(i, return_sequences=True)(x)
             if self.AuxHP.BatchNormalization == True:
@@ -57,17 +66,12 @@ class SummarySpace3D:
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
 
-        if self.AuxHP.Dropout:
-            if self.AuxHP.ActivationFunction[0] == "selu":
-                dropout_layer = keras.layers.AlphaDropout
-            else:
-                dropout_layer = keras.layers.Dropout
-            x = dropout_layer(self.AuxHP.Dropout)(x)
+        # x = self.DropoutLayer(self.AuxHP.Dropout)(x)
 
         for i in self.FCsizes[1:]:
             x = keras.layers.Dense(i, **self.AuxHP.ActivationFunction[1])(x)
-            if self.AuxHP.BatchNormalization == True:
-                x = keras.layers.BatchNormalization()(x)
+            # if self.AuxHP.BatchNormalization == True:
+            #     x = keras.layers.BatchNormalization()(x)
 
         x = keras.layers.Dense(4)(x)
 
