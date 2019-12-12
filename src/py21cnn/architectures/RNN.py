@@ -102,23 +102,6 @@ class ConvRNN3D:
         else:
             self.DropoutLayer = keras.layers.Dropout
     
-    # def conv2d_bn(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
-    #     x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
-    #                                                         kernel_size, 
-    #                                                         strides=strides, 
-    #                                                         padding=padding,
-    #                                                         **self.AuxHP.ActivationFunction[1]))(x)
-    #     if self.AuxHP.BatchNormalization == True:
-    #         x = keras.layers.BatchNormalization()(x)
-    #     return x
-    # def conv2d(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
-    #     x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
-    #                                                         kernel_size, 
-    #                                                         strides=strides, 
-    #                                                         padding=padding,
-    #                                                         **self.AuxHP.ActivationFunction[1]))(x)
-    #     return x
-
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
 
@@ -182,5 +165,41 @@ class Hybrid3D:
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
         x = keras.layers.Conv3D(128, (8, 8, 8), **self.AuxHP.ActivationFunction[1])(img_input)
+        x = keras.layers.MaxPooling3D((pool_size=(4, 1, 1), strides=(4, 1, 1)))(x)
+        x = keras.layers.MaxPooling3D((pool_size=(1, 2, 2), strides=(1, 2, 2)))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv3D(128, (1, 4, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling3D((pool_size=(1, 2, 2), strides=(1, 2, 2)))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        
+        x = keras.layers.TimeDistributed(keras.layers.Flatten(), name='flatten')(x)
+        x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name='dropout')(x)
+        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'dense')(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)        
+
+        for i in self.RNNsizes:
+            x = self.RNNLayer(i, return_sequences=True)(x)
+            if self.AuxHP.BatchNormalization == True:
+                x = keras.layers.BatchNormalization()(x)
+        #first dense layer is stil RNN
+        x = self.RNNLayer(self.FCsizes[0], return_sequences=False)(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+
+        # x = self.DropoutLayer(self.AuxHP.Dropout)(x)
+
+        for i in self.FCsizes[1:]:
+            x = keras.layers.Dense(i, **self.AuxHP.ActivationFunction[1])(x)
+            # if self.AuxHP.BatchNormalization == True:
+            #     x = keras.layers.BatchNormalization()(x)
+
+        x = keras.layers.Dense(4)(x)
+
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= "Hybrid3D")
+        print(self.model.summary())
+        return self.model        
 
 
