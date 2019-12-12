@@ -31,7 +31,7 @@ def leakyrelu(x):
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
 HyP["Epochs"] = [inputs.epochs]
-HyP["LearningRate"] = [0.1, 0.01, 0.001, 0.0001]
+HyP["LearningRate"] = [0.01, 0.001, 0.0001]
 HyP["Dropout"] = [0, 0.3]
 HyP["ReducingLR"] = [True]
 HyP["BatchSize"] = [20, 100]
