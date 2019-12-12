@@ -165,8 +165,7 @@ class Hybrid3D:
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
         x = keras.layers.Conv3D(128, (8, 8, 8), **self.AuxHP.ActivationFunction[1])(img_input)
-        x = keras.layers.MaxPooling3D(pool_size=(4, 1, 1), strides=(4, 1, 1))(x)
-        x = keras.layers.MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2))(x)
+        x = keras.layers.MaxPooling3D(pool_size=(4, 2, 2), strides=(4, 2, 2))(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Conv3D(128, (1, 4, 4), **self.AuxHP.ActivationFunction[1])(x)
