@@ -11,7 +11,7 @@ class SummarySpace3D:
                 # RNNLayer = keras.layers.CuDNNLSTM,
                 RNNLayer = CuDNNLSTM,
                 RNNsizes = [128, 64, 64],
-                FCsizes = [32, 16, 8],
+                FCsizes = [32, 32, 16, 8],
                 ):
         self.InputShape = InputShape
         # self.Data = Data
