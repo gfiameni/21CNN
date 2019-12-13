@@ -83,8 +83,15 @@ print("HYPERPARAMETERS:", str(HP))
 print("DATA:", str(Data))
 
 if(inputs.model[0] == 'RNN'):
-    dim = (526, 25, 25, 1)
+    if inputs.dimensionality == 3:
+        dim = (526, 25, 25, 1)
+    else:
+        dim = (526, 25, 1)
 else:
-    dim = (25, 25, 526, 1)
+    if inputs.dimensionality == 3:
+        dim = (25, 25, 526, 1)
+    else:
+        dim = (25, 526, 1)
+
 ModelClass = ModelClassObject(dim, HP)
 ModelClass.build()
