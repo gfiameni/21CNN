@@ -105,11 +105,11 @@ class ConvRNN3D:
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
 
-        x = keras.layers.ConvLSTM2D(filters=64, kernel_size=(8, 8), return_sequences=True)(img_input)
+        x = keras.layers.ConvLSTM2D(filters=32, kernel_size=(8, 8), return_sequences=True)(img_input)
         x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D(), name='pool_1')(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.ConvLSTM2D(filters=128, kernel_size=(4, 4), return_sequences=True)(x)
+        x = keras.layers.ConvLSTM2D(filters=64, kernel_size=(4, 4), return_sequences=True)(x)
         x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D(), name='pool_2')(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)

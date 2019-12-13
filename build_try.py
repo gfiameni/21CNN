@@ -82,5 +82,5 @@ Data = utilities.Data(filepath=inputs.data_location,
 print("HYPERPARAMETERS:", str(HP))
 print("DATA:", str(Data))
 
-ModelClass = ModelClassObject((526, 25, 25, 1), HP)
+ModelClass = ModelClassObject((25, 25, 526, 1), HP)
 ModelClass.build()
