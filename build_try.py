@@ -82,5 +82,9 @@ Data = utilities.Data(filepath=inputs.data_location,
 print("HYPERPARAMETERS:", str(HP))
 print("DATA:", str(Data))
 
-ModelClass = ModelClassObject((25, 25, 526, 1), HP)
+if(inputs.model[0] == 'RNN'):
+    dim = (526, 25, 25, 1)
+else:
+    dim = (25, 25, 526, 1)
+ModelClass = ModelClassObject(dim, HP)
 ModelClass.build()

@@ -21,7 +21,7 @@ class basic3D:
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
         x = keras.layers.Conv3D(128, (8, 8, 8), **self.AuxHP.ActivationFunction[1])(img_input)
-        x = keras.layers.MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2))(x)
+        x = keras.layers.MaxPooling3D(pool_size=(2, 2, 4), strides=(2, 2, 4))(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Conv3D(128, (4, 4, 1), **self.AuxHP.ActivationFunction[1])(x)
@@ -40,18 +40,18 @@ class basic3D:
         x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Conv3D(256, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.Conv3D(128, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
         x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)        
-        x = keras.layers.Conv3D(256, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.Conv3D(128, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
         x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Conv3D(256, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
-        x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
-        if self.AuxHP.BatchNormalization == True:
-            x = keras.layers.BatchNormalization()(x)
+        # x = keras.layers.Conv3D(256, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        # x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
+        # if self.AuxHP.BatchNormalization == True:
+        #     x = keras.layers.BatchNormalization()(x)
 
         x = keras.layers.Flatten()(x)
         x = self.DropoutLayer(self.AuxHP.Dropout)(x)
