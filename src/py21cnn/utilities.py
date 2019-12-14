@@ -26,8 +26,8 @@ class Data:
         if len(formatting) == 0:
             default_formatting = ['clipped_-250_+50', 'NaN_removed']
             if self.dimensionality == 2:
-                default_formatting.append('boxcar22')
-                default_formatting.append('5slices')
+                default_formatting.append('boxcar44')
+                default_formatting.append('10slices')
             if self.dimensionality == 3:
                 default_formatting.append('boxcar444')
                 default_formatting.append('sliced22')
