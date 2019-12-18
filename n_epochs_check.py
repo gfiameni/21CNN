@@ -1,6 +1,7 @@
 import tensorflow as tf
 # import keras
 from tensorflow import keras
+import os
 
 # #setting up GPU
 config = tf.ConfigProto()
@@ -23,14 +24,17 @@ parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
 parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
 parser.add_argument('--Zmax', type=int, default=30)
-parser.add_argument('--saving_location', type=str, default="/scratch/../../")
+parser.add_argument('--saving_location', type=str, default="models/")
+parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--file_prefix', type=str, default="")
+parser.add_argument('--shorter', type=int, choices=[0, 1], default=0)
 
 
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
+inputs.shorter = bool(inputs.shorter)
 inputs.model = inputs.model.split('.')
 print("INPUTS:", inputs)
 # ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
@@ -78,7 +82,17 @@ for i, h in enumerate(HyP_list):
     HP_dict = dict(zip(HyP.keys(), h))
     HP = utilities.AuxiliaryHyperparameters(**HP_dict)
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
-    with open(f"{filepath}_time.txt") as f:
-            number_of_epochs_trained = len(f.readlines())
-    if number_of_epochs_trained < inputs.epochs:
-        print(i, str(HP))
+    if os.path.exists(f"{filepath}_summary.txt") == False:
+        with open(f"{filepath}_time.txt") as f:
+                number_of_epochs_trained = len(f.readlines())
+        with open(f"{filepath}.log") as f:
+            number_of_epochs_trained_log = len(f.readlines())
+            if number_of_epochs_trained_log != 0:
+                number_of_epochs_trained_log -= 1
+        if number_of_epochs_trained != number_of_epochs_trained_log:
+            print("ERR", i, number_of_epochs_trained, str(HP))
+        if number_of_epochs_trained < inputs.epochs:
+            if inputs.shorter == True:
+                print(i, end =",")
+            else:
+                print(i, number_of_epochs_trained, str(HP))
