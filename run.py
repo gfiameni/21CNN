@@ -1,39 +1,53 @@
-import tensorflow as tf
-# import keras
-from tensorflow import keras
-
-# #setting up GPU
-config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
-config.gpu_options.visible_device_list = "0" #for picking only some devices
-# config.gpu_options.allow_growth = True
-config.log_device_placement=True
-keras.backend.set_session(tf.Session(config=config))
-keras.backend.set_image_data_format('channels_last')
-
-import src.py21cnn.utilities as utilities
-import numpy as np
-import sys
-import importlib
 import argparse
-import itertools
-
 
 parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
 parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
 parser.add_argument('--Zmax', type=int, default=30)
-parser.add_argument('--data_location', type=str, default="/scratch/../../")
-parser.add_argument('--saving_location', type=str, default="/scratch/../../")
+parser.add_argument('--data_location', type=str, default="data/")
+parser.add_argument('--saving_location', type=str, default="models/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
 parser.add_argument('--epochs', type=int, default=200)
+parser.add_argument('--gpus', type=int, default=1)
+parser.add_argument('--multi_gpu_correction', type=str, choices=["learning_rate", "batch_size", "none"], default="none")
 parser.add_argument('--file_prefix', type=str, default="")
 
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
 print("INPUTS:", inputs)
+
+import itertools
+import sys
+import importlib
+import numpy as np
+import tensorflow as tf
+# import keras
+from tensorflow import keras
+import horovod.tensorflow.keras as hvd
+
+if inputs.gpus == 1:
+    # #setting up GPU
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
+    config.gpu_options.visible_device_list = "0" #for picking only some devices
+    config.gpu_options.allow_growth = True
+    # config.log_device_placement=True
+    keras.backend.set_session(tf.Session(config=config))
+elif inputs.gpus > 1:
+    #init Horovod
+    hvd.init()
+    # Horovod: pin GPU to be used to process local rank (one GPU per process)
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    keras.backend.set_session(tf.Session(config=config))
+else:
+    raise ValueError('number of gpus shoud be > 0')
+keras.backend.set_image_data_format('channels_last')
+
+import src.py21cnn.utilities as utilities
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
 
 def leakyrelu(x):
@@ -84,7 +98,13 @@ print("DATA:", str(Data))
 
 ModelClass = ModelClassObject(Data.shape, HP)
 ModelClass.build()
-utilities.run_model(model = ModelClass.model, 
-                    Data = Data, 
-                    AuxHP = HP,
-                    inputs = inputs)
+if inputs.gpus == 1:
+    utilities.run_model(model = ModelClass.model, 
+                        Data = Data, 
+                        AuxHP = HP,
+                        inputs = inputs)
+else:
+    utilities.run_multigpu_model(model = ModelClass.model, 
+                                Data = Data, 
+                                AuxHP = HP,
+                                inputs = inputs)
