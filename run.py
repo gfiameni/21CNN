@@ -10,7 +10,7 @@ parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--gpus', type=int, default=1)
-parser.add_argument('--multi_gpu_correction', type=str, choices=["learning_rate", "batch_size", "none"], default="none")
+parser.add_argument('--multi_gpu_correction', type=int, choices=[0, 1, 2], default=0, help="0-none, 1-batch_size, 2-learning_rate")
 parser.add_argument('--file_prefix', type=str, default="")
 
 inputs = parser.parse_args()
@@ -18,6 +18,7 @@ inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
 print("INPUTS:", inputs)
 
+import copy
 import itertools
 import sys
 import importlib
@@ -95,6 +96,7 @@ Data.loadTVT(model_type=inputs.model[0])
 
 print("HYPERPARAMETERS:", str(HP))
 print("DATA:", str(Data))
+print("HVD.SIZE", hvd.size())
 
 ModelClass = ModelClassObject(Data.shape, HP)
 ModelClass.build()
@@ -104,7 +106,20 @@ if inputs.gpus == 1:
                         AuxHP = HP,
                         inputs = inputs)
 else:
+    #corrections for multigpu
+    AuxHP = copy.deepcopy(HP)
+    if inputs.multi_gpu_correction == 2:
+        AuxHP.Optimizer[2]["lr"] *= hvd.size()
+    elif inputs.multi_gpu_correction == 1:
+        AuxHP.BatchSize //= hvd.size()
+    AuxHP.Epochs //= hvd.size()
+    print("BEFORE RUN AuxHP: ", str(AuxHP))
+    print("BEFORE RUN HP: ", str(HP))
+
     utilities.run_multigpu_model(model = ModelClass.model, 
                                 Data = Data, 
-                                AuxHP = HP,
-                                inputs = inputs)
+                                AuxHP = AuxHP,
+                                HP = HP,
+                                inputs = inputs,
+                                hvd = hvd,
+                                )

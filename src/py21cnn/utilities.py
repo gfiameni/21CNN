@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 # import keras
 from tensorflow import keras
-import horovod.tensorflow.keras as hvd
+# import horovod.tensorflow.keras as hvd
 
 class Data:
     def __init__(
@@ -135,14 +135,7 @@ def R2_numpy(y_true, y_pred):
         SS_tot = np.sum((y_true - np.mean(y_true))**2)
         return (1 - SS_res/(SS_tot + 1e-7))
 
-def run_multigpu_model(model, Data, AuxHP, inputs):
-    #corrections for multigpu
-    HP = copy.deepcopy(AuxHP)
-    if inputs.multi_gpu_correction == "learning_rate":
-        AuxHP.Optimizer[2]["lr"] *= hvd.size()
-    elif inputs.multi_gpu_correction == "batch_size":
-        AuxHP.BatchSize //= hvd.size()
-    AuxHP.Epochs //=hvd.size()
+def run_multigpu_model(model, Data, AuxHP, HP, inputs, hvd):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
     
@@ -152,7 +145,7 @@ def run_multigpu_model(model, Data, AuxHP, inputs):
         # LR_tracer(),
         keras.callbacks.TerminateOnNaN(),
         # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
-    ]
+        ]
     if AuxHP.ReducingLR == True:
         callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
     if hvd.rank() == 0:
@@ -160,46 +153,11 @@ def run_multigpu_model(model, Data, AuxHP, inputs):
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True)),
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True)), 
         callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True)),
-    # # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
-    # # else, compile the model and run it
-    # if os.path.exists(f"{filepath}_last.hdf5") == True:
-    #     custom_obj = {}
-    #     custom_obj["R2"] = R2
-    #     # custom_obj["TimeHistory"] = TimeHistory
-    #     #if activation is leakyrelu add to custom_obj
-    #     if AuxHP.ActivationFunction[0] == "leakyrelu":
-    #         custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
-    #     #if loading last model fails for some reason, load the best one
-    #     try:
-    #         model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
-    #     except:
-    #         model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
-    #     model.summary()
-        
-    #     with open(f"{filepath}.log") as f:
-    #         number_of_lines = len(f.readlines())
-    #         number_of_epochs_trained = number_of_lines - 1  #the first line is description
-    #         print(number_of_epochs_trained)
-    #         if number_of_epochs_trained >= AuxHP.Epochs:
-    #             print(number_of_epochs_trained, ">=", AuxHP.Epochs)
-    #             raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
 
-    #         model.evaluate(Data.X['train'], Data.Y['train'], verbose=False)
-    #         model.evaluate(Data.X['val'], Data.Y['val'], verbose=False)
-
-    #         history = model.fit(Data.X['train'], Data.Y['train'],
-    #                             initial_epoch=number_of_epochs_trained,
-    #                             epochs=AuxHP.Epochs,
-    #                             batch_size=AuxHP.BatchSize,
-    #                             callbacks=callbacks,
-    #                             validation_data=(Data.X['val'], Data.Y['val']),
-    #                             verbose=2,
-    #                             )
-    # else:
     model.compile(  loss=AuxHP.Loss[1],
                     optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
-                    metrics = [R2])
-
+                    metrics = [R2]
+                    )
 
     history = model.fit(Data.X['train'], Data.Y['train'],
                         epochs=AuxHP.Epochs,
