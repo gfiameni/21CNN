@@ -90,9 +90,9 @@ for i, h in enumerate(HyP_list):
             if number_of_epochs_trained_log != 0:
                 number_of_epochs_trained_log -= 1
         if number_of_epochs_trained != number_of_epochs_trained_log:
-            print("ERR", i, number_of_epochs_trained, str(HP))
-        if number_of_epochs_trained < inputs.epochs:
+            print("ERR", i, number_of_epochs_trained_log, str(HP))
+        if number_of_epochs_trained_log < inputs.epochs:
             if inputs.shorter == True:
                 print(i, end =",")
             else:
-                print(i, number_of_epochs_trained, str(HP))
+                print(i, number_of_epochs_trained_log, str(HP))

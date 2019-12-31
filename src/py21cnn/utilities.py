@@ -134,6 +134,10 @@ def R2_numpy(y_true, y_pred):
         SS_res = np.sum((y_true - y_pred)**2) 
         SS_tot = np.sum((y_true - np.mean(y_true))**2)
         return (1 - SS_res/(SS_tot + 1e-7))
+def R2_final(y_true, y_pred):
+        SS_res = np.sum((y_true - y_pred)**2)
+        SS_tot = np.sum((y_true - np.mean(y_true, axis=0))**2)
+        return (1 - SS_res/(SS_tot + 1e-7))
 
 def run_multigpu_model(model, Data, AuxHP, HP, inputs, hvd):
 
@@ -149,7 +153,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, inputs, hvd):
     if AuxHP.ReducingLR == True:
         callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
     if hvd.rank() == 0:
-        TimeHistory(f"{filepath}_time.txt"),
+        callbacks.append(TimeHistory(f"{filepath}_time.txt")),
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True)),
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True)), 
         callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True)),
@@ -167,21 +171,22 @@ def run_multigpu_model(model, Data, AuxHP, HP, inputs, hvd):
                         verbose=2,
                         )
     
-    prediction = model.predict(Data.X['test'], verbose=False)
-    np.save(f"{filepath}_prediction.npy", prediction)
+    if hvd.rank() == 0:
+        prediction = model.predict(Data.X['test'], verbose=False)
+        np.save(f"{filepath}_prediction.npy", prediction)
 
-    with open(f"{filepath}_summary.txt", "w") as f:
-        f.write(f"DATA: {str(Data)}\n")
-        f.write(f"HYPARAMETERS: {str(HP)}\n")
-        # f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
-        for i in range(4):
-            print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
-            f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
-        f.write("\n")
-        # f.write(model.summary())
-        stringlist = []
-        model.summary(print_fn=lambda x: stringlist.append(x))
-        f.write("\n".join(stringlist))
+        with open(f"{filepath}_summary.txt", "w") as f:
+            f.write(f"DATA: {str(Data)}\n")
+            f.write(f"HYPARAMETERS: {str(HP)}\n")
+            # f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
+            for i in range(4):
+                print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
+                f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
+            f.write("\n")
+            # f.write(model.summary())
+            stringlist = []
+            model.summary(print_fn=lambda x: stringlist.append(x))
+            f.write("\n".join(stringlist))
 
 
 
