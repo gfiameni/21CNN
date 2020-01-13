@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 # import keras
 from tensorflow import keras
+from tensorboard.plugins.hparams import api as hp
 # import horovod.tensorflow.keras as hvd
 
 class Data:
@@ -59,6 +60,7 @@ class Data:
             self.X[key] = self.X[key][..., np.newaxis]
             self.Y[key] = np.load(f"{self.filepath}Y_{key}_{p:.2f}_{Hash}.npy")
         self.shape = self.X['test'].shape[1:]
+        self.TrainExamples = self.X['test'].shape[0]
         # return self.X, self.Y
 
 
@@ -139,24 +141,24 @@ def R2_final(y_true, y_pred):
         SS_tot = np.sum((y_true - np.mean(y_true, axis=0))**2)
         return (1 - SS_res/(SS_tot + 1e-7))
 
-def run_multigpu_model(model, Data, AuxHP, HP, inputs, hvd):
+def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
+    logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{HP.hash()}"
     
-    callbacks = [
-        hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-        hvd.callbacks.MetricAverageCallback(),
-        # LR_tracer(),
-        keras.callbacks.TerminateOnNaN(),
-        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
-        ]
+    callbacks = []
+    callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
+    callbacks.append(hvd.callbacks.MetricAverageCallback())
+    callbacks.append(keras.callbacks.TerminateOnNaN())
     if AuxHP.ReducingLR == True:
         callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
     if hvd.rank() == 0:
-        callbacks.append(TimeHistory(f"{filepath}_time.txt")),
-        callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True)),
-        callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True)), 
-        callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True)),
+        callbacks.append(TimeHistory(f"{filepath}_time.txt"))
+        callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
+        callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True))
+        callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True))
+        callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq=int(Data.TrainExamples//hvd.size())))
+        callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
 
     model.compile(  loss=AuxHP.Loss[1],
                     optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
@@ -192,11 +194,14 @@ def run_multigpu_model(model, Data, AuxHP, HP, inputs, hvd):
 
 
 
-def run_model(model, Data, AuxHP, inputs):
+def run_model(model, Data, AuxHP, HP_TensorBoard, inputs):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
-    
+    logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{AuxHP.hash()}"
+
     callbacks = [
+        keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq='epoch'),
+        hp.KerasCallback(logdir, HP_TensorBoard),
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
         keras.callbacks.TerminateOnNaN(),

@@ -6,6 +6,7 @@ parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
 parser.add_argument('--Zmax', type=int, default=30)
 parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--saving_location', type=str, default="models/")
+parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
 parser.add_argument('--epochs', type=int, default=200)
@@ -87,6 +88,14 @@ HyP["ActivationFunction"] = [
 HyP_list = list(itertools.product(*HyP.values()))
 HP_dict = dict(zip(HyP.keys(), HyP_list[inputs.HyperparameterIndex]))
 HP = utilities.AuxiliaryHyperparameters(**HP_dict)
+#creating HP dict for TensorBoard with only HP that are changing and only human-readable information
+HP_TensorBoard = {}
+HP_TensorBoard["LearningRate"] = HP_dict["LearningRate"]
+HP_TensorBoard["Dropout"] = HP_dict["Dropout"]
+HP_TensorBoard["BatchSize"] = HP_dict["BatchSize"]
+HP_TensorBoard["BatchNormalization"] = HP_dict["BatchNormalization"]
+HP_TensorBoard["Optimizer"] = HP_dict["Optimizer"][1]
+HP_TensorBoard["ActivationFunction"] = HP_dict["ActivationFunction"][0]
 
 Data = utilities.Data(filepath=inputs.data_location, 
                       dimensionality=inputs.dimensionality, 
@@ -104,6 +113,7 @@ if inputs.gpus == 1:
     utilities.run_model(model = ModelClass.model, 
                         Data = Data, 
                         AuxHP = HP,
+                        HP_TensorBoard = HP_TensorBoard,
                         inputs = inputs)
 else:
 
@@ -126,6 +136,7 @@ else:
                                 Data = Data, 
                                 AuxHP = AuxHP,
                                 HP = HP,
+                                HP_TensorBoard = HP_TensorBoard,
                                 inputs = inputs,
                                 hvd = hvd,
                                 )
