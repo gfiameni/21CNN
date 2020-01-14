@@ -160,7 +160,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True))
         callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True))
-        callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq=int(Data.TrainExamples//hvd.size())))
+        callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq=int(Data.TrainExamples//hvd.size())))
         callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
         # manually writing hyperparameters instead of calling keras callback
         # with tf.compat.v1.create_file_writer(logdir).as_default() as w:
@@ -255,7 +255,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{AuxHP.hash()}"
 
     callbacks = [
-        keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq='epoch'),
+        keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq='epoch'),
         hp.KerasCallback(logdir, HP_TensorBoard),
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
