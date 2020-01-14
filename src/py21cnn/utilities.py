@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorboard.plugins.hparams import api as hp
 # import horovod.tensorflow.keras as hvd
-sess = keras.backend.get_session()
+# sess = keras.backend.get_session()
 
 class Data:
     def __init__(
@@ -256,7 +256,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
 
     callbacks = [
         keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq='epoch'),
-        # hp.KerasCallback(logdir, HP_TensorBoard),
+        hp.KerasCallback(logdir, HP_TensorBoard),
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
         keras.callbacks.TerminateOnNaN(),

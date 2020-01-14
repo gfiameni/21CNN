@@ -31,20 +31,20 @@ import horovod.tensorflow.keras as hvd
 
 if inputs.gpus == 1:
     # #setting up GPU
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
     config.gpu_options.visible_device_list = "0" #for picking only some devices
     config.gpu_options.allow_growth = True
     # config.log_device_placement=True
-    keras.backend.set_session(tf.Session(config=config))
+    keras.backend.set_session(tf.compat.v1.Session(config=config))
 elif inputs.gpus > 1:
     #init Horovod
     hvd.init()
     # Horovod: pin GPU to be used to process local rank (one GPU per process)
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(hvd.local_rank())
-    keras.backend.set_session(tf.Session(config=config))
+    keras.backend.set_session(tf.compat.v1.Session(config=config))
 else:
     raise ValueError('number of gpus shoud be > 0')
 keras.backend.set_image_data_format('channels_last')
