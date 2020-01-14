@@ -161,12 +161,14 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True))
         callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True))
         callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq=int(Data.TrainExamples//hvd.size())))
-        # callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
+        callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
         # manually writing hyperparameters instead of calling keras callback
-        with tf.compat.v2.create_file_writer(logdir).as_default() as w:
-            sess.run(w.init())
-            sess.run(hp.hparams(HP_TensorBoard))
-            sess.run(w.flush())
+        # with tf.compat.v1.create_file_writer(logdir).as_default() as w:
+        #     sess.run(w.init())
+        #     sess.run(hp.hparams(HP_TensorBoard))
+        #     sess.run(w.flush())
+        # with tf.summary.FileWriter(logdir) writer:
+
 
     #deciding how to run a model: restore_weights and restore_training defines what happens
     #if restore_weigths == True and there is a model to load then it loads it, recompiles only if restore_training == False
@@ -264,10 +266,10 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
     ]
     # manually writing hyperparameters instead of calling keras callback
-    with tf.compat.v2.create_file_writer(logdir).as_default() as w:
-        sess.run(w.init())
-        sess.run(hp.hparams(HP_TensorBoard))
-        sess.run(w.flush())
+    # with tf.compat.v2.create_file_writer(logdir).as_default() as w:
+    #     sess.run(w.init())
+    #     sess.run(hp.hparams(HP_TensorBoard))
+    #     sess.run(w.flush())
 
     if AuxHP.ReducingLR == True:
         callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
