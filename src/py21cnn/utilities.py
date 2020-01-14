@@ -130,7 +130,7 @@ class LR_tracer(keras.callbacks.Callback):
 
 def R2(y_true, y_pred):
         SS_res = keras.backend.sum(keras.backend.square(y_true-y_pred)) 
-        SS_tot = keras.backend.sum(keras.backend.square(y_true - keras.backend.mean(y_true)))
+        SS_tot = keras.backend.sum(keras.backend.square(y_true - keras.backend.mean(y_true, axis=0)))
         return (1 - SS_res/(SS_tot + keras.backend.epsilon()))
 def R2_numpy(y_true, y_pred):
         SS_res = np.sum((y_true - y_pred)**2) 
@@ -141,7 +141,7 @@ def R2_final(y_true, y_pred):
         SS_tot = np.sum((y_true - np.mean(y_true, axis=0))**2)
         return (1 - SS_res/(SS_tot + 1e-7))
 
-def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd):
+def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, restore_weights = True, restore_training = True, warmup=False):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{HP.hash()}"
@@ -150,6 +150,8 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd):
     callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
     callbacks.append(hvd.callbacks.MetricAverageCallback())
     callbacks.append(keras.callbacks.TerminateOnNaN())
+    if warmup == True:
+        callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5))
     if AuxHP.ReducingLR == True:
         callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
     if hvd.rank() == 0:
@@ -160,18 +162,63 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd):
         callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, embeddings_freq=1, update_freq=int(Data.TrainExamples//hvd.size())))
         callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
 
-    model.compile(  loss=AuxHP.Loss[1],
-                    optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
-                    metrics = [R2]
-                    )
+    #deciding how to run a model: restore_weights and restore_training defines what happens
+    #if restore_weigths == True and there is a model to load then it loads it, recompiles only if restore_training == False
+    #in any other case it just compiles model that is sent to the function call, and runs it.
+    #for example, in case of restore_weights == False, restore_training is ignored, as it doesn't have meaning
+    if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
+        if AuxHP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
 
-    history = model.fit(Data.X['train'], Data.Y['train'],
-                        epochs=AuxHP.Epochs,
-                        batch_size=AuxHP.BatchSize,
-                        callbacks=callbacks,
-                        validation_data=(Data.X['val'], Data.Y['val']),
-                        verbose=2,
+        with open(f"{filepath}.log") as f:
+            number_of_lines = len(f.readlines())
+            number_of_epochs_trained = number_of_lines - 1  #the first line is description
+            print(number_of_epochs_trained)
+
+        #broadcast number_of_epochs_trained to all workers, I have no idea if that is necessary.
+        #but that's what they do in example https://github.com/horovod/horovod/blob/87ad738d4d6b14ffdcc55a03acdc3cfb03f380c8/examples/keras_imagenet_resnet50.py
+        number_of_epochs_trained = hvd.broadcast(number_of_epochs_trained, 0, name='number_of_epochs_trained')
+        
+        
+        #loading model only if you are on 0th node
+        if hvd.rank() == 0:
+            #if loading last model fails for some reason, load the best one
+            try:
+                model = hvd.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+            except:
+                model = hvd.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+        
+        #if you don't want to restore training but only keep weights, just recompile the model
+        if restore_training == False:
+            model.compile(  loss=AuxHP.Loss[1],
+                            optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
+                            metrics = [R2]
+                            )
+
+        model.fit(  Data.X['train'], Data.Y['train'],
+                    initial_epoch=number_of_epochs_trained,
+                    epochs=AuxHP.Epochs+number_of_epochs_trained,
+                    batch_size=AuxHP.BatchSize,
+                    callbacks=callbacks,
+                    validation_data=(Data.X['val'], Data.Y['val']),
+                    verbose=2,
+                    )
+    else:
+        model.compile(  loss=AuxHP.Loss[1],
+                        optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
+                        metrics = [R2]
                         )
+
+        model.fit(  Data.X['train'], Data.Y['train'],
+                    epochs=AuxHP.Epochs,
+                    batch_size=AuxHP.BatchSize,
+                    callbacks=callbacks,
+                    validation_data=(Data.X['val'], Data.Y['val']),
+                    verbose=2,
+                    )
     
     if hvd.rank() == 0:
         prediction = model.predict(Data.X['test'], verbose=False)
@@ -180,7 +227,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd):
         with open(f"{filepath}_summary.txt", "w") as f:
             f.write(f"DATA: {str(Data)}\n")
             f.write(f"HYPARAMETERS: {str(HP)}\n")
-            # f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
+            f.write(f"R2_total: {R2_final(Data.Y['test'], prediction)}\n")
             for i in range(4):
                 print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
                 f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
@@ -194,7 +241,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd):
 
 
 
-def run_model(model, Data, AuxHP, HP_TensorBoard, inputs):
+def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True, restore_training = True):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{AuxHP.hash()}"
@@ -215,7 +262,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs):
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
-    if os.path.exists(f"{filepath}_last.hdf5") == True:
+    if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
         custom_obj = {}
         custom_obj["R2"] = R2
         # custom_obj["TimeHistory"] = TimeHistory
@@ -233,34 +280,35 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs):
             number_of_lines = len(f.readlines())
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
             print(number_of_epochs_trained)
-            if number_of_epochs_trained >= AuxHP.Epochs:
-                print(number_of_epochs_trained, ">=", AuxHP.Epochs)
-                raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
+            # if number_of_epochs_trained >= AuxHP.Epochs:
+            #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
+            #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
+        
+        if restore_training == False:
+            model.compile(  loss=AuxHP.Loss[1],
+                            optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
+                            metrics = [R2])
 
-            model.evaluate(Data.X['train'], Data.Y['train'], verbose=False)
-            model.evaluate(Data.X['val'], Data.Y['val'], verbose=False)
-
-            history = model.fit(Data.X['train'], Data.Y['train'],
-                                initial_epoch=number_of_epochs_trained,
-                                epochs=AuxHP.Epochs,
-                                batch_size=AuxHP.BatchSize,
-                                callbacks=callbacks,
-                                validation_data=(Data.X['val'], Data.Y['val']),
-                                verbose=2,
-                                )
+        model.fit(  Data.X['train'], Data.Y['train'],
+                    initial_epoch=number_of_epochs_trained,
+                    epochs=AuxHP.Epochs + number_of_epochs_trained,
+                    batch_size=AuxHP.BatchSize,
+                    callbacks=callbacks,
+                    validation_data=(Data.X['val'], Data.Y['val']),
+                    verbose=2,
+                            )
     else:
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
                         metrics = [R2])
 
-
-        history = model.fit(Data.X['train'], Data.Y['train'],
-                            epochs=AuxHP.Epochs,
-                            batch_size=AuxHP.BatchSize,
-                            callbacks=callbacks,
-                            validation_data=(Data.X['val'], Data.Y['val']),
-                            verbose=2,
-                            )
+        model.fit(  Data.X['train'], Data.Y['train'],
+                    epochs=AuxHP.Epochs,
+                    batch_size=AuxHP.BatchSize,
+                    callbacks=callbacks,
+                    validation_data=(Data.X['val'], Data.Y['val']),
+                    verbose=2,
+                    )
     
     prediction = model.predict(Data.X['test'], verbose=False)
     np.save(f"{filepath}_prediction.npy", prediction)

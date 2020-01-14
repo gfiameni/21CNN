@@ -127,6 +127,11 @@ model_scores.sort(key = lambda x: x[0], reverse=True)
 print("ALL MODELS")
 for i in model_scores:
     print(i)
+print('\n')
+print("ONLY INDEXES")
+for i in model_scores:
+    print(i[2], end =",")
+print('\n')
 print("BEST 80 INDEXES")
 for i in range(80):
     print(model_scores[i][2], end =",")
