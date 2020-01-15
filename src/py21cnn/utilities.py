@@ -175,12 +175,6 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
     #in any other case it just compiles model that is sent to the function call, and runs it.
     #for example, in case of restore_weights == False, restore_training is ignored, as it doesn't have meaning
     if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
-        custom_obj = {}
-        custom_obj["R2"] = R2
-        #if activation is leakyrelu add to custom_obj
-        if AuxHP.ActivationFunction[0] == "leakyrelu":
-            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
-
         with open(f"{filepath}.log") as f:
             number_of_lines = len(f.readlines())
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
@@ -191,28 +185,40 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         number_of_epochs_trained = hvd.broadcast(number_of_epochs_trained, 0, name='number_of_epochs_trained')
         
         
-        # #loading model only if you are on 0th node
-        # if hvd.rank() == 0:
         
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
+        if AuxHP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
+        #defining Optimizer name used for loading
+        if AuxHP.Optimizer[1] == "Momentum":
+            OptName = "SGD"
+        else:
+            OptName = AuxHP.Optimizer[1]
+        if restore_training == True:
+            custom_obj[OptName] = lambda **kwargs: hvd.DistributedOptimizer(AuxHP.Optimizer[0](**kwargs))
+        else:
+            custom_obj[OptName] =  hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
         #if loading last model fails for some reason, load the best one
         try:
             model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
         except:
             model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
 
-        if restore_training == True:
-            opt = model.optimizer
-            model.optimizer = hvd.DistributedOptimizer(opt)
-            model.optimizer.iterations = opt.iterations
-            model.optimizer.weights = opt.weights
-        else:
-            model.optimizer = hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
+        # if restore_training == True:
+        #     opt = model.optimizer
+        #     model.optimizer = hvd.DistributedOptimizer(opt)
+        #     model.optimizer.iterations = opt.iterations
+        #     model.optimizer.weights = opt.weights
+        # else:
+        #     model.optimizer = hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
         
-        model.compile(  loss=AuxHP.Loss[1],
-                        optimizer=model.optimizer,
-                        metrics = [R2],
-                        experimental_run_tf_function=False,
-                        )
+        # model.compile(  loss=AuxHP.Loss[1],
+        #                 optimizer=model.optimizer,
+        #                 metrics = [R2],
+        #                 experimental_run_tf_function=False,
+        #                 )
 
         model.fit(  Data.X['train'], Data.Y['train'],
                     initial_epoch=number_of_epochs_trained,
