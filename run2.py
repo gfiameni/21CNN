@@ -1,5 +1,9 @@
-import argparse
+import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
+from tensorflow import keras
+import horovod.tensorflow.keras as hvd
 
+import argparse
 parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
 parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
@@ -11,23 +15,13 @@ parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--gpus', type=int, default=1)
-# parser.add_argument('--multi_gpu_correction', type=int, choices=[0, 1, 2], default=0, help="0-none, 1-batch_size, 2-learning_rate")
+parser.add_argument('--multi_gpu_correction', type=int, choices=[0, 1, 2], default=0, help="0-none, 1-batch_size, 2-learning_rate")
 parser.add_argument('--file_prefix', type=str, default="")
 
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
 print("INPUTS:", inputs)
-
-import copy
-import itertools
-import sys
-import importlib
-import numpy as np
-import tensorflow as tf
-# import keras
-from tensorflow import keras
-import horovod.tensorflow.keras as hvd
 
 if inputs.gpus == 1:
     # #setting up GPU
@@ -36,7 +30,7 @@ if inputs.gpus == 1:
     config.gpu_options.visible_device_list = "0" #for picking only some devices
     config.gpu_options.allow_growth = True
     # config.log_device_placement=True
-    keras.backend.set_session(tf.compat.v1.Session(config=config))
+    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
 elif inputs.gpus > 1:
     #init Horovod
     hvd.init()
@@ -44,10 +38,16 @@ elif inputs.gpus > 1:
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(hvd.local_rank())
-    keras.backend.set_session(tf.compat.v1.Session(config=config))
+    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
 else:
     raise ValueError('number of gpus shoud be > 0')
 keras.backend.set_image_data_format('channels_last')
+
+import copy
+import itertools
+import sys
+import importlib
+import numpy as np
 
 import src.py21cnn.utilities as utilities
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])

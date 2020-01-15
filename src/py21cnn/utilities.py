@@ -203,7 +203,8 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         if restore_training == False:
             model.compile(  loss=AuxHP.Loss[1],
                             optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
-                            metrics = [R2]
+                            metrics = [R2],
+                            experimental_run_tf_function=False,
                             )
 
         model.fit(  Data.X['train'], Data.Y['train'],
@@ -217,7 +218,8 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
     else:
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
-                        metrics = [R2]
+                        metrics = [R2],
+                        experimental_run_tf_function=False,
                         )
 
         model.fit(  Data.X['train'], Data.Y['train'],

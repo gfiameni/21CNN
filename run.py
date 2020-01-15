@@ -1,5 +1,4 @@
 import argparse
-
 parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
 parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
@@ -19,16 +18,8 @@ inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
 print("INPUTS:", inputs)
 
-import copy
-import itertools
-import sys
-import importlib
-import numpy as np
 import tensorflow as tf
-# import keras
-from tensorflow import keras
-import horovod.tensorflow.keras as hvd
-
+# tf.compat.v1.enable_eager_execution()
 if inputs.gpus == 1:
     # #setting up GPU
     config = tf.compat.v1.ConfigProto()
@@ -36,18 +27,29 @@ if inputs.gpus == 1:
     config.gpu_options.visible_device_list = "0" #for picking only some devices
     config.gpu_options.allow_growth = True
     # config.log_device_placement=True
-    keras.backend.set_session(tf.compat.v1.Session(config=config))
+    # tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+    tf.compat.v1.enable_eager_execution(config=config)
 elif inputs.gpus > 1:
+    import horovod.tensorflow.keras as hvd
     #init Horovod
     hvd.init()
     # Horovod: pin GPU to be used to process local rank (one GPU per process)
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(hvd.local_rank())
-    keras.backend.set_session(tf.compat.v1.Session(config=config))
+    # tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+    tf.compat.v1.enable_eager_execution(config=config)
 else:
     raise ValueError('number of gpus shoud be > 0')
+
+from tensorflow import keras
 keras.backend.set_image_data_format('channels_last')
+
+import copy
+import itertools
+import sys
+import importlib
+import numpy as np
 
 import src.py21cnn.utilities as utilities
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
