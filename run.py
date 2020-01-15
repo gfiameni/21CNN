@@ -60,10 +60,10 @@ def leakyrelu(x):
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
 HyP["Epochs"] = [inputs.epochs]
+HyP["BatchSize"] = [20, 100]
 HyP["LearningRate"] = [0.01, 0.001, 0.0001]
 HyP["Dropout"] = [0.2, 0.5]
 HyP["ReducingLR"] = [True]
-HyP["BatchSize"] = [20, 100]
 HyP["BatchNormalization"] = [True, False]
 HyP["Optimizer"] = [
                     [keras.optimizers.RMSprop, "RMSprop", {}],
