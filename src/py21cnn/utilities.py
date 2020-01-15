@@ -193,14 +193,14 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         
         # #loading model only if you are on 0th node
         # if hvd.rank() == 0:
-        
+
         #if loading last model fails for some reason, load the best one
         try:
             model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
         except:
             model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
 
-        if restrore_training == True:
+        if restore_training == True:
             opt = model.optimizer
             model.optimizer = hvd.DistributedOptimizer(opt)
             model.optimizer.iterations = opt.iterations
