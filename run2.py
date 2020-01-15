@@ -90,6 +90,7 @@ HP_dict = dict(zip(HyP.keys(), HyP_list[inputs.HyperparameterIndex]))
 HP = utilities.AuxiliaryHyperparameters(**HP_dict)
 #creating HP dict for TensorBoard with only HP that are changing and only human-readable information
 HP_TensorBoard = {}
+HP_TensorBoard["Model"] = f"{inputs.model[0]}_{inputs.model[1]}"
 HP_TensorBoard["LearningRate"] = HP_dict["LearningRate"]
 HP_TensorBoard["Dropout"] = HP_dict["Dropout"]
 HP_TensorBoard["BatchSize"] = HP_dict["BatchSize"]

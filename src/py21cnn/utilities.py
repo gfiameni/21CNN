@@ -191,21 +191,28 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         number_of_epochs_trained = hvd.broadcast(number_of_epochs_trained, 0, name='number_of_epochs_trained')
         
         
-        #loading model only if you are on 0th node
-        if hvd.rank() == 0:
-            #if loading last model fails for some reason, load the best one
-            try:
-                model = hvd.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
-            except:
-                model = hvd.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+        # #loading model only if you are on 0th node
+        # if hvd.rank() == 0:
         
-        #if you don't want to restore training but only keep weights, just recompile the model
-        if restore_training == False:
-            model.compile(  loss=AuxHP.Loss[1],
-                            optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
-                            metrics = [R2],
-                            experimental_run_tf_function=False,
-                            )
+        #if loading last model fails for some reason, load the best one
+        try:
+            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+        except:
+            model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+
+        if restrore_training == True:
+            opt = model.optimizer
+            model.optimizer = hvd.DistributedOptimizer(opt)
+            model.optimizer.iterations = opt.iterations
+            model.optimizer.weights = opt.weights
+        else:
+            model.optimizer = hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
+        
+        model.compile(  loss=AuxHP.Loss[1],
+                        optimizer=model.optimizer,
+                        metrics = [R2],
+                        experimental_run_tf_function=False,
+                        )
 
         model.fit(  Data.X['train'], Data.Y['train'],
                     initial_epoch=number_of_epochs_trained,
