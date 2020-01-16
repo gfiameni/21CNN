@@ -270,7 +270,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{AuxHP.hash()}"
 
     callbacks = [
-        keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq='epoch'),
+        keras.callbacks.TensorBoard(logdir, update_freq='epoch'),
         hp.KerasCallback(logdir, HP_TensorBoard),
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
@@ -308,7 +308,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         with open(f"{filepath}.log") as f:
             number_of_lines = len(f.readlines())
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
-            print(number_of_epochs_trained)
+            print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
             # if number_of_epochs_trained >= AuxHP.Epochs:
             #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
             #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
