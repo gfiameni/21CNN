@@ -24,38 +24,39 @@ class SummarySpace3D:
         else:
             self.DropoutLayer = keras.layers.Dropout
     
-    def conv2d_bn(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
-        x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
-                                                            kernel_size, 
-                                                            strides=strides, 
-                                                            padding=padding,
-                                                            **self.AuxHP.ActivationFunction[1]))(x)
-        if self.AuxHP.BatchNormalization == True:
-            x = keras.layers.BatchNormalization()(x)
-        return x
-    def conv2d(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
-        x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
-                                                            kernel_size, 
-                                                            strides=strides, 
-                                                            padding=padding,
-                                                            **self.AuxHP.ActivationFunction[1]))(x)
-        return x
+    # def conv2d_bn(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
+    #     x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
+    #                                                         kernel_size, 
+    #                                                         strides=strides, 
+    #                                                         padding=padding,
+    #                                                         **self.AuxHP.ActivationFunction[1]))(x)
+    #     if self.AuxHP.BatchNormalization == True:
+    #         x = keras.layers.BatchNormalization()(x)
+    #     return x
+    # def conv2d(self, x, filters, kernel_size, padding="valid", strides=(1, 1)):
+    #     x = keras.layers.TimeDistributed(keras.layers.Conv2D(filters, 
+    #                                                         kernel_size, 
+    #                                                         strides=strides, 
+    #                                                         padding=padding,
+    #                                                         **self.AuxHP.ActivationFunction[1]))(x)
+    #     return x
 
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
-        #for the first layer apply batch norm after pooling
-        x = self.conv2d(img_input, 64, (8, 8))
-        x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D())(x)
+
+        x = keras.layers.TimeDistributed(keras.layers.Conv2D(64, (8, 8), **self.AuxHP.ActivationFunction[1]), name = 'conv1')(img_input)
+        x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D(), name = 'maxpool1')(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
-
-        x = self.conv2d_bn(x, 128, (4, 4))
-        x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D())(x)
-        x = keras.layers.TimeDistributed(keras.layers.Flatten())(x)
-        x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout))(x)
-        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]))(x)
+        x = keras.layers.TimeDistributed(keras.layers.Conv2D(128, (4, 4), **self.AuxHP.ActivationFunction[1]), name = 'conv2')(x)
+        x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D(), name = 'maxpool2')(x)
         if self.AuxHP.BatchNormalization == True:
-            x = keras.layers.BatchNormalization()(x)        
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.TimeDistributed(keras.layers.Flatten(), name = 'flatten')(x)
+        x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name = 'dropout')(x)
+        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'summary space')(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
 
         for i in self.RNNsizes:
             x = self.RNNLayer(i, return_sequences=True)(x)
@@ -103,7 +104,7 @@ class SummarySpace2D:
 
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
-        #for the first layer apply batch norm after pooling
+
         x = keras.layers.TimeDistributed(keras.layers.Conv1D(16, 8, **self.AuxHP.ActivationFunction[1]), name = 'conv1')(img_input)
         x = keras.layers.TimeDistributed(keras.layers.MaxPooling1D(), name = 'maxpool1')(x)
         if self.AuxHP.BatchNormalization == True:
@@ -114,7 +115,7 @@ class SummarySpace2D:
             x = keras.layers.BatchNormalization()(x)
         x = keras.layers.TimeDistributed(keras.layers.Flatten(), name = 'flatten')(x)
         x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name = 'dropout')(x)
-        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name='dense')(x)
+        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'summary space')(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)     
 
@@ -223,6 +224,7 @@ class Hybrid3D:
 
     def build(self):
         img_input = keras.layers.Input(shape=self.InputShape)
+        
         x = keras.layers.Conv3D(128, (8, 8, 8), **self.AuxHP.ActivationFunction[1])(img_input)
         x = keras.layers.MaxPooling3D(pool_size=(4, 2, 2), strides=(4, 2, 2))(x)
         if self.AuxHP.BatchNormalization == True:
