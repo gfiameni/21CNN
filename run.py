@@ -27,8 +27,8 @@ if inputs.gpus == 1:
     config.gpu_options.visible_device_list = "0" #for picking only some devices
     config.gpu_options.allow_growth = True
     # config.log_device_placement=True
-    # tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-    tf.compat.v1.enable_eager_execution(config=config)
+    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+    # tf.compat.v1.enable_eager_execution(config=config)
 elif inputs.gpus > 1:
     import horovod.tensorflow.keras as hvd
     #init Horovod
@@ -37,8 +37,8 @@ elif inputs.gpus > 1:
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(hvd.local_rank())
-    # tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-    tf.compat.v1.enable_eager_execution(config=config)
+    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+    # tf.compat.v1.enable_eager_execution(config=config)
 else:
     raise ValueError('number of gpus shoud be > 0')
 
