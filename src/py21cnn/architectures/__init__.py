@@ -1,1 +1,1 @@
-__all__ = ["DNN", "Inception", "NGillet", "RNN"]
+__all__ = ["CNN", "RNN"]
