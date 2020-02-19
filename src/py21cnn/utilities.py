@@ -152,16 +152,17 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
     callbacks.append(hvd.callbacks.MetricAverageCallback())
     callbacks.append(keras.callbacks.TerminateOnNaN())
     if warmup == True:
-        callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5))
+        callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=inputs.patience)) # patience in ReduceLROnPlateau and warmup_epochs should be the same order of magnitude, therefore we choose the same value
     if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
+        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.1, patience=inputs.patience, verbose=True))
     if hvd.rank() == 0:
         callbacks.append(TimeHistory(f"{filepath}_time.txt"))
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True))
         callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True))
-        callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq='batch'))
-        # callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
+        #callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq=int(Data.TrainExamples//hvd.size())))
+        callbacks.append(keras.callbacks.TensorBoard(logdir, update_freq='batch'))
+        #callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
         # manually writing hyperparameters instead of calling keras callback
         # with tf.compat.v1.create_file_writer(logdir).as_default() as w:
         #     sess.run(w.init())
@@ -232,7 +233,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
                         metrics = [R2],
-                        experimental_run_tf_function=False,
+                        #experimental_run_tf_function=False,
                         )
 
         model.fit(  Data.X['train'], Data.Y['train'],
@@ -245,7 +246,16 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
     
     if hvd.rank() == 0:
         prediction = model.predict(Data.X['test'], verbose=False)
-        np.save(f"{filepath}_prediction.npy", prediction)
+        np.save(f"{filepath}_prediction_last.npy", prediction)
+        #making prediction from best model
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
+        if AuxHP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
+        model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+        prediction = model.predict(Data.X['test'], verbose=False)
+        np.save(f"{filepath}_prediction_best.npy", prediction)
 
         with open(f"{filepath}_summary.txt", "w") as f:
             f.write(f"DATA: {str(Data)}\n")
@@ -259,8 +269,9 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
             stringlist = []
             model.summary(print_fn=lambda x: stringlist.append(x))
             f.write("\n".join(stringlist))
-
-
+#    else:
+#        #task is killed if other processes finished and the above one on node 0 is still running
+#        time.sleep(300)
 
 
 

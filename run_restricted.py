@@ -7,12 +7,13 @@ parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--saving_location', type=str, default="models/")
 parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
-parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
+parser.add_argument('--HyperparameterIndex', type=int, choices=range(16), default=0)
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--gpus', type=int, default=1)
 parser.add_argument('--multi_gpu_correction', type=int, choices=[0, 1, 2], default=0, help="0-none, 1-batch_size, 2-learning_rate")
 parser.add_argument('--file_prefix', type=str, default="")
 parser.add_argument('--patience', type=int, default=10)
+
 
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
@@ -61,30 +62,18 @@ def leakyrelu(x):
 HyP = {}
 HyP["Loss"] = [[None, "mse"]]
 HyP["Epochs"] = [inputs.epochs]
-HyP["BatchSize"] = [20, 100]
-HyP["LearningRate"] = [0.01, 0.001, 0.0001]
-HyP["Dropout"] = [0.2, 0.5]
+HyP["BatchSize"] = [20]
+HyP["LearningRate"] = [0.001, 0.0001]
+HyP["Dropout"] = [0.2]
 HyP["ReducingLR"] = [True]
 HyP["BatchNormalization"] = [True, False]
 HyP["Optimizer"] = [
-                    [keras.optimizers.RMSprop, "RMSprop", {}],
-                    [keras.optimizers.SGD, "SGD", {}],
-                    [keras.optimizers.SGD, "Momentum", {"momentum":0.9, "nesterov":True}],
-                    # [keras.optimizers.Adadelta, "Adadelta", {}],
-                    # [keras.optimizers.Adagrad, "Adagrad", {}],
                     [keras.optimizers.Adam, "Adam", {}],
-                    # [keras.optimizers.Adam, "Adam", {"amsgrad":True}],
-                    [keras.optimizers.Adamax, "Adamax", {}],
                     [keras.optimizers.Nadam, "Nadam", {}],
                     ]
 HyP["ActivationFunction"] = [
                             ["relu", {"activation": keras.activations.relu, "kernel_initializer": keras.initializers.he_uniform()}],
-                            # [keras.layers.LeakyReLU(alpha=0.1), "leakyrelu"],
                             ["leakyrelu", {"activation": leakyrelu, "kernel_initializer": keras.initializers.he_uniform()}],
-                            ["elu", {"activation": keras.activations.elu, "kernel_initializer": keras.initializers.he_uniform()}],
-                            ["selu", {"activation": keras.activations.selu, "kernel_initializer": keras.initializers.lecun_normal()}],
-                            # [keras.activations.exponential, "exponential"],
-                            # [keras.activations.tanh, "tanh"],
                             ]
 
 
@@ -138,4 +127,7 @@ else:
                                 HP_TensorBoard = HP_TensorBoard,
                                 inputs = inputs,
                                 hvd = hvd,
+                                restore_weights = False,
+                                restore_training = False,
+                                warmup = True,
                                 )

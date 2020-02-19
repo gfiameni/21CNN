@@ -54,7 +54,7 @@ class SummarySpace3D:
             x = keras.layers.BatchNormalization()(x)
         x = keras.layers.TimeDistributed(keras.layers.Flatten(), name = 'flatten')(x)
         x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name = 'dropout')(x)
-        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'summary_space')(x)
+        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'SummarySpace')(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)
 
@@ -115,7 +115,7 @@ class SummarySpace2D:
             x = keras.layers.BatchNormalization()(x)
         x = keras.layers.TimeDistributed(keras.layers.Flatten(), name = 'flatten')(x)
         x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name = 'dropout')(x)
-        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'summary_space')(x)
+        x = keras.layers.TimeDistributed(keras.layers.Dense(128, **self.AuxHP.ActivationFunction[1]), name = 'SummarySpace')(x)
         if self.AuxHP.BatchNormalization == True:
             x = keras.layers.BatchNormalization()(x)     
 
