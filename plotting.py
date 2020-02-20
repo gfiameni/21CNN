@@ -33,7 +33,7 @@ parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(32), default=0)
 parser.add_argument('--file_prefix', type=str, default="")
 
-inputs = parser.parse_args(['--model', 'CNN.basic2D', '--dimensionality', '2', '--HyperparameterIndex', '237'])
+inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
 print("INPUTS:", inputs)
@@ -43,7 +43,7 @@ import tensorflow as tf
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
 config.gpu_options.visible_device_list = "0" #for picking only some devices
-config.gpu_options.allow_growth = True
+#config.gpu_options.allow_growth = True
 # config.log_device_placement=True
 tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
 # tf.compat.v1.enable_eager_execution(config=config)
@@ -109,6 +109,8 @@ model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_o
 model.summary()
 
 X_test = np.load(f"{Data.filepath}X_test_0.10_{Data.hash()}.npy")
+if inputs.model[0] == 'RNN':
+    X_test = np.swapaxes(X_test, -1, -3)
 X_test = X_test[..., np.newaxis]
 y_pred = model.predict(X_test)
 np.save(f"{filepath}_prediction_best.npy", y_pred)
@@ -204,7 +206,7 @@ for i in range(4):
     #plotting axes
     interp = 'gaussian'
 #     interp = None
-    im = ax_joint.imshow(hist, origin='low', vmin = 0, vmax = 2.5, interpolation=interp, cmap=plt.cm.jet, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    im = ax_joint.imshow(hist, origin='low', vmin = 0, vmax = 1.5, interpolation=interp, cmap=plt.cm.jet, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
     ax_joint.set_xlabel("$%s_{%s} \,\, True$"%(y_range["LatexNames"][i], y_range["LatexUnits"][i]), fontsize = 14)
     ax_joint.set_ylabel("$%s_{%s} \,\, Pred$"%(y_range["LatexNames"][i], y_range["LatexUnits"][i]), fontsize = 14)
     ax_joint.text(0.12, 0.95, "$R^2 = %.4f$"%(r2_score[i]), horizontalalignment='center', verticalalignment='center', transform=ax_joint.transAxes, fontsize = 16, color='white')
@@ -230,10 +232,10 @@ for i in range(4):
 #     fig.suptitle(y_range["LatexNames"][i])
     plt.tight_layout()
     cbaxes = inset_axes(ax_joint, width="3%", height="30%", loc=4, borderpad=0.35)
-    cbar = fig.colorbar(im, cax=cbaxes, ticks=[0, 1, 2], orientation='vertical')
+    cbar = fig.colorbar(im, cax=cbaxes, ticks=[0, 1], orientation='vertical')
     cbaxes.tick_params(color = 'white')
 
-#     cbar = fig.colorbar(im, ticks=[0, 1, 2], pad=0.2)
+#     cbar = fig.colorbar(im, ticks=[0, 0.5, 1, 1.5], pad=0.2)
     cbar.set_label("$\log_{10} (N_{pix} + 1)$", fontsize = 14, labelpad=-40, color='white')
     plt.savefig(pics_filepath + f'{i}.pdf')
 #     plt.show()
@@ -252,7 +254,7 @@ with open(filepath + '.log', 'r') as f:
         for col_header, data_column in zip(headings, row):
             logs.setdefault(col_header, []).append(float(data_column))
 for key in logs.keys():
-    logs[key] = np.array(log[key])
+    logs[key] = np.array(logs[key])
     
 plt.figure(figsize = (6, 4))
 plt.plot(logs['epoch'], np.log10(logs['loss']), label = 'train')
