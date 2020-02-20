@@ -237,3 +237,31 @@ for i in range(4):
     cbar.set_label("$\log_{10} (N_{pix} + 1)$", fontsize = 14, labelpad=-40, color='white')
     plt.savefig(pics_filepath + f'{i}.pdf')
 #     plt.show()
+
+
+import csv
+
+with open(filepath + '.log', 'r') as f:
+    reader = csv.reader(f, delimiter=',')
+    rows = [row for row in reader if row]
+    headings = rows[0] # get headings
+    logs = {}
+    for row in rows[1:]:
+        # append the dataitem to the end of the dictionary entry
+        # set the default value of [] if this key has not been seen
+        for col_header, data_column in zip(headings, row):
+            logs.setdefault(col_header, []).append(float(data_column))
+for key in logs.keys():
+    logs[key] = np.array(log[key])
+    
+plt.figure(figsize = (6, 4))
+plt.plot(logs['epoch'], np.log10(logs['loss']), label = 'train')
+plt.plot(logs['epoch'], np.log10(logs['val_loss']), label = 'validation')
+plt.legend()
+plt.xlabel("Epoch")
+plt.ylabel("$\log_{10} L$")
+# plt.yticks([-1., -1.5, -2, -2.5])
+plt.grid()
+plt.tight_layout()
+plt.savefig(pics_filepath + f'loss.pdf')
+# plt.show()
