@@ -60,7 +60,7 @@ for key in X.keys():
     Y[key] = (Y[key] - msY['mean']) / msY['std']
     print(f'X[{key}] mean std: {np.mean(X[key])}, {np.std(X[key])}')
     print(X[key].shape)
-    print(f'Y[{key}] mean std: {np.mean(Y[key])}, {np.std(Y[key])}')
+    print(f'Y[{key}] mean std: {np.mean(Y[key], axis=0)}, {np.std(Y[key], axis=0)}')
     print(Y[key].shape)
 
 
