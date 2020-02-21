@@ -31,7 +31,7 @@ def basicTVT(X, Y, pTrain, pVal, pTest, seed = 1312):
         # tdt.append(dY)
     return dX, dY
 
-DataFilepath = "../data/"
+DataFilepath = "data/"
 DataXname = f"data3D_boxcar444_sliced22_meanRemoved_float32.npy"
 DataYname = f"databaseParams_float32.npy"
 dataY = np.load(DataFilepath+DataYname)
@@ -47,19 +47,22 @@ X, Y = basicTVT(dataX, dataY, 0.8, 0.1, 0.1, RState)
 for key in X.keys():
     shapeX = X[key].shape
     shapeY = Y[key].shape
-    X[key] = np.reshape(X[key], (shapeX[0] + shapeX[1],) + shapeX[2:])
-    Y[key] = np.reshape(Y[key], (shapeY[0] + shapeY[1],) + shapeY[2:])
-    X[key], Y[key] = shuffle(X[key], Y[key], random_state = Rstate)
+    X[key] = np.reshape(X[key], (shapeX[0] * shapeX[1],) + shapeX[2:])
+    Y[key] = np.reshape(Y[key], (shapeY[0] * shapeY[1],) + shapeY[2:])
+    X[key], Y[key] = shuffle(X[key], Y[key], random_state = RState)
 
     if key == 'train':
-        msX = {'mean': np.mean(X[key]), 'std' = np.std(X[key])}
-        msY = {'mean': np.mean(Y[key], axis=0), 'std' = np.std(Y[key], axis=0)}
+        msX = {'mean': np.mean(X[key]), 'std': np.std(X[key])}
+        msY = {'mean': np.mean(Y[key], axis=0), 'std': np.std(Y[key], axis=0)}
 print(msX, msY)
 for key in X.keys():
     X[key] = (X[key] - msX['mean']) / msX['std']
-    Y[key] = (Y[key] - msY['mean']) / msY['mean']
+    Y[key] = (Y[key] - msY['mean']) / msY['std']
     print(f'X[{key}] mean std: {np.mean(X[key])}, {np.std(X[key])}')
+    print(X[key].shape)
     print(f'Y[{key}] mean std: {np.mean(Y[key])}, {np.std(Y[key])}')
+    print(Y[key].shape)
+
 
 Data = utilities.Data(filepath=DataFilepath, dimensionality=3, X=X, Y=Y)
 Data.formatting.append('TVT_parameterwise')
