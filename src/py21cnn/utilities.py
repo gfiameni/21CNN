@@ -20,6 +20,8 @@ class Data:
         Zmax = 30,
         filetype = 'float32',
         formatting = [],
+        X = {},
+        Y = {},
         ):
         self.filepath = filepath
         self.dimensionality = dimensionality
@@ -27,6 +29,8 @@ class Data:
         self.normalized = normalized
         self.Zmax = Zmax
         self.filetype = filetype
+        self.X = X
+        self.Y = Y
         if len(formatting) == 0:
             default_formatting = ['clipped_-250_+50', 'NaN_removed']
             if self.dimensionality == 2:
@@ -35,13 +39,14 @@ class Data:
             if self.dimensionality == 3:
                 default_formatting.append('boxcar444')
                 default_formatting.append('sliced22')
-            default_formatting.sort()
+            # default_formatting.sort()
             self.formatting = default_formatting
         else:
-            formatting.sort()
+            # formatting.sort()
             self.formatting = formatting
 
     def __str__(self):
+        self.formatting.sort()
         S = f"dim:{self.dimensionality}__removed_average:{self.removed_average}__normalized:{self.normalized}__Zmax:{self.Zmax}__dtype:{self.filetype}"
         for i in self.formatting:
             S += f"__{i}"
@@ -51,8 +56,6 @@ class Data:
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
     def loadTVT(self, model_type = None, pTVT = [0.8, 0.1, 0.1]):
-        self.X = {}
-        self.Y = {}
         Hash = self.hash()
         for p, key in zip(pTVT, ['train', 'val', 'test']):
             self.X[key] = np.load(f"{self.filepath}X_{key}_{p:.2f}_{Hash}.npy")
@@ -63,6 +66,14 @@ class Data:
         self.shape = self.X['test'].shape[1:]
         self.TrainExamples = self.X['test'].shape[0]
         # return self.X, self.Y
+
+    def saveTVT(self, pTVT = [0.8, 0.1, 0.1]):
+        Hash = self.hash()
+        if len(self.X.keys()) == 0 or len(self.Y.keys()) == 0:
+            raise ValueError('X or Y are empty dicts: not saving that')
+        for p, key in zip(pTVT, ['train', 'val', 'test']):
+            np.save(f"{self.filepath}X_{key}_{p:.2f}_{Hash}.npy", self.X[key])
+            np.save(f"{self.filepath}Y_{key}_{p:.2f}_{Hash}.npy", self.Y[key])
 
 
 class AuxiliaryHyperparameters:

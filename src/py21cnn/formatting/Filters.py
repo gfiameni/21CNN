@@ -113,7 +113,14 @@ def basicTVT(X, Y, pTrain, pVal, pTest, seed = 1312):
     n[1] = int(X.shape[0] * pVal)
     n[2] = X.shape[0] - n[0] - n[1]
     indexArray = np.hstack((np.zeros(n[0], dtype=int), np.ones(n[1], dtype=int), 2*np.ones(n[2], dtype=int)))
-    RState = np.random.RandomState(seed=seed)
+    
+    if isinstance(seed, int):
+        RState = np.random.RandomState(seed=seed)
+    elif isinstance(seed, np.random.RandomState):
+        RState = seed
+    else:
+        raise TypeError('seed should be int or numpy.random.RandomState instance')
+    
     indexArray = RState.permutation(indexArray)
     
     dX = {}
