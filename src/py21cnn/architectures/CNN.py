@@ -68,6 +68,79 @@ class basic3D:
         print(self.model.summary())
         return self.model       
 
+class basic3D_multimodal:
+    def __init__(self,
+                InputShape, 
+                # Data, 
+                AuxiliaryHP,
+                ):
+        self.InputShape = InputShape
+        # self.Data = Data
+        self.AuxHP = AuxiliaryHP
+        if self.AuxHP.ActivationFunction[0] == "selu":
+            self.DropoutLayer = keras.layers.AlphaDropout
+        else:
+            self.DropoutLayer = keras.layers.Dropout        
+
+    def build(self):
+        img_input = keras.layers.Input(shape=self.InputShape)
+        x = keras.layers.Conv3D(128, (8, 8, 8), **self.AuxHP.ActivationFunction[1])(img_input)
+        x = keras.layers.MaxPooling3D(pool_size=(2, 2, 4), strides=(2, 2, 4))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv3D(128, (4, 4, 1), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling3D(pool_size=(2, 2, 1), strides=(2, 2, 1))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv3D(128, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv3D(128, (3, 3, 1), **self.AuxHP.ActivationFunction[1])(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+    
+        x = keras.layers.Conv3D(128, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv3D(128, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)        
+        x = keras.layers.Conv3D(128, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        # x = keras.layers.Conv3D(256, (1, 1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        # x = keras.layers.MaxPooling3D(pool_size=(1, 1, 2), strides=(1, 1, 2))(x)
+        # if self.AuxHP.BatchNormalization == True:
+        #     x = keras.layers.BatchNormalization()(x)
+
+        x = keras.layers.Flatten()(x)
+        x = self.DropoutLayer(self.AuxHP.Dropout)(x)
+
+        x = keras.layers.Dense(2**9, **self.AuxHP.ActivationFunction[1])(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Dense(2**8, **self.AuxHP.ActivationFunction[1])(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        y = [0]*4
+        for i in range(4):
+            y[i] = keras.layers.Dense(2**6, **self.AuxHP.ActivationFunction[1])(x)
+            y[i] = keras.layers.Dense(2**4, **self.AuxHP.ActivationFunction[1])(y[i])
+            y[i] = keras.layers.Dense(1)(y[i])
+        out = keras.layers.concatenate(y, axis=-1)
+
+        self.model = keras.models.Model(inputs = img_input, outputs = out, name= "CNN_basic3D_multimodal")
+        print(self.model.summary())
+        return self.model
+
+
+
+
+
 
 class basic2D:
     def __init__(self,
@@ -128,5 +201,70 @@ class basic2D:
         x = keras.layers.Dense(4)(x)
 
         self.model = keras.models.Model(inputs = img_input, outputs = x, name= "CNN_basic2D")
+        print(self.model.summary())
+        return self.model  
+
+class basic2D_multimodal:
+    def __init__(self,
+                InputShape, 
+                # Data, 
+                AuxiliaryHP,
+                ):
+        self.InputShape = InputShape
+        # self.Data = Data
+        self.AuxHP = AuxiliaryHP
+        if self.AuxHP.ActivationFunction[0] == "selu":
+            self.DropoutLayer = keras.layers.AlphaDropout
+        else:
+            self.DropoutLayer = keras.layers.Dropout        
+
+    def build(self):
+        img_input = keras.layers.Input(shape=self.InputShape)
+        x = keras.layers.Conv2D(32, (8, 8), **self.AuxHP.ActivationFunction[1])(img_input)
+        x = keras.layers.MaxPooling2D(pool_size=(2, 4), strides=(2, 4))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv2D(64, (4, 1), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv2D(128, (1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling2D(pool_size=(1, 2), strides=(1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv2D(128, (3, 1), **self.AuxHP.ActivationFunction[1])(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+    
+        x = keras.layers.Conv2D(128, (1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling2D(pool_size=(1, 2), strides=(1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Conv2D(128, (1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling2D(pool_size=(1, 2), strides=(1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)        
+        x = keras.layers.Conv2D(128, (1, 4), **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.MaxPooling2D(pool_size=(1, 2), strides=(1, 2))(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)       
+
+        x = keras.layers.Flatten()(x)
+        x = self.DropoutLayer(self.AuxHP.Dropout)(x)
+
+        x = keras.layers.Dense(2**9, **self.AuxHP.ActivationFunction[1])(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Dense(2**8, **self.AuxHP.ActivationFunction[1])(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        y = [0]*4
+        for i in range(4):
+            y[i] = keras.layers.Dense(2**6, **self.AuxHP.ActivationFunction[1])(x)
+            y[i] = keras.layers.Dense(2**4, **self.AuxHP.ActivationFunction[1])(y[i])
+            y[i] = keras.layers.Dense(1)(y[i])
+        out = keras.layers.concatenate(y, axis=-1)
+
+        self.model = keras.models.Model(inputs = img_input, outputs = out, name= "CNN_basic2D_multimodal")
         print(self.model.summary())
         return self.model  
