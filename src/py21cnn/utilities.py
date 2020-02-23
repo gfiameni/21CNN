@@ -32,7 +32,7 @@ class Data:
         self.X = X
         self.Y = Y
         if len(formatting) == 0:
-            default_formatting = ['clipped_-250_+50', 'NaN_removed']
+            default_formatting = ['clipped_-250_+50', 'NaN_removed', 'TVT_parameterwise']
             if self.dimensionality == 2:
                 default_formatting.append('boxcar44')
                 default_formatting.append('10slices')

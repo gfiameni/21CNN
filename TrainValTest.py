@@ -1,3 +1,8 @@
+import argparse
+parser = argparse.ArgumentParser(prog = 'Run Model')
+parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
+inputs = parser.parse_args()
+
 import numpy as np
 from sklearn.utils import shuffle
 from src.py21cnn import utilities
@@ -37,10 +42,21 @@ DataYname = f"databaseParams_float32.npy"
 dataY = np.load(DataFilepath+DataYname)
 dataX = np.load(DataFilepath+DataXname)
 
+if inputs.dimensionality == 3:
+    degeneracy = 4
+else:
+    degeneracy = 40
+    shapeX = dataX.shape
+    dataX = np.concatenate((dataX[..., ::5, :, :], np.swapaxes(dataX[..., ::5, :], -2, -3)), axis=1)
+    dataX = np.reshape(dataX, (shapeX[0], degeneracy) + shapeX[-2:])
+    print(f"dataX shape: {dataX.shape}")
+
 shapeY = dataY.shape
 dataY = dataY[..., np.newaxis]
-dataY = np.broadcast_to(dataY, shapeY + (4,))
+dataY = np.broadcast_to(dataY, shapeY + (degeneracy,))
 dataY = np.swapaxes(dataY, -1, -2)
+print(f"dataY shape: {dataY.shape}")
+
 
 RState = np.random.RandomState(seed=1312)
 X, Y = basicTVT(dataX, dataY, 0.8, 0.1, 0.1, RState)
@@ -63,8 +79,10 @@ for key in X.keys():
     print(f'Y[{key}] mean std: {np.mean(Y[key], axis=0)}, {np.std(Y[key], axis=0)}')
     print(Y[key].shape)
 
-
-Data = utilities.Data(filepath=DataFilepath, dimensionality=3, X=X, Y=Y)
-Data.formatting.append('TVT_parameterwise')
+s = input("Jel sve oke? ")
+if s != 'da':
+    raise ValueError("nest ne stima")
+Data = utilities.Data(filepath=DataFilepath, dimensionality=inputs.dimensionality, X=X, Y=Y)
+# Data.formatting.append('TVT_parameterwise')
 
 Data.saveTVT()
