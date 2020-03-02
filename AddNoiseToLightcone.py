@@ -4,6 +4,8 @@ parser.add_argument('--WalkerID', type=int, choices=range(10000), default=0)
 parser.add_argument('--uv_filepath', type=str, default='uv.npy')
 parser.add_argument('--saving_location', type=str, default='')
 parser.add_argument('--averages_fstring', type=str, default='averages_{}_float32.npy')
+parser.add_argument('--BoxesPath', type=str, default="/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/LightConeBoxes")
+parser.add_argument('--ParametersPath', type=str, default="/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/GridPositions")
 inputs = parser.parse_args()
 
 import numpy as np
@@ -14,12 +16,10 @@ from src.py21cnn.formatting import Filters
 import json
 
 #define path to database, send to program as parameters if different from default
-BoxesPath = "/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/LightConeBoxes"
-ParametersPath = "/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/GridPositions"
 Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503', \
             '013.25424', '015.51874', '018.36856', '022.02434', '026.82138', '033.28927', '034.50984']
 Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
-database = DatabaseUtils.Database(Parameters, Redshifts, BoxesPath, ParametersPath)
+database = DatabaseUtils.Database(Parameters, Redshifts, inputs.BoxesPath, inputs.ParametersPath)
 deltaTmin = -250
 deltaTmax = 50
 Zmax = 30
@@ -62,16 +62,17 @@ finalBox = []
 for i in range(Box.shape[-1]):
     noise = t2c.noise_model.noise_map(ncells=200, 
                                       z=redshifts_mean[i], 
-                                      depth_mhz=t2c.const.z_to_nu(redshifts[i]) - t2c.const.z_to_nu(redshifts[i+1]),
+                                      depth_mhz=t2c.cosmology.z_to_nu(redshifts[i]) - t2c.cosmology.z_to_nu(redshifts[i+1]),
                                       boxsize=300,
                                       uv_map=uv[..., i],
                                       N_ant=N_ant)
-    noise = t2c.telescope_functions.jansky_to_kelvin(noise, redshifts_mean[i])
+    noise = t2c.telescope_functions.jansky_2_kelvin(noise, redshifts_mean[i])
     x = np.fft.fft2(Box[..., i]) + noise
-    x[uv[i]==0] = 0
+    x[uv[..., i]==0] = 0
+    # print (x.shape)
     finalBox.append(np.real(np.fft.ifft2(x)))
     
 finalBox = np.moveaxis(np.array(finalBox, dtype=np.float32), 0, -1)
-finalBox = t2c.smoothing.smooth_lightcone(finalBox, z_array=redshifts_mean, box_size_mpc=300)
-
-np.save(f"{inputs.saving_location}lightcone_{inputs.WalkerID:05d}.npy", finalBox)
+print(finalBox.shape)
+finalBox, _  = t2c.smoothing.smooth_lightcone(finalBox, z_array=redshifts_mean, box_size_mpc=300)
+np.save(f"{inputs.saving_location}/lightcone_{inputs.WalkerID:04d}.npy", finalBox[::4, ::4, ::4])
