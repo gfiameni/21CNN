@@ -104,7 +104,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-#mine stuff
+#my stuff
 .vscode
 data/*
 *.code-workspace
+*.pdf
