@@ -6,6 +6,8 @@ parser.add_argument('--saving_location', type=str, default='')
 parser.add_argument('--averages_fstring', type=str, default='averages_{}_float32.npy')
 parser.add_argument('--BoxesPath', type=str, default="/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/LightConeBoxes")
 parser.add_argument('--ParametersPath', type=str, default="/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/GridPositions")
+parser.add_argument('--depth_mhz', type=int, default = 0) # if depth==0 calculate it from cube, else fix it to given value
+parser.add_argument('--uv_treshold', type=int, default = 1) # taking in account only baselines which were visited uv_treshold amount of times 
 inputs = parser.parse_args()
 
 import numpy as np
@@ -47,6 +49,7 @@ t2c.const.set_ns(0.968)
 t2c.const.set_sigma_8(0.815)
 
 uv = np.load(inputs.uv_filepath)
+uv[uv<inputs.uv_treshold] = 0
 N_ant = 512 #or 513?
 
 d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
@@ -58,21 +61,27 @@ redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
 # print(redshifts.shape)
 # print(redshifts_mean.shape)
 
-finalBox = []
-for i in range(Box.shape[-1]):
-    noise = t2c.noise_model.noise_map(ncells=200, 
-                                      z=redshifts_mean[i], 
-                                      depth_mhz=t2c.cosmology.z_to_nu(redshifts[i]) - t2c.cosmology.z_to_nu(redshifts[i+1]),
-                                      boxsize=300,
-                                      uv_map=uv[..., i],
-                                      N_ant=N_ant)
-    noise = t2c.telescope_functions.jansky_2_kelvin(noise, redshifts_mean[i])
-    x = np.fft.fft2(Box[..., i]) + noise
-    x[uv[..., i]==0] = 0
+noise = np.zeros(uv.shape)
+depth_mhz = inputs.depth_mhz
+for i in range(noise.shape[-1]):
+    if depth_mhz == 0:
+        depth_mhz = t2c.cosmology.z_to_nu(redshifts[i]) - t2c.cosmology.z_to_nu(redshifts[i+1])
+    n = t2c.noise_model.noise_map(ncells=200, 
+                                  z=redshifts_mean[i], 
+                                  depth_mhz=depth_mhz,
+                                  boxsize=300,
+                                  uv_map=uv[..., i],
+                                  N_ant=N_ant)
+    noise[..., i] = t2c.telescope_functions.jansky_2_kelvin(n, redshifts_mean[i])
+#     x = np.fft.fft2(Box[..., i]) + noise
+#     x[uv[..., i]==0] = 0
     # print (x.shape)
-    finalBox.append(np.real(np.fft.ifft2(x)))
-    
-finalBox = np.moveaxis(np.array(finalBox, dtype=np.float32), 0, -1)
+# finalBox = np.moveaxis(np.array(finalBox, dtype=np.float32), 0, -1)
+#adding Box
+finalBox = np.fft.fft2(Box, axes=(0, 1)) + noise
+finalBox[uv==0] = 0
+finalBox = np.real(np.fft.ifft2(Box, axes=(0, 1)))
+
 print(finalBox.shape)
 finalBox, _  = t2c.smoothing.smooth_lightcone(finalBox, z_array=redshifts_mean, box_size_mpc=300)
-np.save(f"{inputs.saving_location}/lightcone_{inputs.WalkerID:04d}.npy", finalBox[::4, ::4, ::4])
+np.save(f"{inputs.saving_location}/lightcone_depthMhz_{inputs.depth_mhz}_{inputs.WalkerID:04d}.npy", finalBox)
