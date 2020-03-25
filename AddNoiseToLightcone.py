@@ -26,17 +26,17 @@ database = DatabaseUtils.Database(Parameters, Redshifts, inputs.BoxesPath, input
 deltaTmin = -250
 deltaTmax = 50
 Zmax = 30
-print("loading lightcone")
+# print("loading lightcone")
 Box = database.CombineBoxes(inputs.WalkerID)
-print("removing large Z")
+# print("removing large Z")
 Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
-print("removing NaNs")
+# print("removing NaNs")
 np.nan_to_num(Box, copy=False, nan=deltaTmin, posinf=deltaTmax, neginf=deltaTmin)
-print("clipping large values")
+# print("clipping large values")
 np.clip(Box, deltaTmin, deltaTmax, out=Box)
 
 BoxAverage = np.load(inputs.averages_fstring.format(inputs.WalkerID))
-print("removing large Z for average")
+# print("removing large Z for average")
 BoxAverage = Filters.RemoveLargeZ(BoxAverage, database, Z=Zmax)
 
 Box -= BoxAverage
