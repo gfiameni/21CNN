@@ -41,7 +41,7 @@ def BoxCar3D(data, Nx = 4, Ny = 4, Nz = 4):
     return correlate(data, kernel, mode="valid", method="direct")[..., ::Nx, ::Ny, ::Nz]
 def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
     s = data.shape
-    if len(dataDim) != 3:
+    if len(s) != 3:
         raise AttributeError("data has to be 3D")
     return np.einsum('ijklmn->ikm', data[:s[0]//Nx*Nx, :s[1]//Ny*Ny, :s[2]//Nz*Nz].reshape((s[0]//Nx, Nx, s[1]//Ny, Ny, s[2]//Nz, Nz))) / (Nx*Ny*Nz)
 
