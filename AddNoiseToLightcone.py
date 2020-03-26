@@ -88,7 +88,7 @@ def smooth(Box, max_baseline = 2.):
 for seed_indx in range(5):
     x = noise_n_signal(Box, 0, uv, seed_index = seed_indx)
     x = smooth(x)
-    x = Filters.BoxCar3D(x)
+    x = Filters.BoxCar3D_smart(x)
     np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_0.npy", x[:25, :25])
     np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_1.npy", x[:25, 25:])
     np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_2.npy", x[25:, :25])
