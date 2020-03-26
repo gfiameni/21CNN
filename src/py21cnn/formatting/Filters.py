@@ -40,14 +40,11 @@ def BoxCar3D(data, Nx = 4, Ny = 4, Nz = 4):
     #[..., ::N] -> google "Ellipsis", ... skips all dimensions in between, and ::N takes every Nth element
     return correlate(data, kernel, mode="valid", method="direct")[..., ::Nx, ::Ny, ::Nz]
 def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
-    dataDim = data.shape
+    s = data.shape
     if len(dataDim) != 3:
         raise AttributeError("data has to be 3D")
-    res = data[:dataDim[0]//Nx*Nx, :dataDim[1]//Ny*Ny, :dataDim[2]//Nz*Nz]
-    resDim = res.shape
-    resDim = (resDim[0] // Nx, Nx, resDim[1] // Ny, Ny, resDim[2] // Nz, Nz)
-    res = res.reshape(resDim).mean((1, 3, 5))
-    return res
+    return np.einsum('ijklmn->ikm', data[:s[0]//Nx*Nx, :s[1]//Ny*Ny, :s[2]//Nz*Nz].reshape((s[0]//Nx, Nx, s[1]//Ny, Ny, s[2]//Nz, Nz))) / (Nx*Ny*Nz)
+
 
 def NormalizeY(Y):
     min = np.amin(Y, axis=0)
