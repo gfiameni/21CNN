@@ -33,12 +33,21 @@ def TopHat(data, Nx = 1, Nz = 2):
     #[..., ::N] -> google "Ellipsis", ... skips all dimensions in between, and ::N takes every Nth element
     return correlate(data, kernel, mode="valid", method="direct")[..., ::Nx, ::Nz]
 
-def BoxCar3D (data, Nx = 4, Ny = 4, Nz = 4):
+def BoxCar3D(data, Nx = 4, Ny = 4, Nz = 4):
     dataDim = data.shape
     kernelDim = (1,) * (len(dataDim) - 3) + (Nx, Ny, Nz)
     kernel = np.ones(kernelDim) / (Nx * Ny * Nz)
     #[..., ::N] -> google "Ellipsis", ... skips all dimensions in between, and ::N takes every Nth element
     return correlate(data, kernel, mode="valid", method="direct")[..., ::Nx, ::Ny, ::Nz]
+def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
+    dataDim = data.shape
+    if len(dataDim) != 3:
+        raise AttributeError("data has to be 3D")
+    res = data[:dataDim[0]//Nx*Nx, :dataDim[1]//Ny*Ny, :dataDim[2]//Nz*Nz]
+    resDim = res.shape
+    resDim = (resDim[0] // Nx, Nx, resDim[1] // Ny, Ny, resDim[2] // Nz, Nz)
+    res = res.reshape(resDim).mean((1, 3, 5))
+    return res
 
 def NormalizeY(Y):
     min = np.amin(Y, axis=0)
