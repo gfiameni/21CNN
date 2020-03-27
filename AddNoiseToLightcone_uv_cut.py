@@ -86,7 +86,7 @@ def noise_n_signal(Box, depth_mhz, uv, seed_index):
 for seed_indx in range(inputs.noise_realizations):
     x = noise_n_signal(Box, 0, uv, seed_index = seed_indx)
     x = Filters.BoxCar3D_smart(x)
-    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_0.npy", x[:25, :25])
-    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_1.npy", x[:25, 25:])
-    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_2.npy", x[25:, :25])
-    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_seed_{seed_indx}_slice_3.npy", x[25:, 25:])
+    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_slice_0_seed_{seed_indx}.npy", x[:25, :25])
+    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_slice_1_seed_{seed_indx}.npy", x[:25, 25:])
+    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_slice_2_seed_{seed_indx}.npy", x[25:, :25])
+    np.save(f"{inputs.saving_location}lightcone_depthMhz_{inputs.depth_mhz}_walker_{inputs.WalkerID:04d}_slice_3_seed_{seed_indx}.npy", x[25:, 25:])
