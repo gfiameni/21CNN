@@ -29,7 +29,7 @@ deltaTmax = 50
 Zmax = 30
 
 uv = np.load(inputs.uv_filepath)
-uv_bool = (uv > 0)
+uv_bool = (uv < 1)
 
 # print("loading lightcone")
 Box = database.CombineBoxes(inputs.WalkerID)
@@ -46,7 +46,8 @@ BoxAverage = Filters.RemoveLargeZ(BoxAverage, database, Z=Zmax)
 
 Box -= BoxAverage
 #zero-ing
-Box = np.fft.fft2(Box, axes=(0, 1)) * uv_bool
+Box = np.fft.fft2(Box, axes=(0, 1))
+Box[uv_bool] = 0
 
 
 import tools21cm as t2c
@@ -79,9 +80,9 @@ def noise(Box, depth_mhz, uv, seed_index):
                                           seed = 1000000*i + 100*inputs.WalkerID + seed_index, #last index is noise number index
                                           ) # I've corrected the function so it returns noise in uv, not in real space
         noise = t2c.telescope_functions.jansky_2_kelvin(noise, redshifts_mean[i])
-        noise *= uv_bool[..., i]
         finalBox.append(noise)
     finalBox = np.moveaxis(np.array(finalBox), 0, -1)
+    finalBox[uv_bool] = 0
     return finalBox
 def noise_n_signal(Box, depth_mhz, uv, seed_index):
     Noise = noise(Box, depth_mhz, uv, seed_index)
