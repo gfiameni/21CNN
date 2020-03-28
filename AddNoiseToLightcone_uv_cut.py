@@ -1,7 +1,7 @@
 import argparse
 parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--WalkerID', type=int, choices=range(10000), default=0)
-parser.add_argument('--uv_filepath', type=str, default='uv.npy')
+parser.add_argument('--uv_filepath', type=str, default='uv_final.npy')
 parser.add_argument('--saving_location', type=str, default='')
 parser.add_argument('--averages_fstring', type=str, default='averages_{}_float32.npy')
 parser.add_argument('--BoxesPath', type=str, default="/amphora/bradley.greig/21CMMC_wTs_LC_RSDs_Nicolas/Programs/LightConeBoxes")
@@ -27,6 +27,10 @@ database = DatabaseUtils.Database(Parameters, Redshifts, inputs.BoxesPath, input
 deltaTmin = -250
 deltaTmax = 50
 Zmax = 30
+
+uv = np.load(inputs.uv_filepath)
+uv_bool = (uv > 0)
+
 # print("loading lightcone")
 Box = database.CombineBoxes(inputs.WalkerID)
 # print("removing large Z")
@@ -41,6 +45,9 @@ BoxAverage = np.load(inputs.averages_fstring.format(inputs.WalkerID))
 BoxAverage = Filters.RemoveLargeZ(BoxAverage, database, Z=Zmax)
 
 Box -= BoxAverage
+#zero-ing
+Box = np.fft.fft2(Box, axes=(0, 1)) * uv_bool
+
 
 import tools21cm as t2c
 t2c.const.set_hubble_h(0.678)
@@ -49,13 +56,13 @@ t2c.const.set_omega_baryon(0.048425)
 t2c.const.set_omega_lambda(0.692)
 t2c.const.set_ns(0.968)
 t2c.const.set_sigma_8(0.815)
-
-uv = np.load(inputs.uv_filepath)
 N_ant = 512 #or 513?
 d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
 cdist = np.array(range(Box.shape[-1] + 1))*1.5 + d0 #adding one more redshit to the end
 redshifts = t2c.cosmology.cdist_to_z(cdist)
 redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
+
+
 
 def noise(Box, depth_mhz, uv, seed_index):
     finalBox = []
@@ -72,16 +79,14 @@ def noise(Box, depth_mhz, uv, seed_index):
                                           seed = 1000000*i + 100*inputs.WalkerID + seed_index, #last index is noise number index
                                           ) # I've corrected the function so it returns noise in uv, not in real space
         noise = t2c.telescope_functions.jansky_2_kelvin(noise, redshifts_mean[i])
-        noise[uv[..., i]==0] = 0
+        noise *= uv_bool[..., i]
         finalBox.append(noise)
     finalBox = np.moveaxis(np.array(finalBox), 0, -1)
-#     print(finalBox.shape)
     return finalBox
 def noise_n_signal(Box, depth_mhz, uv, seed_index):
     Noise = noise(Box, depth_mhz, uv, seed_index)
-    finalBox = np.fft.fft2(Box, axes=(0, 1)) + Noise
-    finalBox[uv==0] = 0
-    return np.real(np.fft.ifft2(finalBox, axes=(0, 1)))
+    return np.real(np.fft.ifft2(Box + Noise, axes=(0, 1)))
+
 
 for seed_indx in range(inputs.noise_realizations):
     x = noise_n_signal(Box, 0, uv, seed_index = seed_indx)
