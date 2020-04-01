@@ -165,7 +165,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
     if warmup == True:
         callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=inputs.patience)) # patience in ReduceLROnPlateau and warmup_epochs should be the same order of magnitude, therefore we choose the same value
     if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.1, patience=inputs.patience, verbose=True))
+        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
     if hvd.rank() == 0:
         callbacks.append(TimeHistory(f"{filepath}_time.txt"))
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
@@ -309,7 +309,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
     #     sess.run(w.flush())
 
     if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=10, verbose=True))
+        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
 
     # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
     # else, compile the model and run it
