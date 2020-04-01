@@ -125,12 +125,14 @@ class SummarySpace3D_simple:
                 InputShape, 
                 AuxiliaryHP, 
                 RNNLayer = CuDNNLSTM,
-                RNNsize = 64,
+                RNNsize = 16,
+                even_simpler = True,
                 ):
         self.InputShape = InputShape
         self.AuxHP = AuxiliaryHP
         self.RNNLayer = RNNLayer
         self.RNNsize = RNNsize
+        self.even_simpler = even_simpler
         if self.AuxHP.ActivationFunction[0] == "selu":
             self.DropoutLayer = keras.layers.AlphaDropout
         else:
@@ -140,10 +142,14 @@ class SummarySpace3D_simple:
         img_input = keras.layers.Input(shape=self.InputShape)
 
         x = keras.layers.TimeDistributed(keras.layers.Conv2D(64, (8, 8), **self.AuxHP.ActivationFunction[1]), name = 'conv1')(img_input)
-        x1 = keras.layers.TimeDistributed(keras.layers.GlobalMaxPooling2D(), name = 'maxpool')(x)
-        x2 = keras.layers.TimeDistributed(keras.layers.GlobalAveragePooling2D(), name = 'avgpool')(x)
-        x = keras.layers.concatenate([x1, x2], axis=-1)
-        x = keras.layers.TimeDistributed(keras.layers.Flatten(), name = 'flatten')(x)
+        if self.even_simpler == True:
+            x = keras.layers.TimeDistributed(keras.layers.GlobalMaxPooling2D(), name = 'maxpool')(x)
+        else:
+            x1 = keras.layers.TimeDistributed(keras.layers.GlobalMaxPooling2D(), name = 'maxpool')(x)
+            x2 = keras.layers.TimeDistributed(keras.layers.GlobalAveragePooling2D(), name = 'avgpool')(x)
+            x = keras.layers.concatenate([x1, x2], axis=-1)
+
+
         if self.AuxHP.BatchNormalization == True: x = keras.layers.BatchNormalization()(x)
         x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name = 'dropout')(x)
         x = self.RNNLayer(self.RNNsize, return_sequences=False)(x)
