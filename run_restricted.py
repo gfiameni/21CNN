@@ -81,14 +81,15 @@ HyP_list = list(itertools.product(*HyP.values()))
 HP_dict = dict(zip(HyP.keys(), HyP_list[inputs.HyperparameterIndex]))
 HP = utilities.AuxiliaryHyperparameters(**HP_dict)
 #creating HP dict for TensorBoard with only HP that are changing and only human-readable information
-HP_TensorBoard = {}
-HP_TensorBoard["Model"] = f"{inputs.model[0]}_{inputs.model[1]}"
-HP_TensorBoard["LearningRate"] = HP_dict["LearningRate"]
-HP_TensorBoard["Dropout"] = HP_dict["Dropout"]
-HP_TensorBoard["BatchSize"] = HP_dict["BatchSize"]
-HP_TensorBoard["BatchNormalization"] = HP_dict["BatchNormalization"]
-HP_TensorBoard["Optimizer"] = HP_dict["Optimizer"][1]
-HP_TensorBoard["ActivationFunction"] = HP_dict["ActivationFunction"][0]
+HP_TensorBoard = {
+    "Model": f"{inputs.model[0]}_{inputs.model[1]}",
+    "LearningRate": HP_dict["LearningRate"],
+    "Dropout": HP_dict["Dropout"],
+    "BatchSize": HP_dict["BatchSize"],
+    "BatchNormalization": HP_dict["BatchNormalization"],
+    "Optimizer": HP_dict["Optimizer"][1],
+    "ActivationFunction": HP_dict["ActivationFunction"][0],
+}
 
 Data = utilities.Data(filepath=inputs.data_location, 
                       dimensionality=inputs.dimensionality, 
