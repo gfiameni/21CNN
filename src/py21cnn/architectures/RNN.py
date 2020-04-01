@@ -142,7 +142,7 @@ class SummarySpace3D_simple:
         x = keras.layers.TimeDistributed(keras.layers.Conv2D(64, (8, 8), **self.AuxHP.ActivationFunction[1]), name = 'conv1')(img_input)
         x1 = keras.layers.TimeDistributed(keras.layers.GlobalMaxPooling2D(), name = 'maxpool')(x)
         x2 = keras.layers.TimeDistributed(keras.layers.GlobalAveragePooling2D(), name = 'avgpool')(x)
-        x = keras.layers.Concatenate([x1, x2], axis=-1)
+        x = keras.layers.concatenate([x1, x2], axis=-1)
         x = keras.layers.TimeDistributed(keras.layers.Flatten(), name = 'flatten')(x)
         if self.AuxHP.BatchNormalization == True: x = keras.layers.BatchNormalization()(x)
         x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name = 'dropout')(x)
