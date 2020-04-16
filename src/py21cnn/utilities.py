@@ -151,10 +151,10 @@ class LR_scheduler:
         Returns learning rate at a given epoch. 
         Recieves total number of epochs and initial learning rate
         """
-        print(epoch)
-        if epoch / self.total_epochs < 0.5:
+        # print(epoch)
+        if (epoch + 1) / self.total_epochs < 0.5:
             return self.initial_LR
-        elif epoch / self.total_epochs < 0.8:
+        elif (epoch + 1) / self.total_epochs < 0.8:
             return self.initial_LR * self.reduce_factor
         else:
             return self.initial_LR * self.reduce_factor ** 2
@@ -216,12 +216,14 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
             number_of_lines = len(f.readlines())
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
             print(number_of_epochs_trained)
-
-        #broadcast number_of_epochs_trained to all workers, I have no idea if that is necessary.
+        if inputs.epochs + number_of_epochs_trained > inputs.max_epochs:
+            final_epochs = inputs.max_epochs
+        else:
+            final_epochs = inputs.epochs + number_of_epochs_trained
+        #broadcast final_epochs to all workers, I have no idea if that is necessary.
         #but that's what they do in example https://github.com/horovod/horovod/blob/87ad738d4d6b14ffdcc55a03acdc3cfb03f380c8/examples/keras_imagenet_resnet50.py
+        final_epochs = hvd.broadcast(final_epochs, 0, name='final_epochs')
         number_of_epochs_trained = hvd.broadcast(number_of_epochs_trained, 0, name='number_of_epochs_trained')
-        
-        
         
         custom_obj = {}
         custom_obj["R2"] = R2
@@ -258,13 +260,13 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
         #                 experimental_run_tf_function=False,
         #                 )
         if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.Epochs, keras.backend.get_value(model.optimizer.lr), multi_gpu_run = True, reduce_factor = 0.1)
+            scheduler = LR_scheduler(inputs.max_epochs, keras.backend.get_value(model.optimizer.lr), multi_gpu_run = True, reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
 
         model.fit(  Data.X['train'], Data.Y['train'],
                     initial_epoch=number_of_epochs_trained,
-                    epochs=AuxHP.Epochs+number_of_epochs_trained,
+                    epochs=final_epochs,
                     batch_size=AuxHP.BatchSize,
                     callbacks=callbacks,
                     validation_data=(Data.X['val'], Data.Y['val']),
@@ -272,7 +274,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
                     )
     else:
         if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.Epochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
+            scheduler = LR_scheduler(AuxHP.max_epochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
@@ -367,10 +369,14 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
             # if number_of_epochs_trained >= AuxHP.Epochs:
             #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
             #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
+        if inputs.epochs + number_of_epochs_trained > inputs.max_epochs:
+            final_epochs = inputs.max_epochs
+        else:
+            final_epochs = inputs.epochs + number_of_epochs_trained     
         
         
         if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.Epochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
+            scheduler = LR_scheduler(inputs.max_epochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
@@ -382,7 +388,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
 
         model.fit(  Data.X['train'], Data.Y['train'],
                     initial_epoch=number_of_epochs_trained,
-                    epochs=AuxHP.Epochs + number_of_epochs_trained,
+                    epochs=final_epochs,
                     batch_size=AuxHP.BatchSize,
                     callbacks=callbacks,
                     validation_data=(Data.X['val'], Data.Y['val']),
@@ -390,7 +396,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
                             )
     else:
         if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.Epochs, AuxHP.LearningRate, reduce_factor = 0.1)
+            scheduler = LR_scheduler(inputs.max_epochs, AuxHP.LearningRate, reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
         
         model.compile(  loss=AuxHP.Loss[1],

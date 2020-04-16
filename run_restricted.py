@@ -9,6 +9,7 @@ parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--HyperparameterIndex', type=int, choices=range(16), default=0)
 parser.add_argument('--epochs', type=int, default=200)
+parser.add_argument('--max_epochs', type=int, default=-1)
 parser.add_argument('--gpus', type=int, default=1)
 parser.add_argument('--multi_gpu_correction', type=int, choices=[0, 1, 2], default=0, help="0-none, 1-batch_size, 2-learning_rate")
 parser.add_argument('--file_prefix', type=str, default="")
@@ -18,6 +19,10 @@ parser.add_argument('--patience', type=int, default=10)
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
+if inputs.max_epochs == -1:
+    inputs.max_epochs = inputs.epochs
+elif inputs.max_epochs > inputs.epochs:
+    raise ValueError("max_epochs shoudln't be larger than epochs")
 print("INPUTS:", inputs)
 
 import tensorflow as tf
