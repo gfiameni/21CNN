@@ -118,5 +118,5 @@ else:
                                 HP = HP,
                                 HP_TensorBoard = HP_TensorBoard,
                                 inputs = inputs,
-                                hvd = hvd,
+                                # hvd = hvd,
                                 )

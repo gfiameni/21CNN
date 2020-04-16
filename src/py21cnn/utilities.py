@@ -7,7 +7,7 @@ import tensorflow as tf
 # import keras
 from tensorflow import keras
 # from tensorboard.plugins.hparams import api as hp
-# import horovod.tensorflow.keras as hvd
+import horovod.tensorflow.keras as hvd
 # sess = keras.backend.get_session()
 
 class Data:
@@ -116,8 +116,6 @@ class AuxiliaryHyperparameters:
         return hashlib.md5(self.hashstring().encode()).hexdigest()
 
 
-
-
 class TimeHistory(keras.callbacks.Callback):
     def __init__(self, filename):
         self.filename = filename
@@ -134,10 +132,36 @@ class TimeHistory(keras.callbacks.Callback):
         os.fsync(self.file.fileno())
     def on_train_end(self, logs={}):
         self.file.close()
+
+
 class LR_tracer(keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs={}):
         lr = keras.backend.eval( self.model.optimizer.lr )
         print(' LR: %.10f '%(lr))
+
+
+class LR_scheduler:
+    def __init__(self, total_epochs, inital_LR, multi_gpu_run = False, reduce_factor = 0.1):
+        self.total_epochs = total_epochs
+        self.initial_LR = inital_LR
+        self.multi_gpu_run = multi_gpu_run
+        self.reduce_factor = reduce_factor
+    def scheduler(self, epoch):
+        """
+        Returns learning rate at a given epoch. 
+        Recieves total number of epochs and initial learning rate
+        """
+        if epoch / self.total_epochs < 0.5:
+            return self.initial_LR
+        elif epoch / self.total_epochs < 0.8:
+            return self.initial_LR * self.reduce_factor
+        else:
+            return self.initial_LR * self.reduce_factor ** 2
+    def callback(self):
+        if self.multi_gpu_run == True:
+            return hvd.callbacks.LearningRateScheduleCallback(self.scheduler)
+        else:
+            return tf.keras.callbacks.LearningRateScheduler(self.scheduler)
 
 
 def R2(y_true, y_pred):
@@ -153,7 +177,7 @@ def R2_final(y_true, y_pred):
         SS_tot = np.sum((y_true - np.mean(y_true, axis=0))**2)
         return (1 - SS_res/(SS_tot + 1e-7))
 
-def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, restore_weights = True, restore_training = True, warmup=False):
+def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_weights = True, restore_training = True, warmup=False):
 
     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{HP.hash()}"
@@ -164,8 +188,8 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
     callbacks.append(keras.callbacks.TerminateOnNaN())
     if warmup == True:
         callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=inputs.patience)) # patience in ReduceLROnPlateau and warmup_epochs should be the same order of magnitude, therefore we choose the same value
-    if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+    # if AuxHP.ReducingLR == True:
+    #     callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
     if hvd.rank() == 0:
         callbacks.append(TimeHistory(f"{filepath}_time.txt"))
         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
@@ -212,6 +236,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
             custom_obj[OptName] = lambda **kwargs: hvd.DistributedOptimizer(AuxHP.Optimizer[0](**kwargs))
         else:
             custom_obj[OptName] =  hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
+
         #if loading last model fails for some reason, load the best one
         try:
             model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
@@ -231,6 +256,10 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
         #                 metrics = [R2],
         #                 experimental_run_tf_function=False,
         #                 )
+        if AuxHP.ReducingLR == True:
+            scheduler = LR_scheduler(AuxHP.Epochs, keras.backend.get_value(model.optimizer.lr), multi_gpu_run = True, reduce_factor = 0.1)
+            calbacks.append(scheduler.callback())
+            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
 
         model.fit(  Data.X['train'], Data.Y['train'],
                     initial_epoch=number_of_epochs_trained,
@@ -241,6 +270,11 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, hvd, rest
                     verbose=2,
                     )
     else:
+        if AuxHP.ReducingLR == True:
+            scheduler = LR_scheduler(AuxHP.Epochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
+            calbacks.append(scheduler.callback())
+            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+        
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
                         metrics = [R2],
@@ -307,11 +341,9 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
     #     sess.run(w.init())
     #     sess.run(hp.hparams(HP_TensorBoard))
     #     sess.run(w.flush())
+    
 
-    if AuxHP.ReducingLR == True:
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
-
-    # if the model has been run before, load it and run again for AuxHP.Epoch - number of epochs from before
+    # if the model has been run before, load it and run again
     # else, compile the model and run it
     if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
         custom_obj = {}
@@ -326,7 +358,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         except:
             model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
         model.summary()
-        
+
         with open(f"{filepath}.log") as f:
             number_of_lines = len(f.readlines())
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
@@ -335,6 +367,13 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
             #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
             #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
         
+        
+        if AuxHP.ReducingLR == True:
+            scheduler = LR_scheduler(AuxHP.Epochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
+            calbacks.append(scheduler.callback())
+            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+        
+        #in the case we don't want to restore training, we recompile the model
         if restore_training == False:
             model.compile(  loss=AuxHP.Loss[1],
                             optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
@@ -349,6 +388,10 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
                     verbose=2,
                             )
     else:
+        if AuxHP.ReducingLR == True:
+            scheduler = LR_scheduler(AuxHP.Epochs, AuxHP.LearningRate, reduce_factor = 0.1)
+            calbacks.append(scheduler.callback())
+        
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
                         metrics = [R2])

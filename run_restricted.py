@@ -127,7 +127,7 @@ else:
                                 HP = HP,
                                 HP_TensorBoard = HP_TensorBoard,
                                 inputs = inputs,
-                                hvd = hvd,
+                                # hvd = hvd,
                                 restore_weights = False,
                                 restore_training = False,
                                 warmup = True,
