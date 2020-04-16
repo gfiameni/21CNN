@@ -151,6 +151,7 @@ class LR_scheduler:
         Returns learning rate at a given epoch. 
         Recieves total number of epochs and initial learning rate
         """
+        print(epoch)
         if epoch / self.total_epochs < 0.5:
             return self.initial_LR
         elif epoch / self.total_epochs < 0.8:
