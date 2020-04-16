@@ -258,7 +258,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
         #                 )
         if AuxHP.ReducingLR == True:
             scheduler = LR_scheduler(AuxHP.Epochs, keras.backend.get_value(model.optimizer.lr), multi_gpu_run = True, reduce_factor = 0.1)
-            calbacks.append(scheduler.callback())
+            callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
 
         model.fit(  Data.X['train'], Data.Y['train'],
@@ -272,7 +272,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
     else:
         if AuxHP.ReducingLR == True:
             scheduler = LR_scheduler(AuxHP.Epochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
-            calbacks.append(scheduler.callback())
+            callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
         model.compile(  loss=AuxHP.Loss[1],
@@ -370,7 +370,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         
         if AuxHP.ReducingLR == True:
             scheduler = LR_scheduler(AuxHP.Epochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
-            calbacks.append(scheduler.callback())
+            callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
         #in the case we don't want to restore training, we recompile the model
@@ -390,7 +390,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
     else:
         if AuxHP.ReducingLR == True:
             scheduler = LR_scheduler(AuxHP.Epochs, AuxHP.LearningRate, reduce_factor = 0.1)
-            calbacks.append(scheduler.callback())
+            callbacks.append(scheduler.callback())
         
         model.compile(  loss=AuxHP.Loss[1],
                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
