@@ -114,6 +114,7 @@ else:
     elif inputs.multi_gpu_correction == 1:
         AuxHP.BatchSize //= hvd.size()
     AuxHP.Epochs //= hvd.size()
+    AuxHP.MaxEpochs //=hvd.size()
     print("BEFORE RUN AuxHP: ", str(AuxHP))
     print("BEFORE RUN HP: ", str(HP))
 
