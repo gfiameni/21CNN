@@ -276,7 +276,7 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
                     )
     else:
         if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.max_epochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
+            scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
