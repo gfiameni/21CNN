@@ -156,7 +156,7 @@ class LR_scheduler:
         # print(epoch)
         if (epoch + 1) / self.total_epochs < 0.5:
             return self.initial_LR
-        elif (epoch + 1) / self.total_epochs < 0.8:
+        elif (epoch + 1) / self.total_epochs < 0.75:
             return self.initial_LR * self.reduce_factor
         else:
             return self.initial_LR * self.reduce_factor ** 2
