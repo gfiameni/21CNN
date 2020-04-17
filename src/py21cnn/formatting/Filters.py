@@ -112,25 +112,28 @@ def TDT(X, Y, pTrain, pDev, pTest, seed = 1312, WalkerSteps = 0):
             tdt.append(dY)
     return tdt
 
-def constructIndexArray(size, pTrain, pVal, pTest, rstate):
-    n = [0, 0, 0]
-    n[0] = int(size * pTrain)
-    n[1] = int(size * pVal)
-    n[2] = size - n[0] - n[1]
-    indexArray = np.hstack((np.zeros(n[0], dtype=int), np.ones(n[1], dtype=int), 2*np.ones(n[2], dtype=int)))
-    return rstate.permutation(indexArray)
-
-def basicTVT(X, Y, pTrain, pVal, pTest, seed = 1312):
-    assert np.abs(pTrain + pVal + pTest - 1) < 1e-5
-
+def constructIndexArray(size, pTrain, pVal, pTest, seed, returnRstate = False):
     if isinstance(seed, int):
         RState = np.random.RandomState(seed=seed)
     elif isinstance(seed, np.random.RandomState):
         RState = seed
     else:
         raise TypeError('seed should be int or numpy.random.RandomState instance')
+
+    n = [0, 0, 0]
+    n[0] = int(size * pTrain)
+    n[1] = int(size * pVal)
+    n[2] = size - n[0] - n[1]
+    indexArray = np.hstack((np.zeros(n[0], dtype=int), np.ones(n[1], dtype=int), 2*np.ones(n[2], dtype=int)))
+    if returnRstate:
+        return RState.permutation(indexArray), RState
+    else:
+        return RState.permutation(indexArray)
+
+def basicTVT(X, Y, pTrain, pVal, pTest, seed = 1312):
+    assert np.abs(pTrain + pVal + pTest - 1) < 1e-5
     
-    indexArray = constructIndexArray(X.shape[0], pTrain, pVal, pTest, RState)
+    indexArray, RState = constructIndexArray(X.shape[0], pTrain, pVal, pTest, seed, True)
     
     dX = {}
     dY = {}
