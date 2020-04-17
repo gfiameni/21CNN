@@ -21,7 +21,7 @@ inputs.model = inputs.model.split('.')
 if inputs.max_epochs == -1:
     inputs.max_epochs = inputs.epochs
 elif inputs.max_epochs > inputs.epochs:
-    raise ValueError("max_epochs shoudln't be larger than epochs")
+    raise ValueError("max_epochs shouldn't be larger than epochs")
 print("INPUTS:", inputs)
 
 import tensorflow as tf
