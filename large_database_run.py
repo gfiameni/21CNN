@@ -67,12 +67,6 @@ if inputs.gpus > 1:
     print("HVD.SIZE", hvd.size())
 
 ###############################################################################
-#importing model
-###############################################################################
-import importlib
-ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
-
-###############################################################################
 #seting hyperparameters
 ###############################################################################
 import copy
@@ -83,34 +77,24 @@ from src.py21cnn import hyperparameters
 HP = hyperparameters.HP(inputs)
 HP_list = list(itertools.product(*HP.values()))
 HP_dict = dict(zip(HP.keys(), HP_list[inputs.HyperparameterIndex]))
-HP = utilities.AuxiliaryHyperparameters(**HP_dict)
-#creating HP dict for TensorBoard with only HP that are changing and only human-readable information
-HP_TensorBoard = {
-    "Model": f"{inputs.model[0]}_{inputs.model[1]}",
-    "LearningRate": HP_dict["LearningRate"],
-    "Dropout": HP_dict["Dropout"],
-    "BatchSize": HP_dict["BatchSize"],
-    "BatchNormalization": HP_dict["BatchNormalization"],
-    "Optimizer": HP_dict["Optimizer"][1],
-    "ActivationFunction": HP_dict["ActivationFunction"][0],
-}
+HP = utilities.AuxiliaryHyperparameters(f"{inputs.model[0]}_{inputs.model[1]}", **HP_dict)
 
 print("HYPERPARAMETERS:", str(HP))
 
 ###############################################################################
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
-Data = utilities.LargeData( inputs = inputs, 
-                            dimensionality = 3,
-                            )
+Data = utilities.LargeData(inputs, dimensionality = 3)
 
 print("DATA:", str(Data))
 
 ###############################################################################
 #building and running the model
 ###############################################################################
-# ModelClass = ModelClassObject(Data.shape, HP)
-# ModelClass.build()
+import importlib
+ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
+ModelClass = ModelClassObject(Data.inputs.X_shape, HP)
+ModelClass.build()
 # if inputs.gpus == 1:
 #     utilities.run_model(model = ModelClass.model, 
 #                         Data = Data, 
@@ -137,6 +121,8 @@ print("DATA:", str(Data))
 #                                 inputs = inputs,
 #                                 # hvd = hvd,
 #                                 )
+
+utilities.run_large_model(ModelClass.model, Data, HP)
 
 # # Parameters
 # params = {'dim': (32,32,32),

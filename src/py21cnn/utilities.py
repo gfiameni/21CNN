@@ -138,13 +138,14 @@ class LargeData:
                 for seed in range(self.inputs.N_noise):
                     self.partition[keys[permutation[walker]]].append(self.inputs.X_fstring.format(walker, s, seed))
                     self.labels[self.inputs.X_fstring.format(walker, s, seed)] = Y[walker]
-        print(self.partition)
+        # print(self.partition)
 
 
 
 class AuxiliaryHyperparameters:
     def __init__(
         self,
+        model,
         # Loss = {"instance": keras.losses.mean_squared_error, "name": "mse"},
         Loss = [keras.losses.mean_squared_error, "mse"],
         # Optimizer = {"instance": keras.optimizers.RMSprop(), "name": "RMSprop"},
@@ -159,6 +160,7 @@ class AuxiliaryHyperparameters:
         Epochs = 200,
         MaxEpochs = 200,
         ):
+        self.model = model
         self.Loss = Loss
         self.Optimizer = Optimizer
         self.LearningRate = LearningRate
@@ -170,6 +172,15 @@ class AuxiliaryHyperparameters:
         self.BatchSize = BatchSize
         self.Epochs = Epochs
         self.MaxEpochs = MaxEpochs
+        self.TensorBoard = {
+            "Model": self.model,
+            "LearningRate": self.LearningRate,
+            "Dropout": self.Dropout,
+            "BatchSize": self.BatchSize,
+            "BatchNormalization": self.BatchNormalization,
+            "Optimizer": self.Optimizer[1],
+            "ActivationFunction": self.ActivationFunction[0],
+            }
 
     def __str__(self):
         S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[0]}"
@@ -182,6 +193,7 @@ class AuxiliaryHyperparameters:
         return S
     def hash(self):
         return hashlib.md5(self.hashstring().encode()).hexdigest()
+
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -551,3 +563,6 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         stringlist = []
         model.summary(print_fn=lambda x: stringlist.append(x))
         f.write("\n".join(stringlist))
+
+def run_large_model(model, Data, HP):
+    pass

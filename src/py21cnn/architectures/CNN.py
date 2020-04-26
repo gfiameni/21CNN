@@ -64,7 +64,7 @@ class basic3D:
         x = keras.layers.Dense(2**4, **self.AuxHP.ActivationFunction[1])(x)
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= "CNN_basic3D")
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
         print(self.model.summary())
         return self.model       
 
@@ -133,7 +133,7 @@ class basic3D_multimodal:
             y[i] = keras.layers.Dense(1)(y[i])
         out = keras.layers.concatenate(y, axis=-1)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = out, name= "CNN_basic3D_multimodal")
+        self.model = keras.models.Model(inputs = img_input, outputs = out, name= self.AuxHP.model)
         print(self.model.summary())
         return self.model
 
@@ -200,7 +200,7 @@ class basic2D:
         x = keras.layers.Dense(2**4, **self.AuxHP.ActivationFunction[1])(x)
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= "CNN_basic2D")
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
         print(self.model.summary())
         return self.model  
 
@@ -265,6 +265,6 @@ class basic2D_multimodal:
             y[i] = keras.layers.Dense(1)(y[i])
         out = keras.layers.concatenate(y, axis=-1)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = out, name= "CNN_basic2D_multimodal")
+        self.model = keras.models.Model(inputs = img_input, outputs = out, name= self.AuxHP.model)
         print(self.model.summary())
         return self.model  
