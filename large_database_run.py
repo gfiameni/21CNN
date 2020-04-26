@@ -34,28 +34,6 @@ elif inputs.max_epochs > inputs.epochs:
 print("INPUTS:", inputs)
 
 ###############################################################################
-#constructing TVT partitions of the data and assigning labels
-###############################################################################
-import numpy as np
-from src.py21cnn.formatting import Filters
-permutation = Filters.constructIndexArray(inputs.N_walker, *inputs.pTVT, 1312)
-print(permutation)
-
-Y = np.load(f"{inputs.data_location}{inputs.Y_filename}.npy")
-partition = {
-    "train": [], 
-    "validation": [], 
-    "test": []}
-labels = {}
-keys = list(partition.keys())
-for walker in range(inputs.N_walker):
-    for s in range(inputs.N_slice):
-        for seed in range(inputs.N_noise):
-            partition[keys[permutation[walker]]].append(inputs.X_fstring.format(walker, s, seed))
-            labels[inputs.X_fstring.format(walker, s, seed)] = Y[walker]
-print(partition)
-
-###############################################################################
 #seting up GPUs
 ###############################################################################
 import tensorflow as tf
@@ -85,13 +63,14 @@ else:
 from tensorflow import keras
 keras.backend.set_image_data_format('channels_last')
 
+if inputs.gpus > 1:
+    print("HVD.SIZE", hvd.size())
+
 ###############################################################################
 #importing model
 ###############################################################################
 import importlib
-import src.py21cnn.utilities as utilities
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
-
 
 ###############################################################################
 #seting hyperparameters
@@ -99,6 +78,7 @@ ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{
 import copy
 import itertools
 import sys
+from src.py21cnn import utilities
 from src.py21cnn import hyperparameters
 HP = hyperparameters.HP(inputs)
 HP_list = list(itertools.product(*HP.values()))
@@ -115,17 +95,16 @@ HP_TensorBoard = {
     "ActivationFunction": HP_dict["ActivationFunction"][0],
 }
 
-# Data = utilities.Data(filepath=inputs.data_location, 
-#                       dimensionality=inputs.dimensionality, 
-#                       removed_average=inputs.removed_average, 
-#                       Zmax=inputs.Zmax)
-# Data.loadTVT(model_type=inputs.model[0])
 print("HYPERPARAMETERS:", str(HP))
-# print("DATA:", str(Data))
-if inputs.gpus > 1:
-    print("HVD.SIZE", hvd.size())
 
+###############################################################################
+#constructing TVT partitions of the data and assigning labels
+###############################################################################
+Data = utilities.LargeData( inputs = inputs, 
+                            dimensionality = 3,
+                            )
 
+print("DATA:", str(Data))
 
 ###############################################################################
 #building and running the model

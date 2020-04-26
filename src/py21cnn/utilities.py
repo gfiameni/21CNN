@@ -1,3 +1,4 @@
+from formatting import Filters
 import os
 import time
 import copy
@@ -76,6 +77,71 @@ class Data:
             np.save(f"{self.filepath}Y_{key}_{p:.2f}_{Hash}.npy", self.Y[key])
 
 
+class LargeData:
+    def __init__(
+        self,
+        inputs = None,
+        dimensionality = 2,
+        removed_average = True,
+        normalized = True,
+        Zmax = 30,
+        filetype = 'float32',
+        formatting = [],
+        noise = ["tools21cm", "SKA1000"]
+        ):
+        self.inputs = inputs
+        self.dimensionality = dimensionality
+        self.removed_average = removed_average
+        self.normalized = normalized
+        self.Zmax = Zmax
+        self.filetype = filetype
+        if len(formatting) == 0:
+            default_formatting = ['clipped_-250_+50', 'NaN_removed', 'TVT_parameterwise']
+            if self.dimensionality == 2:
+                default_formatting.append('boxcar44')
+                default_formatting.append('10slices')
+            if self.dimensionality == 3:
+                default_formatting.append('boxcar444')
+                default_formatting.append('sliced22')
+            # default_formatting.sort()
+            self.formatting = default_formatting
+        else:
+            # formatting.sort()
+            self.formatting = formatting
+        self.noise = noise
+        self.load()
+
+    def __str__(self):
+        self.formatting.sort()
+        S = f"dim:{self.dimensionality}__removed_average:{self.removed_average}__normalized:{self.normalized}__Zmax:{self.Zmax}__dtype:{self.filetype}"
+        for i in self.formatting:
+            S += f"__{i}"
+        for i in self.noise:
+            S += f"__{i}"
+        return S
+    
+    def hash(self):
+        return hashlib.md5(self.__str__().encode()).hexdigest()
+
+    def load(self):
+        permutation = Filters.constructIndexArray(self.inputs.N_walker, *self.inputs.pTVT, 1312)
+        # print(permutation)
+        Y = np.load(f"{self.inputs.data_location}{self.inputs.Y_filename}.npy")
+        self.partition = {
+            "train": [], 
+            "validation": [], 
+            "test": []}
+        self.labels = {}
+        keys = list(self.partition.keys())
+        for walker in range(self.inputs.N_walker):
+            for s in range(self.inputs.N_slice):
+                for seed in range(self.inputs.N_noise):
+                    self.partition[keys[permutation[walker]]].append(self.inputs.X_fstring.format(walker, s, seed))
+                    self.labels[self.inputs.X_fstring.format(walker, s, seed)] = Y[walker]
+        print(self.partition)
+
+
+
 class AuxiliaryHyperparameters:
     def __init__(
         self,
@@ -107,7 +173,7 @@ class AuxiliaryHyperparameters:
 
     def __str__(self):
         S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[0]}"
-        S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}__Epochs:{self.Epochs:05d}"
+        S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}__Epochs:{self.MaxEpochs:05d}"
         return S
     def hashstring(self):
         #differences from __str__ in not including epochs
