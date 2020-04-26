@@ -1,4 +1,4 @@
-from formatting import Filters
+from .formatting import Filters
 import os
 import time
 import copy
