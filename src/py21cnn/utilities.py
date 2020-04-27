@@ -246,9 +246,9 @@ class DataGenerator(keras.utils.Sequence):
 
     def loadX(self, filename):
         if self.model_type == "RNN":
-            return np.swapaxes(np.load(filename), 0, -1)
+            return np.swapaxes(np.load(filename), 0, -1)[..., np.newaxis]
         else:
-            return np.load(filename)
+            return np.load(filename)[..., np.newaxis]
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples'
         X = np.empty((self.batch_size, *self.dimX, self.n_channels))
