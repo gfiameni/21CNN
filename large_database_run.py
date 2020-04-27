@@ -36,8 +36,8 @@ inputs.pTVT = [float(i) for i in inputs.pTVT.split(',')]
 inputs.X_shape = tuple([int(i) for i in inputs.X_shape.split(',')])
 if inputs.max_epochs == -1:
     inputs.max_epochs = inputs.epochs
-elif inputs.max_epochs > inputs.epochs:
-    raise ValueError("max_epochs shouldn't be larger than epochs")
+elif inputs.max_epochs < inputs.epochs:
+    raise ValueError("epochs shouldn't be larger than max_epochs")
 
 print("INPUTS:", inputs)
 ctx.inputs = inputs
