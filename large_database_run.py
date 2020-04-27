@@ -33,7 +33,7 @@ inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
 inputs.pTVT = [float(i) for i in inputs.pTVT.split(',')]
-inputs.X_shape = tuple([float(i) for i in inputs.X_shape.split(',')])
+inputs.X_shape = tuple([int(i) for i in inputs.X_shape.split(',')])
 if inputs.max_epochs == -1:
     inputs.max_epochs = inputs.epochs
 elif inputs.max_epochs > inputs.epochs:
