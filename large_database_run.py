@@ -95,52 +95,5 @@ import importlib
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
 ModelClass = ModelClassObject(Data.inputs.X_shape, HP)
 ModelClass.build()
-# if inputs.gpus == 1:
-#     utilities.run_model(model = ModelClass.model, 
-#                         Data = Data, 
-#                         AuxHP = HP,
-#                         HP_TensorBoard = HP_TensorBoard,
-#                         inputs = inputs)
-# else:
-#     #corrections for multigpu
-#     AuxHP = copy.deepcopy(HP)
-#     if inputs.multi_gpu_correction == 2:
-#         AuxHP.Optimizer[2]["lr"] *= hvd.size()
-#     elif inputs.multi_gpu_correction == 1:
-#         AuxHP.BatchSize //= hvd.size()
-#     AuxHP.Epochs //= hvd.size()
-#     AuxHP.MaxEpochs //=hvd.size()
-#     print("BEFORE RUN AuxHP: ", str(AuxHP))
-#     print("BEFORE RUN HP: ", str(HP))
-
-#     utilities.run_multigpu_model(model = ModelClass.model, 
-#                                 Data = Data, 
-#                                 AuxHP = AuxHP,
-#                                 HP = HP,
-#                                 HP_TensorBoard = HP_TensorBoard,
-#                                 inputs = inputs,
-#                                 # hvd = hvd,
-#                                 )
 
 utilities.run_large_model(ModelClass.model, Data, HP)
-
-# # Parameters
-# params = {'dim': (32,32,32),
-#           'batch_size': 64,
-#           'n_classes': 6,
-#           'n_channels': 1,
-#           'shuffle': True}
-
-# # Generators
-# training_generator = DataGenerator(partition['train'], labels, **params)
-# validation_generator = DataGenerator(partition['validation'], labels, **params)
-
-
-# model.compile()
-
-# # Train model on dataset
-# model.fit_generator(generator=training_generator,
-#                     validation_data=validation_generator,
-#                     use_multiprocessing=True,
-#                     workers=6)
-

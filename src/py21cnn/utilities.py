@@ -127,6 +127,7 @@ class LargeData:
         permutation = Filters.constructIndexArray(self.inputs.N_walker, *self.inputs.pTVT, 1312)
         # print(permutation)
         Y = np.load(f"{self.inputs.data_location}{self.inputs.Y_filename}.npy")
+        self.inputs.Y_shape = Y.shape[-1]
         self.partition = {
             "train": [], 
             "validation": [], 
@@ -203,18 +204,21 @@ class DataGenerator(keras.utils.Sequence):
                 labels, 
                 dimX, dimY,
                 data_filepath,
+                model_type,
                 batch_size=20, 
                 n_channels=1,
-                # n_classes=10, 
                 shuffle=True):
-        self.dimX = dimX
+        self.model_type = model_type
+        if self.model_type == "RNN":
+            self.dimX = dimX[::-1]
+        else:
+            self.dimX = dimX
         self.dimY = dimY
         self.data_filepath = data_filepath
         self.batch_size = batch_size
         self.labels = labels
         self.list_IDs = list_IDs
         self.n_channels = n_channels
-        # self.n_classes = n_classes
         self.shuffle = shuffle
         self.on_epoch_end()
 
@@ -241,13 +245,18 @@ class DataGenerator(keras.utils.Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
+    def loadX(self, filename):
+        if self.model_type == "RNN":
+            return np.swapaxes(np.load(filename), 0, -1)
+        else:
+            return np.load(filename)
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples'
         X = np.empty((self.batch_size, *self.dimX, self.n_channels))
         y = np.empty((self.batch_size, self.dimY))
 
         for i, ID in enumerate(list_IDs_temp):
-            X[i,] = np.load(f"{self.data_filepath}{ID}.npy")
+            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
             y[i] = self.labels[ID]
 
         return X, y
@@ -564,5 +573,111 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         model.summary(print_fn=lambda x: stringlist.append(x))
         f.write("\n".join(stringlist))
 
-def run_large_model(model, Data, HP):
-    pass
+def run_large_model(model, Data, HP, restore_weights = True, restore_training = True):
+    filepath = f"{Data.inputs.saving_location}{Data.inputs.file_prefix}{Data.inputs.model[0]}_{Data.inputs.model[1]}_{HP.hash()}_{Data.hash()}"
+    logdir = f"{Data.inputs.logs_location}{Data.inputs.file_prefix}{Data.inputs.model[0]}/{Data.inputs.model[1]}/{Data.hash()}/{HP.hash()}"
+
+    # Callbacks
+    callbacks = [
+        keras.callbacks.TensorBoard(logdir, update_freq='epoch'),
+        # hp.KerasCallback(logdir, HP_TensorBoard),
+        LR_tracer(),
+        TimeHistory(f"{filepath}_time.txt"),
+        keras.callbacks.TerminateOnNaN(),
+        keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
+        keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
+        keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
+        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
+    ]
+    # Generators
+    train_generator = DataGenerator(Data.partition['train'], Data.labels, Data.inputs.X_shape, Data.inputs.Y_shape, Data.inputs.data_filepath, Data.inputs.model[0], HP.BatchSize)
+    validation_generator = DataGenerator(Data.partition['validation'], Data.labels, Data.inputs.X_shape, Data.inputs.Y_shape, Data.inputs.data_filepath, Data.inputs.model[0], HP.BatchSize)
+    test_generator = DataGenerator(Data.partition['test'], Data.labels, Data.inputs.X_shape, Data.inputs.Y_shape, Data.inputs.data_filepath, Data.inputs.model[0], HP.BatchSize)
+    # if the model has been run before, load it and run again
+    # else, compile the model and run it
+    if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        if HP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[HP.ActivationFunction[0]] = HP.ActivationFunction[1]["activation"]
+        #if loading last model fails for some reason, load the best one
+        try:
+            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+        except:
+            model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+
+        with open(f"{filepath}.log") as f:
+            number_of_lines = len(f.readlines())
+            number_of_epochs_trained = number_of_lines - 1  #the first line is description
+            print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
+            # if number_of_epochs_trained >= AuxHP.Epochs:
+            #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
+            #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
+        if HP.Epochs + number_of_epochs_trained > HP.MaxEpochs:
+            final_epochs = HP.MaxEpochs
+        else:
+            final_epochs = HP.Epochs + number_of_epochs_trained     
+        
+        
+        if HP.ReducingLR == True:
+            scheduler = LR_scheduler(HP.MaxEpochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
+            callbacks.append(scheduler.callback())
+            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+        
+        #in the case we don't want to restore training, we recompile the model
+        if restore_training == False:
+            model.compile(  loss=HP.Loss[1],
+                            optimizer=HP.Optimizer[0](**HP.Optimizer[2]),
+                            metrics = [R2])
+
+        model.fit_generator(generator=train_generator,
+                            validation_data=validation_generator,
+                            epochs = final_epochs,
+                            verbose = 2,
+                            callbacks = callbacks,
+                            max_queue_size = 16,
+                            use_multiprocessing = True,
+                            workers = 12,
+                            intial_epoch = number_of_epochs_trained,
+                            )
+    else:
+        if HP.ReducingLR == True:
+            scheduler = LR_scheduler(HP.MaxEpochs, HP.LearningRate, reduce_factor = 0.1)
+            callbacks.append(scheduler.callback())
+        
+        model.compile(  
+            loss=HP.Loss[1],
+            optimizer=HP.Optimizer[0](**HP.Optimizer[2]),
+            metrics = [R2],
+            )
+        model.fit_generator(
+            generator=train_generator,
+            validation_data=validation_generator,
+            epochs = HP.Epochs,
+            verbose = 2,
+            callbacks = callbacks,
+            max_queue_size = 16,
+            use_multiprocessing = True,
+            workers = 12,
+            )
+
+    prediction = model.predict_generator(
+        generator = test_generator, 
+        max_queue_size=16, 
+        workers=12, 
+        use_multiprocessing=True, 
+        )
+    print(prediction)
+    # np.save(f"{filepath}_prediction.npy", prediction)
+
+    # with open(f"{filepath}_summary.txt", "w") as f:
+    #     f.write(f"DATA: {str(Data)}\n")
+    #     f.write(f"HYPARAMETERS: {str(HP)}\n")
+    #     for i in range(4):
+    #         print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
+    #         f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
+    #     f.write("\n")
+    #     # f.write(model.summary())
+    #     stringlist = []
+    #     model.summary(print_fn=lambda x: stringlist.append(x))
+    #     f.write("\n".join(stringlist))
