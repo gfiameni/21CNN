@@ -106,9 +106,9 @@ ctx.Data = Data
 import importlib
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{ctx.inputs.model[0]}'), ctx.inputs.model[1])
 if ctx.inputs.model_type == "RNN":
-    ModelClass = ModelClassObject(ctx.inputs.X_shape[::-1], HP)
+    ModelClass = ModelClassObject(ctx.inputs.X_shape[::-1] + (1,), HP)
 else:
-    ModelClass = ModelClassObject(ctx.inputs.X_shape, HP)
+    ModelClass = ModelClassObject(ctx.inputs.X_shape + (1,), HP)
 ModelClass.build()
 
 ctx.model = ModelClass.model
