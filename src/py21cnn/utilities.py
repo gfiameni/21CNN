@@ -147,6 +147,8 @@ class AuxiliaryHyperparameters:
     def __init__(
         self,
         model_name,
+        Epochs = 200,
+        MaxEpochs = 200,
         # Loss = {"instance": keras.losses.mean_squared_error, "name": "mse"},
         Loss = [keras.losses.mean_squared_error, "mse"],
         # Optimizer = {"instance": keras.optimizers.RMSprop(), "name": "RMSprop"},
@@ -158,8 +160,6 @@ class AuxiliaryHyperparameters:
         Dropout = 0.2,
         ReducingLR = False, 
         BatchSize = 20,
-        Epochs = 200,
-        MaxEpochs = 200,
         ):
         self.model_name = model_name
         self.Loss = Loss
@@ -351,7 +351,9 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
         #     sess.run(hp.hparams(HP_TensorBoard))
         #     sess.run(w.flush())
         # with tf.summary.FileWriter(logdir) writer:
-
+    if AuxHP.ReducingLR == True:
+        scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
+        callbacks.append(scheduler.callback())
 
     #deciding how to run a model: restore_weights and restore_training defines what happens
     #if restore_weigths == True and there is a model to load then it loads it, recompiles only if restore_training == False
@@ -405,9 +407,6 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
         #                 metrics = [R2],
         #                 experimental_run_tf_function=False,
         #                 )
-        if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.MaxEpochs, keras.backend.get_value(model.optimizer.lr), multi_gpu_run = True, reduce_factor = 0.1)
-            callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
 
         model.fit(  Data.X['train'], Data.Y['train'],
@@ -419,9 +418,6 @@ def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_w
                     verbose=2,
                     )
     else:
-        if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
-            callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
         model.compile(  loss=AuxHP.Loss[1],
@@ -573,41 +569,68 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         model.summary(print_fn=lambda x: stringlist.append(x))
         f.write("\n".join(stringlist))
 
-def run_large_model(ctx, restore_weights = True, restore_training = True):
-    filepath = f"{ctx.inputs.saving_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}_{ctx.inputs.model[1]}_{ctx.HP.hash()}_{ctx.Data.hash()}"
-    logdir = f"{ctx.inputs.logs_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}/{ctx.inputs.model[1]}/{ctx.Data.hash()}/{ctx.HP.hash()}"
 
-    # Callbacks
-    callbacks = [
-        keras.callbacks.TensorBoard(logdir, update_freq='epoch'),
-        # ctx.HP.KerasCallback(logdir, HP_TensorBoard),
+def callbacks(ctx):
+    
+    if ctx.inputs.gpus == 1:
+        saving_callbacks = True
+        horovod_callbacks = False
+    else:
+        saving_callbacks = True if hvd.rank() == 0 else False
+        horovod_callbacks = True
+
+    if saving_callbacks == True:
+        saving_callbacks = [
+            keras.callbacks.TensorBoard(ctx.logdir, update_freq='batch'),
+            # hp.KerasCallback(logdir, HP_TensorBoard),
+            TimeHistory(f"{ctx.filepath}_time.txt"),
+            keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
+            keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
+            keras.callbacks.CSVLogger(f"{ctx.filepath}.log", separator=',', append=True),
+        ]
+    else:
+        saving_callbacks = []
+    if horovod_callbacks == True:
+        horovod_callbacks = [
+            hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+            hvd.callbacks.MetricAverageCallback(),
+            hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=ctx.inputs.warmup),
+        ]
+    else:
+        horovod_callbacks = []
+    
+    important_callbacks = [
         LR_tracer(),
-        TimeHistory(f"{filepath}_time.txt"),
         keras.callbacks.TerminateOnNaN(),
-        keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
-        keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
-        keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
-        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
     ]
-    # Generators
+    if ctx.HP.ReducingLR == True:
+        scheduler = LR_scheduler(ctx.HP.MaxEpochs, ctx.HP.LearningRate, reduce_factor = 0.1)
+        important_callbacks.append(scheduler.callback())
+
+    ctx.callbacks = horovod_callbacks + saving_callbacks + important_callbacks
+    
+def run_large_model(ctx, restore_weights = True, restore_training = True):
+    #build callbacks
+    callbacks(ctx)
+
     train_generator = DataGenerator(ctx.Data.partition['train'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize)
     validation_generator = DataGenerator(ctx.Data.partition['validation'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize)
     test_generator = DataGenerator(ctx.Data.partition['test'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize)
     
     # if the model has been run before, load it and run again
     # else, compile the model and run it
-    if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
+    if os.path.exists(f"{ctx.filepath}_last.hdf5") == True and restore_weights == True:
         custom_obj = {}
         custom_obj["R2"] = R2
         if ctx.HP.ActivationFunction[0] == "leakyrelu":
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         #if loading last model fails for some reason, load the best one
         try:
-            ctx.model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+            ctx.model = keras.models.load_model(f"{ctx.filepath}_last.hdf5", custom_objects=custom_obj)
         except:
-            ctx.model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+            ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
 
-        with open(f"{filepath}.log") as f:
+        with open(f"{ctx.filepath}.log") as f:
             number_of_lines = len(f.readlines())
             number_of_epochs_trained = number_of_lines - 1  #the first line is description
             print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
@@ -619,12 +642,6 @@ def run_large_model(ctx, restore_weights = True, restore_training = True):
         else:
             final_epochs = ctx.HP.Epochs + number_of_epochs_trained     
         
-        
-        if ctx.HP.ReducingLR == True:
-            scheduler = LR_scheduler(ctx.HP.MaxEpochs, keras.backend.get_value(ctx.model.optimizer.lr), reduce_factor = 0.1)
-            callbacks.append(scheduler.callback())
-            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
-        
         #in the case we don't want to restore training, we recompile the model
         if restore_training == False:
             ctx.model.compile(  loss=ctx.HP.Loss[1],
@@ -635,17 +652,13 @@ def run_large_model(ctx, restore_weights = True, restore_training = True):
                             validation_data=validation_generator,
                             epochs = final_epochs,
                             verbose = 2,
-                            callbacks = callbacks,
+                            callbacks = ctx.callbacks,
                             max_queue_size = 16,
                             use_multiprocessing = True,
                             workers = 12,
                             initial_epoch = number_of_epochs_trained,
                             )
     else:
-        if ctx.HP.ReducingLR == True:
-            scheduler = LR_scheduler(ctx.HP.MaxEpochs, ctx.HP.LearningRate, reduce_factor = 0.1)
-            callbacks.append(scheduler.callback())
-        
         ctx.model.compile(  
             loss=ctx.HP.Loss[1],
             optimizer=ctx.HP.Optimizer[0](**ctx.HP.Optimizer[2]),
@@ -656,7 +669,7 @@ def run_large_model(ctx, restore_weights = True, restore_training = True):
             validation_data=validation_generator,
             epochs = ctx.HP.Epochs,
             verbose = 2,
-            callbacks = callbacks,
+            callbacks = ctx.callbacks,
             max_queue_size = 16,
             use_multiprocessing = True,
             workers = 12,

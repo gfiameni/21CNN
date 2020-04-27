@@ -5,7 +5,6 @@ def leakyrelu(x):
 def HP(inputs):
     HyP = {}
     HyP["Loss"] = [[None, "mse"]]
-    HyP["Epochs"] = [inputs.max_epochs]
     HyP["BatchSize"] = [20]
     HyP["LearningRate"] = [0.001, 0.0001]
     HyP["Dropout"] = [0.2]

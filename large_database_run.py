@@ -27,6 +27,7 @@ parser.add_argument('--gpus', type=int, default=1)
 parser.add_argument('--multi_gpu_correction', type=str, choices=["none", "batch_size", "learning_rate"], default="none")
 parser.add_argument('--file_prefix', type=str, default="")
 parser.add_argument('--patience', type=int, default=10)
+parser.add_argument('--warmup', type=int, default=0)
 
 inputs = parser.parse_args()
 inputs.model = inputs.model.split('.')
@@ -86,7 +87,12 @@ from src.py21cnn import hyperparameters
 HP = hyperparameters.HP(ctx.inputs)
 HP_list = list(itertools.product(*HP.values()))
 HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
-HP = utilities.AuxiliaryHyperparameters(f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", **HP_dict)
+HP = utilities.AuxiliaryHyperparameters(
+    model_name=f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", 
+    Epochs=ctx.inputs.epochs, 
+    MaxEpochs=ctx.inputs.max_epochs, 
+    **HP_dict
+    )
 
 print("HYPERPARAMETERS:", str(HP))
 ctx.HP = HP
@@ -98,6 +104,9 @@ Data = utilities.LargeData(ctx, dimensionality = 3)
 
 print("DATA:", str(Data))
 ctx.Data = Data
+
+ctx.filepath = f"{ctx.inputs.saving_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}_{ctx.inputs.model[1]}_{ctx.HP.hash()}_{ctx.Data.hash()}"
+ctx.logdir = f"{ctx.inputs.logs_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}/{ctx.inputs.model[1]}/{ctx.Data.hash()}/{ctx.HP.hash()}"
 
 ###############################################################################
 #building and running the model
