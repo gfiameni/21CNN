@@ -282,7 +282,7 @@ class TimeHistory(keras.callbacks.Callback):
 class LR_tracer(keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs={}):
         lr = keras.backend.eval( self.model.optimizer.lr )
-        print(' LR: %.10f '%(lr))
+        print(f"LR: {lr:.10f}")
 
 
 class LR_scheduler:
@@ -296,7 +296,7 @@ class LR_scheduler:
         Returns learning rate at a given epoch. 
         Recieves total number of epochs and initial learning rate
         """
-        # print(epoch)
+        print("IN LR_scheduler, epoch ", epoch)
         if (epoch + 1) / self.total_epochs < 0.5:
             return self.initial_LR
         elif (epoch + 1) / self.total_epochs < 0.75:
