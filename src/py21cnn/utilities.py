@@ -80,16 +80,15 @@ class Data:
 class LargeData:
     def __init__(
         self,
-        inputs = None,
+        ctx,
         dimensionality = 2,
         removed_average = True,
         normalized = True,
         Zmax = 30,
         filetype = 'float32',
         formatting = [],
-        noise = ["tools21cm", "SKA1000"]
+        noise = ["tools21cm", "SKA1000"],
         ):
-        self.inputs = inputs
         self.dimensionality = dimensionality
         self.removed_average = removed_average
         self.normalized = normalized
@@ -109,7 +108,7 @@ class LargeData:
             # formatting.sort()
             self.formatting = formatting
         self.noise = noise
-        self.load()
+        self.load(ctx)
 
     def __str__(self):
         self.formatting.sort()
@@ -123,22 +122,22 @@ class LargeData:
     def hash(self):
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
-    def load(self):
-        permutation = Filters.constructIndexArray(self.inputs.N_walker, *self.inputs.pTVT, 1312)
+    def load(self, ctx):
+        permutation = Filters.constructIndexArray(ctx.inputs.N_walker, *ctx.inputs.pTVT, 1312)
         # print(permutation)
-        Y = np.load(f"{self.inputs.data_location}{self.inputs.Y_filename}.npy")
-        self.inputs.Y_shape = Y.shape[-1]
+        Y = np.load(f"{ctx.inputs.data_location}{ctx.inputs.Y_filename}.npy")
+        ctx.inputs.Y_shape = Y.shape[-1]
         self.partition = {
             "train": [], 
             "validation": [], 
             "test": []}
         self.labels = {}
         keys = list(self.partition.keys())
-        for walker in range(self.inputs.N_walker):
-            for s in range(self.inputs.N_slice):
-                for seed in range(self.inputs.N_noise):
-                    self.partition[keys[permutation[walker]]].append(self.inputs.X_fstring.format(walker, s, seed))
-                    self.labels[self.inputs.X_fstring.format(walker, s, seed)] = Y[walker]
+        for walker in range(ctx.inputs.N_walker):
+            for s in range(ctx.inputs.N_slice):
+                for seed in range(ctx.inputs.N_noise):
+                    self.partition[keys[permutation[walker]]].append(ctx.inputs.X_fstring.format(walker, s, seed))
+                    self.labels[ctx.inputs.X_fstring.format(walker, s, seed)] = Y[walker]
         # print(self.partition)
 
 
@@ -146,7 +145,7 @@ class LargeData:
 class AuxiliaryHyperparameters:
     def __init__(
         self,
-        model,
+        model_name,
         # Loss = {"instance": keras.losses.mean_squared_error, "name": "mse"},
         Loss = [keras.losses.mean_squared_error, "mse"],
         # Optimizer = {"instance": keras.optimizers.RMSprop(), "name": "RMSprop"},
@@ -161,7 +160,6 @@ class AuxiliaryHyperparameters:
         Epochs = 200,
         MaxEpochs = 200,
         ):
-        self.model = model
         self.Loss = Loss
         self.Optimizer = Optimizer
         self.LearningRate = LearningRate
@@ -174,7 +172,7 @@ class AuxiliaryHyperparameters:
         self.Epochs = Epochs
         self.MaxEpochs = MaxEpochs
         self.TensorBoard = {
-            "Model": self.model,
+            "Model": model_name,
             "LearningRate": self.LearningRate,
             "Dropout": self.Dropout,
             "BatchSize": self.BatchSize,
@@ -573,14 +571,14 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         model.summary(print_fn=lambda x: stringlist.append(x))
         f.write("\n".join(stringlist))
 
-def run_large_model(model, Data, HP, restore_weights = True, restore_training = True):
-    filepath = f"{Data.inputs.saving_location}{Data.inputs.file_prefix}{Data.inputs.model[0]}_{Data.inputs.model[1]}_{HP.hash()}_{Data.hash()}"
-    logdir = f"{Data.inputs.logs_location}{Data.inputs.file_prefix}{Data.inputs.model[0]}/{Data.inputs.model[1]}/{Data.hash()}/{HP.hash()}"
+def run_large_model(ctx, restore_weights = True, restore_training = True):
+    filepath = f"{ctx.inputs.saving_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}_{ctx.inputs.model[1]}_{ctx.HP.hash()}_{ctx.Data.hash()}"
+    logdir = f"{ctx.inputs.logs_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}/{ctx.inputs.model[1]}/{ctx.Data.hash()}/{ctx.HP.hash()}"
 
     # Callbacks
     callbacks = [
         keras.callbacks.TensorBoard(logdir, update_freq='epoch'),
-        # hp.KerasCallback(logdir, HP_TensorBoard),
+        # ctx.HP.KerasCallback(logdir, HP_TensorBoard),
         LR_tracer(),
         TimeHistory(f"{filepath}_time.txt"),
         keras.callbacks.TerminateOnNaN(),
@@ -590,21 +588,21 @@ def run_large_model(model, Data, HP, restore_weights = True, restore_training = 
         # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
     ]
     # Generators
-    train_generator = DataGenerator(Data.partition['train'], Data.labels, Data.inputs.X_shape, Data.inputs.Y_shape, Data.inputs.data_filepath, Data.inputs.model[0], HP.BatchSize)
-    validation_generator = DataGenerator(Data.partition['validation'], Data.labels, Data.inputs.X_shape, Data.inputs.Y_shape, Data.inputs.data_filepath, Data.inputs.model[0], HP.BatchSize)
-    test_generator = DataGenerator(Data.partition['test'], Data.labels, Data.inputs.X_shape, Data.inputs.Y_shape, Data.inputs.data_filepath, Data.inputs.model[0], HP.BatchSize)
+    train_generator = DataGenerator(ctx.Data.partition['train'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model[0], ctx.HP.BatchSize)
+    validation_generator = DataGenerator(ctx.Data.partition['validation'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model[0], ctx.HP.BatchSize)
+    test_generator = DataGenerator(ctx.Data.partition['test'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model[0], ctx.HP.BatchSize)
     # if the model has been run before, load it and run again
     # else, compile the model and run it
     if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
         custom_obj = {}
         custom_obj["R2"] = R2
-        if HP.ActivationFunction[0] == "leakyrelu":
-            custom_obj[HP.ActivationFunction[0]] = HP.ActivationFunction[1]["activation"]
+        if ctx.HP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         #if loading last model fails for some reason, load the best one
         try:
-            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+            ctx.model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
         except:
-            model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+            ctx.model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
 
         with open(f"{filepath}.log") as f:
             number_of_lines = len(f.readlines())
@@ -613,24 +611,24 @@ def run_large_model(model, Data, HP, restore_weights = True, restore_training = 
             # if number_of_epochs_trained >= AuxHP.Epochs:
             #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
             #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
-        if HP.Epochs + number_of_epochs_trained > HP.MaxEpochs:
-            final_epochs = HP.MaxEpochs
+        if ctx.HP.Epochs + number_of_epochs_trained > ctx.HP.MaxEpochs:
+            final_epochs = ctx.HP.MaxEpochs
         else:
-            final_epochs = HP.Epochs + number_of_epochs_trained     
+            final_epochs = ctx.HP.Epochs + number_of_epochs_trained     
         
         
-        if HP.ReducingLR == True:
-            scheduler = LR_scheduler(HP.MaxEpochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
+        if ctx.HP.ReducingLR == True:
+            scheduler = LR_scheduler(ctx.HP.MaxEpochs, keras.backend.get_value(ctx.model.optimizer.lr), reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
         
         #in the case we don't want to restore training, we recompile the model
         if restore_training == False:
-            model.compile(  loss=HP.Loss[1],
-                            optimizer=HP.Optimizer[0](**HP.Optimizer[2]),
+            ctx.model.compile(  loss=ctx.HP.Loss[1],
+                            optimizer=ctx.HP.Optimizer[0](**ctx.HP.Optimizer[2]),
                             metrics = [R2])
 
-        model.fit_generator(generator=train_generator,
+        ctx.model.fit_generator(generator=train_generator,
                             validation_data=validation_generator,
                             epochs = final_epochs,
                             verbose = 2,
@@ -641,19 +639,19 @@ def run_large_model(model, Data, HP, restore_weights = True, restore_training = 
                             intial_epoch = number_of_epochs_trained,
                             )
     else:
-        if HP.ReducingLR == True:
-            scheduler = LR_scheduler(HP.MaxEpochs, HP.LearningRate, reduce_factor = 0.1)
+        if ctx.HP.ReducingLR == True:
+            scheduler = LR_scheduler(ctx.HP.MaxEpochs, ctx.HP.LearningRate, reduce_factor = 0.1)
             callbacks.append(scheduler.callback())
         
-        model.compile(  
-            loss=HP.Loss[1],
-            optimizer=HP.Optimizer[0](**HP.Optimizer[2]),
+        ctx.model.compile(  
+            loss=ctx.HP.Loss[1],
+            optimizer=ctx.HP.Optimizer[0](**ctx.HP.Optimizer[2]),
             metrics = [R2],
             )
-        model.fit_generator(
+        ctx.model.fit_generator(
             generator=train_generator,
             validation_data=validation_generator,
-            epochs = HP.Epochs,
+            epochs = ctx.HP.Epochs,
             verbose = 2,
             callbacks = callbacks,
             max_queue_size = 16,
@@ -661,7 +659,7 @@ def run_large_model(model, Data, HP, restore_weights = True, restore_training = 
             workers = 12,
             )
 
-    prediction = model.predict_generator(
+    prediction = ctx.model.predict_generator(
         generator = test_generator, 
         max_queue_size=16, 
         workers=12, 

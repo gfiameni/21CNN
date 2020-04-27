@@ -1,7 +1,11 @@
+import argparse
+###############################################################################
+#define context variable, Namespace with all important objects
+###############################################################################
+ctx = argparse.Namespace()
 ###############################################################################
 #parsing inputs
 ###############################################################################
-import argparse
 parser = argparse.ArgumentParser(prog = 'Large Database Model Run')
 parser.add_argument('--X_fstring', type=str, default = "lightcone_depthMhz_0_walker_{:04d}_slice_{:d}_seed_{:d}")
 parser.add_argument('--X_shape', type=str, default="25,25,526")
@@ -31,6 +35,8 @@ if inputs.max_epochs == -1:
     inputs.max_epochs = inputs.epochs
 elif inputs.max_epochs > inputs.epochs:
     raise ValueError("max_epochs shouldn't be larger than epochs")
+
+ctx.inputs = inputs
 print("INPUTS:", inputs)
 
 ###############################################################################
@@ -79,13 +85,15 @@ HP_list = list(itertools.product(*HP.values()))
 HP_dict = dict(zip(HP.keys(), HP_list[inputs.HyperparameterIndex]))
 HP = utilities.AuxiliaryHyperparameters(f"{inputs.model[0]}_{inputs.model[1]}", **HP_dict)
 
+ctx.HP = HP
 print("HYPERPARAMETERS:", str(HP))
 
 ###############################################################################
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
-Data = utilities.LargeData(inputs, dimensionality = 3)
+Data = utilities.LargeData(ctx, dimensionality = 3)
 
+ctx.Data = Data
 print("DATA:", str(Data))
 
 ###############################################################################
@@ -93,7 +101,12 @@ print("DATA:", str(Data))
 ###############################################################################
 import importlib
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
-ModelClass = ModelClassObject(Data.inputs.X_shape, HP)
+if ctx.inputs.model[0] == "RNN":
+    ModelClass = ModelClassObject(ctx.inputs.X_shape[::-1], HP)
+else:
+    ModelClass = ModelClassObject(ctx.inputs.X_shape, HP)
 ModelClass.build()
 
-utilities.run_large_model(ModelClass.model, Data, HP)
+ctx.model = ModelClass.model
+
+utilities.run_large_model(ctx)
