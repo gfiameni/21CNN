@@ -638,7 +638,7 @@ def run_large_model(ctx, restore_weights = True, restore_training = True):
                             max_queue_size = 16,
                             use_multiprocessing = True,
                             workers = 12,
-                            intial_epoch = number_of_epochs_trained,
+                            initial_epoch = number_of_epochs_trained,
                             )
     else:
         if ctx.HP.ReducingLR == True:
