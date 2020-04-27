@@ -19,6 +19,7 @@ parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--saving_location', type=str, default="models/")
 parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
+parser.add_argument('--model_type', type=str, default="")
 parser.add_argument('--HyperparameterIndex', type=int, default=0)
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--max_epochs', type=int, default=-1)
@@ -29,6 +30,8 @@ parser.add_argument('--patience', type=int, default=10)
 
 inputs = parser.parse_args()
 inputs.model = inputs.model.split('.')
+if len(inputs.model_type) == 0:
+    inputs.model_type = inputs.model[0]
 inputs.pTVT = [float(i) for i in inputs.pTVT.split(',')]
 inputs.X_shape = tuple([float(i) for i in inputs.X_shape.split(',')])
 if inputs.max_epochs == -1:
@@ -102,7 +105,7 @@ ctx.Data = Data
 ###############################################################################
 import importlib
 ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{ctx.inputs.model[0]}'), ctx.inputs.model[1])
-if ctx.inputs.model[0] == "RNN":
+if ctx.inputs.model_type == "RNN":
     ModelClass = ModelClassObject(ctx.inputs.X_shape[::-1], HP)
 else:
     ModelClass = ModelClassObject(ctx.inputs.X_shape, HP)

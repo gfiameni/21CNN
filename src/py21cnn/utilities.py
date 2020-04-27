@@ -588,9 +588,9 @@ def run_large_model(ctx, restore_weights = True, restore_training = True):
         # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
     ]
     # Generators
-    train_generator = DataGenerator(ctx.Data.partition['train'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model[0], ctx.HP.BatchSize)
-    validation_generator = DataGenerator(ctx.Data.partition['validation'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model[0], ctx.HP.BatchSize)
-    test_generator = DataGenerator(ctx.Data.partition['test'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model[0], ctx.HP.BatchSize)
+    train_generator = DataGenerator(ctx.Data.partition['train'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model_type, ctx.HP.BatchSize)
+    validation_generator = DataGenerator(ctx.Data.partition['validation'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model_type, ctx.HP.BatchSize)
+    test_generator = DataGenerator(ctx.Data.partition['test'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_filepath, ctx.inputs.model_type, ctx.HP.BatchSize)
     # if the model has been run before, load it and run again
     # else, compile the model and run it
     if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
