@@ -160,6 +160,7 @@ class AuxiliaryHyperparameters:
         Epochs = 200,
         MaxEpochs = 200,
         ):
+        self.model_name = model_name
         self.Loss = Loss
         self.Optimizer = Optimizer
         self.LearningRate = LearningRate
@@ -172,7 +173,7 @@ class AuxiliaryHyperparameters:
         self.Epochs = Epochs
         self.MaxEpochs = MaxEpochs
         self.TensorBoard = {
-            "Model": model_name,
+            "Model": self.model_name,
             "LearningRate": self.LearningRate,
             "Dropout": self.Dropout,
             "BatchSize": self.BatchSize,
