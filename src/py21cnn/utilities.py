@@ -107,11 +107,12 @@ class LargeData:
         else:
             # formatting.sort()
             self.formatting = formatting
-        self.noise = noise
+        self.noise = noise + [f"walkers_{ctx.inputs.N_walker}", f"slices_{ctx.inputs.N_slice}", f"noise_{ctx.inputs.N_noise}"]
         self.load(ctx)
 
     def __str__(self):
         self.formatting.sort()
+        self.noise.sort()
         S = f"dim:{self.dimensionality}__removed_average:{self.removed_average}__normalized:{self.normalized}__Zmax:{self.Zmax}__dtype:{self.filetype}"
         for i in self.formatting:
             S += f"__{i}"
