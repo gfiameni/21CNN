@@ -83,7 +83,7 @@ import itertools
 import sys
 from src.py21cnn import utilities
 from src.py21cnn import hyperparameters
-HP = hyperparameters.HP(inputs)
+HP = hyperparameters.HP(ctx.inputs)
 HP_list = list(itertools.product(*HP.values()))
 HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
 HP = utilities.AuxiliaryHyperparameters(f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", **HP_dict)
