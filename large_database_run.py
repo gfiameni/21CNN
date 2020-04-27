@@ -36,8 +36,8 @@ if inputs.max_epochs == -1:
 elif inputs.max_epochs > inputs.epochs:
     raise ValueError("max_epochs shouldn't be larger than epochs")
 
-ctx.inputs = inputs
 print("INPUTS:", inputs)
+ctx.inputs = inputs
 
 ###############################################################################
 #seting up GPUs
@@ -45,7 +45,7 @@ print("INPUTS:", inputs)
 import tensorflow as tf
 import horovod.tensorflow.keras as hvd
 # tf.compat.v1.enable_eager_execution()
-if inputs.gpus == 1:
+if ctx.inputs.gpus == 1:
     # #setting up GPU
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
@@ -54,7 +54,7 @@ if inputs.gpus == 1:
     # config.log_device_placement=True
     tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
     # tf.compat.v1.enable_eager_execution(config=config)
-elif inputs.gpus > 1:
+elif ctx.inputs.gpus > 1:
     #init Horovod
     hvd.init()
     # Horovod: pin GPU to be used to process local rank (one GPU per process)
@@ -69,7 +69,7 @@ else:
 from tensorflow import keras
 keras.backend.set_image_data_format('channels_last')
 
-if inputs.gpus > 1:
+if ctx.inputs.gpus > 1:
     print("HVD.SIZE", hvd.size())
 
 ###############################################################################
@@ -82,25 +82,26 @@ from src.py21cnn import utilities
 from src.py21cnn import hyperparameters
 HP = hyperparameters.HP(inputs)
 HP_list = list(itertools.product(*HP.values()))
-HP_dict = dict(zip(HP.keys(), HP_list[inputs.HyperparameterIndex]))
-HP = utilities.AuxiliaryHyperparameters(f"{inputs.model[0]}_{inputs.model[1]}", **HP_dict)
+HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
+HP = utilities.AuxiliaryHyperparameters(f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", **HP_dict)
 
-ctx.HP = HP
 print("HYPERPARAMETERS:", str(HP))
+ctx.HP = HP
 
 ###############################################################################
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
 Data = utilities.LargeData(ctx, dimensionality = 3)
 
-ctx.Data = Data
 print("DATA:", str(Data))
+ctx.Data = Data
+
 
 ###############################################################################
 #building and running the model
 ###############################################################################
 import importlib
-ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{inputs.model[0]}'), inputs.model[1])
+ModelClassObject = getattr(importlib.import_module(f'src.py21cnn.architectures.{ctx.inputs.model[0]}'), ctx.inputs.model[1])
 if ctx.inputs.model[0] == "RNN":
     ModelClass = ModelClassObject(ctx.inputs.X_shape[::-1], HP)
 else:
