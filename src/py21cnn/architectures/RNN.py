@@ -56,7 +56,7 @@ class SummarySpace3D:
 
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
         print(self.model.summary())
         return self.model
 
@@ -116,7 +116,7 @@ class SummarySpace2D:
 
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
         print(self.model.summary())
         return self.model
 
@@ -176,7 +176,7 @@ class ConvRNN3D:
 
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
         print(self.model.summary())
         return self.model
 
@@ -238,7 +238,7 @@ class Hybrid3D:
 
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
         print(self.model.summary())
         return self.model        
 

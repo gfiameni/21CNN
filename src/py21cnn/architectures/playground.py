@@ -38,6 +38,6 @@ class SummarySpace3D_simple:
         x = self.RNNLayer(self.RNNsize, return_sequences=False)(x)
         x = keras.layers.Dense(4)(x)
 
-        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model)
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
         print(self.model.summary())
         return self.model
