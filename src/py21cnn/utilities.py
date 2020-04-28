@@ -380,12 +380,14 @@ def define_model(ctx, restore_training):
         if ctx.inputs.gpus == 1:
             load_model = True
             load_function = keras.models.load_model
-        elif ctx.inputs.gpus > 1:
+        else:
             if hvd.rank() == 0:
                 load_model = True
                 load_function = hvd.load_model
-        else:
-            load_model = False
+            else:
+                load_model = False
+    else:
+        load_model = False
 
 
     #load the model
