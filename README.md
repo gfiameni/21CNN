@@ -20,7 +20,7 @@ python run.py \
 
 For large database, where each lightcone is in a seperate `.npy` file:
 ```bash
- python large_database_run.py \
+ python large_run.py \
         --N_walker 100 \ 
         --N_slice 1 \
         --N_noise 2 \
