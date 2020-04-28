@@ -1,6 +1,3 @@
-#pull ctx as global variable in run function, here just empty definition
-ctx = None
-
 from .formatting import Filters
 import os
 import time
@@ -429,9 +426,7 @@ def define_model(ctx, restore_training):
         if ctx.inputs.gpus > 1:
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
-def run_model(restore_training = True):
-    global ctx
-    
+def run_model(ctx, restore_training = True):
     #build callbacks
     define_callbacks(ctx)
     define_model(ctx, restore_training)
@@ -488,9 +483,8 @@ def run_model(restore_training = True):
         #wait for a fraction of epoch time
         time.sleep(float(epoch_time) * 0.2)
     
-def run_large_model(restore_training = True):
-    global ctx
-    
+def run_large_model(ctx, restore_training = True):
+    print(globals())
     #build callbacks
     define_callbacks(ctx)
     define_model(ctx, restore_training)

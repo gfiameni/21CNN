@@ -135,4 +135,5 @@ ModelClass.build()
 
 ctx.model = ModelClass.model
 
-utilities.run_large_model()
+print(globals())
+utilities.run_large_model(ctx)
