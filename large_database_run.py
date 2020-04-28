@@ -76,6 +76,11 @@ keras.backend.set_image_data_format('channels_last')
 if ctx.inputs.gpus > 1:
     print("HVD.SIZE", hvd.size())
 
+if ctx.inputs.gpus > 1:
+    ctx.main_process = True if hvd.rank() == 0 else False
+else:
+    ctx.main_process = True
+
 ###############################################################################
 #seting hyperparameters
 ###############################################################################
@@ -121,4 +126,4 @@ ModelClass.build()
 
 ctx.model = ModelClass.model
 
-utilities.run_large_model(ctx)
+utilities.run_large_model()

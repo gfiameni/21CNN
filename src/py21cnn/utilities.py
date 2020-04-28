@@ -1,3 +1,6 @@
+#pull ctx as global variable in run function, here just empty definition
+ctx = None
+
 from .formatting import Filters
 import os
 import time
@@ -244,7 +247,6 @@ class DataGenerator(keras.utils.Sequence):
         self.indexes = np.arange(len(self.list_IDs))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
-
     def loadX(self, filename):
         if self.model_type == "RNN":
             return np.swapaxes(np.load(filename), 0, -1)[..., np.newaxis]
@@ -260,6 +262,15 @@ class DataGenerator(keras.utils.Sequence):
             y[i] = self.labels[ID]
 
         return X, y
+
+    def extract_labels(self):
+        """
+        Extracting all the labels, used for testing purposes to access true values of 'labels'
+        """
+        y = np.empty((len(self.list_IDs), self.dimY))
+        for i, ID in enumerate(self.list_IDs):
+            y[i] = self.labels[ID]
+        return y
 
 
 class TimeHistory(keras.callbacks.Callback):
@@ -570,8 +581,7 @@ def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True
         f.write("\n".join(stringlist))
 
 
-def callbacks(ctx):
-    
+def define_callbacks(ctx):
     if ctx.inputs.gpus == 1:
         saving_callbacks = True
         horovod_callbacks = False
@@ -587,7 +597,7 @@ def callbacks(ctx):
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
             keras.callbacks.CSVLogger(f"{ctx.filepath}.log", separator=',', append=True),
-        ]
+            ]
     else:
         saving_callbacks = []
     if horovod_callbacks == True:
@@ -595,103 +605,139 @@ def callbacks(ctx):
             hvd.callbacks.BroadcastGlobalVariablesCallback(0),
             hvd.callbacks.MetricAverageCallback(),
             hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=ctx.inputs.warmup),
-        ]
+            ]
     else:
         horovod_callbacks = []
     
     important_callbacks = [
         LR_tracer(),
         keras.callbacks.TerminateOnNaN(),
-    ]
+        ]
     if ctx.HP.ReducingLR == True:
         scheduler = LR_scheduler(ctx.HP.MaxEpochs, ctx.HP.LearningRate, reduce_factor = 0.1)
         important_callbacks.append(scheduler.callback())
 
     ctx.callbacks = horovod_callbacks + saving_callbacks + important_callbacks
-    
-def run_large_model(ctx, restore_weights = True, restore_training = True):
-    #build callbacks
-    callbacks(ctx)
 
-    train_generator = DataGenerator(ctx.Data.partition['train'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize)
-    validation_generator = DataGenerator(ctx.Data.partition['validation'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize)
-    test_generator = DataGenerator(ctx.Data.partition['test'], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize)
-    
-    # if the model has been run before, load it and run again
-    # else, compile the model and run it
-    if os.path.exists(f"{ctx.filepath}_last.hdf5") == True and restore_weights == True:
+def define_model(ctx, restore_training):
+    model_exists = os.path.exists(f"{ctx.filepath}_last.hdf5")
+    #define in what case to load the model
+    if model_exists == True and restore_training == True:
+        if ctx.inputs.gpus == 1:
+            load_model = True
+            load_function = keras.models.load_model
+        elif ctx.inputs.gpus > 1:
+            if hvd.rank() == 0:
+                load_model = True
+                load_function = hvd.load_model
+        else:
+            load_model = False
+    #load the model
+    if load_model == True:
         custom_obj = {}
         custom_obj["R2"] = R2
         if ctx.HP.ActivationFunction[0] == "leakyrelu":
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         #if loading last model fails for some reason, load the best one
         try:
-            ctx.model = keras.models.load_model(f"{ctx.filepath}_last.hdf5", custom_objects=custom_obj)
+            ctx.model = load_function(f"{ctx.filepath}_last.hdf5", custom_objects=custom_obj)
         except:
-            ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
+            ctx.model = load_function(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
 
         with open(f"{ctx.filepath}.log") as f:
-            number_of_lines = len(f.readlines())
-            number_of_epochs_trained = number_of_lines - 1  #the first line is description
+            number_of_epochs_trained = len(f.readlines()) - 1  #the first line is description
             print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
-            # if number_of_epochs_trained >= AuxHP.Epochs:
-            #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
-            #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
         if ctx.HP.Epochs + number_of_epochs_trained > ctx.HP.MaxEpochs:
             final_epochs = ctx.HP.MaxEpochs
         else:
-            final_epochs = ctx.HP.Epochs + number_of_epochs_trained     
-        
-        #in the case we don't want to restore training, we recompile the model
-        if restore_training == False:
-            ctx.model.compile(  loss=ctx.HP.Loss[1],
-                            optimizer=ctx.HP.Optimizer[0](**ctx.HP.Optimizer[2]),
-                            metrics = [R2])
+            final_epochs = ctx.HP.Epochs + number_of_epochs_trained
 
-        ctx.model.fit_generator(generator=train_generator,
-                            validation_data=validation_generator,
-                            epochs = final_epochs,
-                            verbose = 2,
-                            callbacks = ctx.callbacks,
-                            max_queue_size = 16,
-                            use_multiprocessing = True,
-                            workers = 12,
-                            initial_epoch = number_of_epochs_trained,
-                            )
+        ctx.fit_options = {
+            "epochs": final_epochs,
+            "initial_epoch": number_of_epochs_trained,
+            }
+        ctx.compile_options = {}
     else:
-        ctx.model.compile(  
-            loss=ctx.HP.Loss[1],
-            optimizer=ctx.HP.Optimizer[0](**ctx.HP.Optimizer[2]),
-            metrics = [R2],
-            )
-        ctx.model.fit_generator(
-            generator=train_generator,
-            validation_data=validation_generator,
-            epochs = ctx.HP.Epochs,
-            verbose = 2,
-            callbacks = ctx.callbacks,
-            max_queue_size = 16,
-            use_multiprocessing = True,
-            workers = 12,
-            )
+        ctx.fit_options = {
+            "epochs": ctx.HP.Epochs,
+            "initial_epoch": 0,
+            }
+        ctx.compile_options = {
+            "loss": ctx.HP.Loss[1],
+            "optimizer": ctx.HP.Optimizer[0](**ctx.HP.Optimizer[2]),
+            "metrics": [R2],
+            }
+        if ctx.inputs.gpus > 1:
+            ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
-    prediction = ctx.model.predict_generator(
-        generator = test_generator, 
-        max_queue_size=16, 
-        workers=12, 
-        use_multiprocessing=True, 
+def run_large_model(restore_training = True):
+    global ctx
+    
+    #build callbacks
+    define_callbacks(ctx)
+    define_model(ctx, restore_training)
+    if len(ctx.compile_options) > 0:
+        ctx.model.compile(**ctx.compile_options)
+
+    ctx.generators = {
+        "train": DataGenerator(ctx.Data.partition["train"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize),
+        "validation": DataGenerator(ctx.Data.partition["validation"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize),
+        "test": DataGenerator(ctx.Data.partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False),
+        }
+    
+    verbose = 2 if ctx.main_process == True else 0
+    #fit model
+    ctx.model.fit_generator(
+        generator=ctx.generators["train"],
+        validation_data=ctx.generators["validation"],
+        verbose = verbose,
+        max_queue_size = 16,
+        use_multiprocessing = True,
+        workers = 12,
+        callbacks = ctx.callbacks,
+        **ctx.fit_options
         )
-    print(prediction)
-    # np.save(f"{filepath}_prediction.npy", prediction)
 
-    # with open(f"{filepath}_summary.txt", "w") as f:
-    #     f.write(f"DATA: {str(Data)}\n")
-    #     f.write(f"HYPARAMETERS: {str(HP)}\n")
-    #     for i in range(4):
-    #         print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
-    #         f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
-    #     f.write("\n")
-    #     # f.write(model.summary())
-    #     stringlist = []
-    #     model.summary(print_fn=lambda x: stringlist.append(x))
-    #     f.write("\n".join(stringlist))
+    #predict on test data
+    if ctx.main_process == True:
+        true = ctx.generators["test"].extract_labels()
+
+        pred = ctx.model.predict_generator(
+            generator = test_generator, 
+            max_queue_size=16, 
+            workers=12, 
+            use_multiprocessing=True,
+            verbose=False,
+            )
+        np.save(f"{ctx.filepath}_prediction_last.npy", pred)
+
+        #making prediction from best model
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
+        if ctx.HP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
+        ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
+        pred = ctx.model.predict_generator(
+            generator = test_generator, 
+            max_queue_size=16, 
+            workers=12, 
+            use_multiprocessing=True,
+            verbose=False,
+            )
+        np.save(f"{ctx.filepath}_prediction_best.npy", pred)
+
+        with open(f"{ctx.filepath}_summary.txt", "w") as f:
+            f.write(f"DATA: {str(ctx.Data)}\n")
+            f.write(f"HYPARAMETERS: {str(ctx.HP)}\n")
+            f.write(f"R2_total: {R2_final(true, pred)}\n")
+            for i in range(4):
+                print(f"R2: {R2_numpy(true[:, i], pred[:, i])}")
+                f.write(f"R2_{i}: {R2_numpy(true[:, i], pred[:, i])}\n")
+            f.write("\n")
+            stringlist = []
+            ctx.model.summary(print_fn=lambda x: stringlist.append(x))
+            f.write("\n".join(stringlist))
+    else:
+        #task is killed if other processes finished and the above one on node 0 is still running
+        time.sleep(300)
