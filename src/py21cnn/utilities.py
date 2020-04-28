@@ -484,7 +484,6 @@ def run_model(ctx, restore_training = True):
         time.sleep(float(epoch_time) * 0.2)
     
 def run_large_model(ctx, restore_training = True):
-    print(globals())
     #build callbacks
     define_callbacks(ctx)
     define_model(ctx, restore_training)

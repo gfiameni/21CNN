@@ -36,8 +36,8 @@ if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
 if inputs.max_epochs == -1:
     inputs.max_epochs = inputs.epochs
-elif inputs.max_epochs > inputs.epochs:
-    raise ValueError("max_epochs shouldn't be larger than epochs")
+elif inputs.max_epochs < inputs.epochs:
+    raise ValueError("epochs shouldn't be larger than max_epochs")
 
 print("INPUTS:", inputs)
 ctx.inputs = inputs
