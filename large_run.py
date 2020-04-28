@@ -6,16 +6,21 @@ ctx = argparse.Namespace()
 ###############################################################################
 #parsing inputs
 ###############################################################################
-parser = argparse.ArgumentParser(prog = 'Run Model')
-parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
-parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
-parser.add_argument('--Zmax', type=int, default=30)
+parser = argparse.ArgumentParser(prog = 'Large Database Model Run')
+parser.add_argument('--X_fstring', type=str, default = "lightcone_depthMhz_0_walker_{:04d}_slice_{:d}_seed_{:d}")
+parser.add_argument('--X_shape', type=str, default="25,25,526")
+parser.add_argument('--Y_filename', type=str, default = "NormalizedParams")
+parser.add_argument('--N_walker', type=int, default=10000)
+parser.add_argument('--N_slice', type=int, default=4)
+parser.add_argument('--N_noise', type=int, default=10)
+parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
+
 parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--saving_location', type=str, default="models/")
 parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--model_type', type=str, default="")
-parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), default=0)
+parser.add_argument('--HyperparameterIndex', type=int, default=0)
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--max_epochs', type=int, default=-1)
 parser.add_argument('--gpus', type=int, default=1)
@@ -25,14 +30,15 @@ parser.add_argument('--file_prefix', type=str, default="")
 parser.add_argument('--warmup', type=int, default=0)
 
 inputs = parser.parse_args()
-inputs.removed_average = bool(inputs.removed_average)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
+inputs.pTVT = [float(i) for i in inputs.pTVT.split(',')]
+inputs.X_shape = tuple([int(i) for i in inputs.X_shape.split(',')])
 if inputs.max_epochs == -1:
     inputs.max_epochs = inputs.epochs
-elif inputs.max_epochs > inputs.epochs:
-    raise ValueError("max_epochs shouldn't be larger than epochs")
+elif inputs.max_epochs < inputs.epochs:
+    raise ValueError("epochs shouldn't be larger than max_epochs")
 
 print("INPUTS:", inputs)
 ctx.inputs = inputs
@@ -99,13 +105,8 @@ ctx.HP = HP
 ###############################################################################
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
-Data = utilities.Data(
-    filepath=ctx.inputs.data_location, 
-    dimensionality=ctx.inputs.dimensionality, 
-    removed_average=ctx.inputs.removed_average, 
-    Zmax=ctx.inputs.Zmax,
-    )
-Data.loadTVT(model_type=ctx.inputs.model_type)
+data_shape = ctx.inputs.X_shape[::-1] + (1,) if ctx.inputs.model_type == "RNN" else ctx.inputs.X_shape + (1,)
+Data = utilities.LargeData(ctx, dimensionality = 3, shape = data_shape)
 
 print("DATA:", str(Data))
 ctx.Data = Data
@@ -123,4 +124,4 @@ ModelClass.build()
 
 ctx.model = ModelClass.model
 
-utilities.run_model()
+utilities.run_large_model()

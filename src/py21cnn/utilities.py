@@ -91,6 +91,7 @@ class LargeData:
         filetype = 'float32',
         formatting = [],
         noise = ["tools21cm", "SKA1000"],
+        shape = None,
         ):
         self.dimensionality = dimensionality
         self.removed_average = removed_average
@@ -111,6 +112,7 @@ class LargeData:
             # formatting.sort()
             self.formatting = formatting
         self.noise = noise + [f"walkers_{ctx.inputs.N_walker}", f"slices_{ctx.inputs.N_slice}", f"noise_{ctx.inputs.N_noise}"]
+        self.shape = shape
         self.load(ctx)
 
     def __str__(self):
@@ -335,251 +337,6 @@ def R2_final(y_true, y_pred):
         SS_tot = np.sum((y_true - np.mean(y_true, axis=0))**2)
         return (1 - SS_res/(SS_tot + 1e-7))
 
-def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_weights = True, restore_training = True, warmup=False):
-
-    filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
-    logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{HP.hash()}"
-    
-    callbacks = []
-    callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
-    callbacks.append(hvd.callbacks.MetricAverageCallback())
-    callbacks.append(keras.callbacks.TerminateOnNaN())
-    if warmup == True:
-        callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=inputs.patience)) # patience in ReduceLROnPlateau and warmup_epochs should be the same order of magnitude, therefore we choose the same value
-    # if AuxHP.ReducingLR == True:
-    #     callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
-    if hvd.rank() == 0:
-        callbacks.append(TimeHistory(f"{filepath}_time.txt"))
-        callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
-        callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True))
-        callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True))
-        #callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq=int(Data.TrainExamples//hvd.size())))
-        callbacks.append(keras.callbacks.TensorBoard(logdir, update_freq='batch'))
-        #callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
-        # manually writing hyperparameters instead of calling keras callback
-        # with tf.compat.v1.create_file_writer(logdir).as_default() as w:
-        #     sess.run(w.init())
-        #     sess.run(hp.hparams(HP_TensorBoard))
-        #     sess.run(w.flush())
-        # with tf.summary.FileWriter(logdir) writer:
-    if AuxHP.ReducingLR == True:
-        scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
-        callbacks.append(scheduler.callback())
-
-    #deciding how to run a model: restore_weights and restore_training defines what happens
-    #if restore_weigths == True and there is a model to load then it loads it, recompiles only if restore_training == False
-    #in any other case it just compiles model that is sent to the function call, and runs it.
-    #for example, in case of restore_weights == False, restore_training is ignored, as it doesn't have meaning
-    if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
-        with open(f"{filepath}.log") as f:
-            number_of_lines = len(f.readlines())
-            number_of_epochs_trained = number_of_lines - 1  #the first line is description
-            print(number_of_epochs_trained)
-        if AuxHP.Epochs + number_of_epochs_trained > AuxHP.MaxEpochs:
-            final_epochs = AuxHP.MaxEpochs
-        else:
-            final_epochs = AuxHP.Epochs + number_of_epochs_trained
-        #broadcast final_epochs to all workers, I have no idea if that is necessary.
-        #but that's what they do in example https://github.com/horovod/horovod/blob/87ad738d4d6b14ffdcc55a03acdc3cfb03f380c8/examples/keras_imagenet_resnet50.py
-        final_epochs = hvd.broadcast(final_epochs, 0, name='final_epochs')
-        number_of_epochs_trained = hvd.broadcast(number_of_epochs_trained, 0, name='number_of_epochs_trained')
-        
-        custom_obj = {}
-        custom_obj["R2"] = R2
-        #if activation is leakyrelu add to custom_obj
-        if AuxHP.ActivationFunction[0] == "leakyrelu":
-            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
-        #defining Optimizer name used for loading
-        if AuxHP.Optimizer[1] == "Momentum":
-            OptName = "SGD"
-        else:
-            OptName = AuxHP.Optimizer[1]
-        if restore_training == True:
-            custom_obj[OptName] = lambda **kwargs: hvd.DistributedOptimizer(AuxHP.Optimizer[0](**kwargs))
-        else:
-            custom_obj[OptName] =  hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
-
-        #if loading last model fails for some reason, load the best one
-        try:
-            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
-        except:
-            model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
-
-        # if restore_training == True:
-        #     opt = model.optimizer
-        #     model.optimizer = hvd.DistributedOptimizer(opt)
-        #     model.optimizer.iterations = opt.iterations
-        #     model.optimizer.weights = opt.weights
-        # else:
-        #     model.optimizer = hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
-        
-        # model.compile(  loss=AuxHP.Loss[1],
-        #                 optimizer=model.optimizer,
-        #                 metrics = [R2],
-        #                 experimental_run_tf_function=False,
-        #                 )
-            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
-
-        model.fit(  Data.X['train'], Data.Y['train'],
-                    initial_epoch=number_of_epochs_trained,
-                    epochs=final_epochs,
-                    batch_size=AuxHP.BatchSize,
-                    callbacks=callbacks,
-                    validation_data=(Data.X['val'], Data.Y['val']),
-                    verbose=2,
-                    )
-    else:
-            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
-        
-        model.compile(  loss=AuxHP.Loss[1],
-                        optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
-                        metrics = [R2],
-                        #experimental_run_tf_function=False,
-                        )
-
-        model.fit(  Data.X['train'], Data.Y['train'],
-                    epochs=AuxHP.Epochs,
-                    batch_size=AuxHP.BatchSize,
-                    callbacks=callbacks,
-                    validation_data=(Data.X['val'], Data.Y['val']),
-                    verbose=2,
-                    )
-    
-    if hvd.rank() == 0:
-        prediction = model.predict(Data.X['test'], verbose=False)
-        np.save(f"{filepath}_prediction_last.npy", prediction)
-        #making prediction from best model
-        custom_obj = {}
-        custom_obj["R2"] = R2
-        #if activation is leakyrelu add to custom_obj
-        if AuxHP.ActivationFunction[0] == "leakyrelu":
-            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
-        model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
-        prediction = model.predict(Data.X['test'], verbose=False)
-        np.save(f"{filepath}_prediction_best.npy", prediction)
-
-        with open(f"{filepath}_summary.txt", "w") as f:
-            f.write(f"DATA: {str(Data)}\n")
-            f.write(f"HYPARAMETERS: {str(HP)}\n")
-            f.write(f"R2_total: {R2_final(Data.Y['test'], prediction)}\n")
-            for i in range(4):
-                print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
-                f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
-            f.write("\n")
-            # f.write(model.summary())
-            stringlist = []
-            model.summary(print_fn=lambda x: stringlist.append(x))
-            f.write("\n".join(stringlist))
-#    else:
-#        #task is killed if other processes finished and the above one on node 0 is still running
-#        time.sleep(300)
-
-
-
-def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True, restore_training = True):
-
-    filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
-    logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{AuxHP.hash()}"
-
-    callbacks = [
-        keras.callbacks.TensorBoard(logdir, update_freq='epoch'),
-        # hp.KerasCallback(logdir, HP_TensorBoard),
-        LR_tracer(),
-        TimeHistory(f"{filepath}_time.txt"),
-        keras.callbacks.TerminateOnNaN(),
-        keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
-        keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
-        keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
-        # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
-    ]
-    # manually writing hyperparameters instead of calling keras callback
-    # with tf.compat.v2.create_file_writer(logdir).as_default() as w:
-    #     sess.run(w.init())
-    #     sess.run(hp.hparams(HP_TensorBoard))
-    #     sess.run(w.flush())
-    
-
-    # if the model has been run before, load it and run again
-    # else, compile the model and run it
-    if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
-        custom_obj = {}
-        custom_obj["R2"] = R2
-        # custom_obj["TimeHistory"] = TimeHistory
-        #if activation is leakyrelu add to custom_obj
-        if AuxHP.ActivationFunction[0] == "leakyrelu":
-            custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
-        #if loading last model fails for some reason, load the best one
-        try:
-            model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
-        except:
-            model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
-        model.summary()
-
-        with open(f"{filepath}.log") as f:
-            number_of_lines = len(f.readlines())
-            number_of_epochs_trained = number_of_lines - 1  #the first line is description
-            print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
-            # if number_of_epochs_trained >= AuxHP.Epochs:
-            #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
-            #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
-        if AuxHP.Epochs + number_of_epochs_trained > AuxHP.MaxEpochs:
-            final_epochs = AuxHP.MaxEpochs
-        else:
-            final_epochs = AuxHP.Epochs + number_of_epochs_trained     
-        
-        
-        if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.MaxEpochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
-            callbacks.append(scheduler.callback())
-            # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
-        
-        #in the case we don't want to restore training, we recompile the model
-        if restore_training == False:
-            model.compile(  loss=AuxHP.Loss[1],
-                            optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
-                            metrics = [R2])
-
-        model.fit(  Data.X['train'], Data.Y['train'],
-                    initial_epoch=number_of_epochs_trained,
-                    epochs=final_epochs,
-                    batch_size=AuxHP.BatchSize,
-                    callbacks=callbacks,
-                    validation_data=(Data.X['val'], Data.Y['val']),
-                    verbose=2,
-                            )
-    else:
-        if AuxHP.ReducingLR == True:
-            scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, reduce_factor = 0.1)
-            callbacks.append(scheduler.callback())
-        
-        model.compile(  loss=AuxHP.Loss[1],
-                        optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
-                        metrics = [R2])
-
-        model.fit(  Data.X['train'], Data.Y['train'],
-                    epochs=AuxHP.Epochs,
-                    batch_size=AuxHP.BatchSize,
-                    callbacks=callbacks,
-                    validation_data=(Data.X['val'], Data.Y['val']),
-                    verbose=2,
-                    )
-    
-    prediction = model.predict(Data.X['test'], verbose=False)
-    np.save(f"{filepath}_prediction.npy", prediction)
-
-    with open(f"{filepath}_summary.txt", "w") as f:
-        f.write(f"DATA: {str(Data)}\n")
-        f.write(f"HYPARAMETERS: {str(AuxHP)}\n")
-        # f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
-        for i in range(4):
-            print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
-            f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
-        f.write("\n")
-        # f.write(model.summary())
-        stringlist = []
-        model.summary(print_fn=lambda x: stringlist.append(x))
-        f.write("\n".join(stringlist))
-
 
 def define_callbacks(ctx):
     if ctx.inputs.gpus == 1:
@@ -670,6 +427,65 @@ def define_model(ctx, restore_training):
         if ctx.inputs.gpus > 1:
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
+def run_model(restore_training = True):
+    global ctx
+    
+    #build callbacks
+    define_callbacks(ctx)
+    define_model(ctx, restore_training)
+    if len(ctx.compile_options) > 0:
+        ctx.model.compile(**ctx.compile_options)
+
+    verbose = 2 if ctx.main_process == True else 0
+
+    #fit model
+    ctx.model.fit(
+        ctx.Data.X["train"], 
+        ctx.Data.Y["train"],
+        batch_size=ctx.HP.BatchSize,
+        callbacks=ctx.callbacks,
+        validation_data=(ctx.Data.X["val"], ctx.Data.Y["val"]),
+        verbose=verbose,
+        **ctx.fit_options,
+        )
+
+
+    #predict on test data
+    if ctx.main_process == True:
+        true = ctx.Data.Y["test"]
+        pred = ctx.model.predict(ctx.Data.X["test"], verbose=False)
+        np.save(f"{ctx.filepath}_prediction_last.npy", pred)
+
+        #making prediction from best model
+        custom_obj = {}
+        custom_obj["R2"] = R2
+        #if activation is leakyrelu add to custom_obj
+        if ctx.HP.ActivationFunction[0] == "leakyrelu":
+            custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
+        ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
+        
+        pred = ctx.model.predict(ctx.Data.X["test"], verbose=False)
+        np.save(f"{ctx.filepath}_prediction_best.npy", pred)
+
+        with open(f"{ctx.filepath}_summary.txt", "w") as f:
+            f.write(f"DATA: {str(ctx.Data)}\n")
+            f.write(f"HYPARAMETERS: {str(ctx.HP)}\n")
+            f.write(f"R2_total: {R2_final(true, pred)}\n")
+            for i in range(4):
+                print(f"R2: {R2_numpy(true[:, i], pred[:, i])}")
+                f.write(f"R2_{i}: {R2_numpy(true[:, i], pred[:, i])}\n")
+            f.write("\n")
+            stringlist = []
+            ctx.model.summary(print_fn=lambda x: stringlist.append(x))
+            f.write("\n".join(stringlist))
+    else:
+        #task is killed if other processes finished and the above one on node 0 is still running
+        with open(f"{ctx.filepath}_time.txt", "r") as f:
+            for epoch_time in f:
+                pass
+        #wait for a fraction of epoch time
+        time.sleep(float(epoch_time) * 0.2)
+    
 def run_large_model(restore_training = True):
     global ctx
     
@@ -686,6 +502,7 @@ def run_large_model(restore_training = True):
         }
     
     verbose = 2 if ctx.main_process == True else 0
+
     #fit model
     ctx.model.fit_generator(
         generator=ctx.generators["train"],
@@ -695,7 +512,7 @@ def run_large_model(restore_training = True):
         use_multiprocessing = True,
         workers = 12,
         callbacks = ctx.callbacks,
-        **ctx.fit_options
+        **ctx.fit_options,
         )
 
     #predict on test data
@@ -703,7 +520,7 @@ def run_large_model(restore_training = True):
         true = ctx.generators["test"].extract_labels()
 
         pred = ctx.model.predict_generator(
-            generator = test_generator, 
+            generator = ctx.generators["test"], 
             max_queue_size=16, 
             workers=12, 
             use_multiprocessing=True,
@@ -719,7 +536,7 @@ def run_large_model(restore_training = True):
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
         pred = ctx.model.predict_generator(
-            generator = test_generator, 
+            generator = ctx.generators["test"], 
             max_queue_size=16, 
             workers=12, 
             use_multiprocessing=True,
@@ -740,4 +557,275 @@ def run_large_model(restore_training = True):
             f.write("\n".join(stringlist))
     else:
         #task is killed if other processes finished and the above one on node 0 is still running
-        time.sleep(300)
+        with open(f"{ctx.filepath}_time.txt", "r") as f:
+            for epoch_time in f:
+                pass
+        #wait for a fraction of epoch time
+        time.sleep(float(epoch_time) * 0.2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def run_multigpu_model(model, Data, AuxHP, HP, HP_TensorBoard, inputs, restore_weights = True, restore_training = True, warmup=False):
+
+#     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{HP.hash()}_{Data.hash()}"
+#     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{HP.hash()}"
+    
+#     callbacks = []
+#     callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
+#     callbacks.append(hvd.callbacks.MetricAverageCallback())
+#     callbacks.append(keras.callbacks.TerminateOnNaN())
+#     if warmup == True:
+#         callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=inputs.patience)) # patience in ReduceLROnPlateau and warmup_epochs should be the same order of magnitude, therefore we choose the same value
+#     # if AuxHP.ReducingLR == True:
+#     #     callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+#     if hvd.rank() == 0:
+#         callbacks.append(TimeHistory(f"{filepath}_time.txt"))
+#         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True))
+#         callbacks.append(keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True))
+#         callbacks.append(keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True))
+#         #callbacks.append(keras.callbacks.TensorBoard(logdir, histogram_freq = 1, batch_size=AuxHP.BatchSize, write_graph=True, write_grads=True, write_images=True, update_freq=int(Data.TrainExamples//hvd.size())))
+#         callbacks.append(keras.callbacks.TensorBoard(logdir, update_freq='batch'))
+#         #callbacks.append(hp.KerasCallback(logdir, HP_TensorBoard))
+#         # manually writing hyperparameters instead of calling keras callback
+#         # with tf.compat.v1.create_file_writer(logdir).as_default() as w:
+#         #     sess.run(w.init())
+#         #     sess.run(hp.hparams(HP_TensorBoard))
+#         #     sess.run(w.flush())
+#         # with tf.summary.FileWriter(logdir) writer:
+#     if AuxHP.ReducingLR == True:
+#         scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, multi_gpu_run = True, reduce_factor = 0.1)
+#         callbacks.append(scheduler.callback())
+
+#     #deciding how to run a model: restore_weights and restore_training defines what happens
+#     #if restore_weigths == True and there is a model to load then it loads it, recompiles only if restore_training == False
+#     #in any other case it just compiles model that is sent to the function call, and runs it.
+#     #for example, in case of restore_weights == False, restore_training is ignored, as it doesn't have meaning
+#     if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
+#         with open(f"{filepath}.log") as f:
+#             number_of_lines = len(f.readlines())
+#             number_of_epochs_trained = number_of_lines - 1  #the first line is description
+#             print(number_of_epochs_trained)
+#         if AuxHP.Epochs + number_of_epochs_trained > AuxHP.MaxEpochs:
+#             final_epochs = AuxHP.MaxEpochs
+#         else:
+#             final_epochs = AuxHP.Epochs + number_of_epochs_trained
+#         #broadcast final_epochs to all workers, I have no idea if that is necessary.
+#         #but that's what they do in example https://github.com/horovod/horovod/blob/87ad738d4d6b14ffdcc55a03acdc3cfb03f380c8/examples/keras_imagenet_resnet50.py
+#         final_epochs = hvd.broadcast(final_epochs, 0, name='final_epochs')
+#         number_of_epochs_trained = hvd.broadcast(number_of_epochs_trained, 0, name='number_of_epochs_trained')
+        
+#         custom_obj = {}
+#         custom_obj["R2"] = R2
+#         #if activation is leakyrelu add to custom_obj
+#         if AuxHP.ActivationFunction[0] == "leakyrelu":
+#             custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
+#         #defining Optimizer name used for loading
+#         if AuxHP.Optimizer[1] == "Momentum":
+#             OptName = "SGD"
+#         else:
+#             OptName = AuxHP.Optimizer[1]
+#         if restore_training == True:
+#             custom_obj[OptName] = lambda **kwargs: hvd.DistributedOptimizer(AuxHP.Optimizer[0](**kwargs))
+#         else:
+#             custom_obj[OptName] =  hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
+
+#         #if loading last model fails for some reason, load the best one
+#         try:
+#             model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+#         except:
+#             model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+
+#         # if restore_training == True:
+#         #     opt = model.optimizer
+#         #     model.optimizer = hvd.DistributedOptimizer(opt)
+#         #     model.optimizer.iterations = opt.iterations
+#         #     model.optimizer.weights = opt.weights
+#         # else:
+#         #     model.optimizer = hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2]))
+        
+#         # model.compile(  loss=AuxHP.Loss[1],
+#         #                 optimizer=model.optimizer,
+#         #                 metrics = [R2],
+#         #                 experimental_run_tf_function=False,
+#         #                 )
+#             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+
+#         model.fit(  Data.X['train'], Data.Y['train'],
+#                     initial_epoch=number_of_epochs_trained,
+#                     epochs=final_epochs,
+#                     batch_size=AuxHP.BatchSize,
+#                     callbacks=callbacks,
+#                     validation_data=(Data.X['val'], Data.Y['val']),
+#                     verbose=2,
+#                     )
+#     else:
+#             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+        
+#         model.compile(  loss=AuxHP.Loss[1],
+#                         optimizer=hvd.DistributedOptimizer(AuxHP.Optimizer[0](**AuxHP.Optimizer[2])),
+#                         metrics = [R2],
+#                         #experimental_run_tf_function=False,
+#                         )
+
+#         model.fit(  Data.X['train'], Data.Y['train'],
+#                     epochs=AuxHP.Epochs,
+#                     batch_size=AuxHP.BatchSize,
+#                     callbacks=callbacks,
+#                     validation_data=(Data.X['val'], Data.Y['val']),
+#                     verbose=2,
+#                     )
+    
+#     if hvd.rank() == 0:
+#         prediction = model.predict(Data.X['test'], verbose=False)
+#         np.save(f"{filepath}_prediction_last.npy", prediction)
+#         #making prediction from best model
+#         custom_obj = {}
+#         custom_obj["R2"] = R2
+#         #if activation is leakyrelu add to custom_obj
+#         if AuxHP.ActivationFunction[0] == "leakyrelu":
+#             custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
+#         model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+#         prediction = model.predict(Data.X['test'], verbose=False)
+#         np.save(f"{filepath}_prediction_best.npy", prediction)
+
+#         with open(f"{filepath}_summary.txt", "w") as f:
+#             f.write(f"DATA: {str(Data)}\n")
+#             f.write(f"HYPARAMETERS: {str(HP)}\n")
+#             f.write(f"R2_total: {R2_final(Data.Y['test'], prediction)}\n")
+#             for i in range(4):
+#                 print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
+#                 f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
+#             f.write("\n")
+#             # f.write(model.summary())
+#             stringlist = []
+#             model.summary(print_fn=lambda x: stringlist.append(x))
+#             f.write("\n".join(stringlist))
+# #    else:
+# #        #task is killed if other processes finished and the above one on node 0 is still running
+# #        time.sleep(300)
+
+
+
+# def run_model(model, Data, AuxHP, HP_TensorBoard, inputs, restore_weights = True, restore_training = True):
+
+#     filepath = f"{inputs.saving_location}{inputs.file_prefix}{inputs.model[0]}_{inputs.model[1]}_{AuxHP.hash()}_{Data.hash()}"
+#     logdir = f"{inputs.logs_location}{inputs.file_prefix}{inputs.model[0]}/{inputs.model[1]}/{Data.hash()}/{AuxHP.hash()}"
+
+#     callbacks = [
+#         keras.callbacks.TensorBoard(logdir, update_freq='epoch'),
+#         # hp.KerasCallback(logdir, HP_TensorBoard),
+#         LR_tracer(),
+#         TimeHistory(f"{filepath}_time.txt"),
+#         keras.callbacks.TerminateOnNaN(),
+#         keras.callbacks.ModelCheckpoint(f"{filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
+#         keras.callbacks.ModelCheckpoint(f"{filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
+#         keras.callbacks.CSVLogger(f"{filepath}.log", separator=',', append=True),
+#         # keras.callbacks.EarlyStopping(monitor='loss', min_delta=0.0001, patience=35, verbose=True),
+#     ]
+#     # manually writing hyperparameters instead of calling keras callback
+#     # with tf.compat.v2.create_file_writer(logdir).as_default() as w:
+#     #     sess.run(w.init())
+#     #     sess.run(hp.hparams(HP_TensorBoard))
+#     #     sess.run(w.flush())
+    
+
+#     # if the model has been run before, load it and run again
+#     # else, compile the model and run it
+#     if os.path.exists(f"{filepath}_last.hdf5") == True and restore_weights == True:
+#         custom_obj = {}
+#         custom_obj["R2"] = R2
+#         # custom_obj["TimeHistory"] = TimeHistory
+#         #if activation is leakyrelu add to custom_obj
+#         if AuxHP.ActivationFunction[0] == "leakyrelu":
+#             custom_obj[AuxHP.ActivationFunction[0]] = AuxHP.ActivationFunction[1]["activation"]
+#         #if loading last model fails for some reason, load the best one
+#         try:
+#             model = keras.models.load_model(f"{filepath}_last.hdf5", custom_objects=custom_obj)
+#         except:
+#             model = keras.models.load_model(f"{filepath}_best.hdf5", custom_objects=custom_obj)
+#         model.summary()
+
+#         with open(f"{filepath}.log") as f:
+#             number_of_lines = len(f.readlines())
+#             number_of_epochs_trained = number_of_lines - 1  #the first line is description
+#             print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
+#             # if number_of_epochs_trained >= AuxHP.Epochs:
+#             #     print(number_of_epochs_trained, ">=", AuxHP.Epochs)
+#             #     raise ValueError('number_of_epochs_trained >= AuxiliaryHyperparameters.Epochs')
+#         if AuxHP.Epochs + number_of_epochs_trained > AuxHP.MaxEpochs:
+#             final_epochs = AuxHP.MaxEpochs
+#         else:
+#             final_epochs = AuxHP.Epochs + number_of_epochs_trained     
+        
+        
+#         if AuxHP.ReducingLR == True:
+#             scheduler = LR_scheduler(AuxHP.MaxEpochs, keras.backend.get_value(model.optimizer.lr), reduce_factor = 0.1)
+#             callbacks.append(scheduler.callback())
+#             # callbacks.append(keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=inputs.patience, verbose=True))
+        
+#         #in the case we don't want to restore training, we recompile the model
+#         if restore_training == False:
+#             model.compile(  loss=AuxHP.Loss[1],
+#                             optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
+#                             metrics = [R2])
+
+#         model.fit(  Data.X['train'], Data.Y['train'],
+#                     initial_epoch=number_of_epochs_trained,
+#                     epochs=final_epochs,
+#                     batch_size=AuxHP.BatchSize,
+#                     callbacks=callbacks,
+#                     validation_data=(Data.X['val'], Data.Y['val']),
+#                     verbose=2,
+#                             )
+#     else:
+#         if AuxHP.ReducingLR == True:
+#             scheduler = LR_scheduler(AuxHP.MaxEpochs, AuxHP.LearningRate, reduce_factor = 0.1)
+#             callbacks.append(scheduler.callback())
+        
+#         model.compile(  loss=AuxHP.Loss[1],
+#                         optimizer=AuxHP.Optimizer[0](**AuxHP.Optimizer[2]),
+#                         metrics = [R2])
+
+#         model.fit(  Data.X['train'], Data.Y['train'],
+#                     epochs=AuxHP.Epochs,
+#                     batch_size=AuxHP.BatchSize,
+#                     callbacks=callbacks,
+#                     validation_data=(Data.X['val'], Data.Y['val']),
+#                     verbose=2,
+#                     )
+    
+#     prediction = model.predict(Data.X['test'], verbose=False)
+#     np.save(f"{filepath}_prediction.npy", prediction)
+
+#     with open(f"{filepath}_summary.txt", "w") as f:
+#         f.write(f"DATA: {str(Data)}\n")
+#         f.write(f"HYPARAMETERS: {str(AuxHP)}\n")
+#         # f.write(f"R2_total: {R2_numpy(Data.Y['test'], prediction)}\n")
+#         for i in range(4):
+#             print(f"R2: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}")
+#             f.write(f"R2_{i}: {R2_numpy(Data.Y['test'][:, i], prediction[:, i])}\n")
+#         f.write("\n")
+#         # f.write(model.summary())
+#         stringlist = []
+#         model.summary(print_fn=lambda x: stringlist.append(x))
+#         f.write("\n".join(stringlist))
+
