@@ -19,13 +19,14 @@ parser.add_argument('--HyperparameterIndex', type=int, choices=range(576), defau
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--max_epochs', type=int, default=-1)
 parser.add_argument('--gpus', type=int, default=1)
-parser.add_argument('--multi_gpu_correction', type=str, choices=["none", "batch_size", "learning_rate"], default="none")
+parser.add_argument('--LR_correction', type=int, choices=[0, 1], default=1)
 parser.add_argument('--file_prefix', type=str, default="")
 # parser.add_argument('--patience', type=int, default=10)
 parser.add_argument('--warmup', type=int, default=0)
 
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
+inputs.LR_correction = bool(inputs.LR_correction)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
@@ -86,6 +87,8 @@ from src.py21cnn import hyperparameters
 HP = hyperparameters.HP()
 HP_list = list(itertools.product(*HP.values()))
 HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
+if ctx.inputs.LR_correction == True and ctx.inputs.gpus > 1:
+    HP_dict["LearningRate"] *= hvd.size()
 HP = utilities.AuxiliaryHyperparameters(
     model_name=f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", 
     Epochs=ctx.inputs.epochs, 

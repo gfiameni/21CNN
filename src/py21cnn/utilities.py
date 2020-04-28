@@ -389,6 +389,8 @@ def define_model(ctx, restore_training):
                 load_function = hvd.load_model
         else:
             load_model = False
+
+
     #load the model
     if load_model == True:
         custom_obj = {}
