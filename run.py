@@ -7,6 +7,9 @@ ctx = argparse.Namespace()
 #parsing inputs
 ###############################################################################
 parser = argparse.ArgumentParser(prog = 'Run Model')
+
+parser.add_argument('--simple_run', type=int, choices=[0, 1], default = 0)
+
 parser.add_argument('--dimensionality', type=int, choices=[2, 3], default=3)
 parser.add_argument('--removed_average', type=int, choices=[0, 1], default=1)
 parser.add_argument('--Zmax', type=int, default=30)
@@ -27,6 +30,7 @@ parser.add_argument('--warmup', type=int, default=0)
 inputs = parser.parse_args()
 inputs.removed_average = bool(inputs.removed_average)
 inputs.LR_correction = bool(inputs.LR_correction)
+inputs.simple_run = bool(inputs.simple_run)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
@@ -84,9 +88,13 @@ import itertools
 import sys
 from src.py21cnn import utilities
 from src.py21cnn import hyperparameters
-HP = hyperparameters.HP()
-HP_list = list(itertools.product(*HP.values()))
-HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
+if ctx.inputs.simple_run == True:
+    HP_dict = hyperparameters.HP_simple()
+else:
+    HP = hyperparameters.HP()
+    HP_list = list(itertools.product(*HP.values()))
+    HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
+
 if ctx.inputs.LR_correction == True and ctx.inputs.gpus > 1:
     HP_dict["LearningRate"] *= hvd.size()
 HP = utilities.AuxiliaryHyperparameters(

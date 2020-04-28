@@ -49,3 +49,16 @@ def HP_large():
                                 # [keras.activations.tanh, "tanh"],
                                 ]
     return HyP
+
+def HP_simple():
+    HP_dict = {
+        "Loss": [None, "mse"],
+        "BatchSize": 20,
+        "LearningRate": 1e-4,
+        "Dropout": 0.5,
+        "ReducingLR": True,
+        "BatchNormalization": True,
+        "Optimizer": [keras.optimizers.Adam, "Adam", {}],
+        "ActivationFunction": ["relu", {"activation": keras.activations.relu, "kernel_initializer": keras.initializers.he_uniform()}]
+        }
+    return HP_dict
