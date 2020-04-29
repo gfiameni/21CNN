@@ -435,7 +435,8 @@ def run_model(ctx, restore_training = True):
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
-    verbose = 2 if ctx.main_process == True else 0
+    # verbose = 2 if ctx.main_process == True else 0
+    verbose = 2
 
     #fit model
     ctx.model.fit(
@@ -498,7 +499,8 @@ def run_large_model(ctx, restore_training = True):
         "test": DataGenerator(ctx.Data.partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False),
         }
     
-    verbose = 2 if ctx.main_process == True else 0
+    # verbose = 2 if ctx.main_process == True else 0
+    verbose = 2
 
     #fit model
     ctx.model.fit_generator(
