@@ -1,3 +1,5 @@
+from . import ctx
+
 from .formatting import Filters
 import os
 import time
@@ -335,7 +337,7 @@ def R2_final(y_true, y_pred):
         return (1 - SS_res/(SS_tot + 1e-7))
 
 
-def define_callbacks(ctx):
+def define_callbacks():
     if ctx.inputs.gpus == 1:
         saving_callbacks = True
         horovod_callbacks = False
@@ -371,9 +373,10 @@ def define_callbacks(ctx):
         scheduler = LR_scheduler(ctx.HP.MaxEpochs, ctx.HP.LearningRate, reduce_factor = 0.1)
         important_callbacks.append(scheduler.callback())
 
-    ctx.callbacks = horovod_callbacks + saving_callbacks + important_callbacks
+    #not saving into ctx as it might screw up things during broadcast of variables
+    return horovod_callbacks + saving_callbacks + important_callbacks
 
-def define_model(ctx, restore_training):
+def define_model(restore_training):
     model_exists = os.path.exists(f"{ctx.filepath}_last.hdf5")
     #define in what case to load the model
     if model_exists == True and restore_training == True:
@@ -389,6 +392,12 @@ def define_model(ctx, restore_training):
     else:
         load_model = False
 
+    #correct number of epochs in multigpu training
+    Epochs = ctx.HP.Epochs
+    MaxEpochs = ctx.HP.MaxEpochs
+    if ctx.inputs.gpus > 1:
+        Epochs //= hvd.size()
+        MaxEpochs //= hvd.size()
 
     #load the model
     if load_model == True:
@@ -405,10 +414,10 @@ def define_model(ctx, restore_training):
         with open(f"{ctx.filepath}.log") as f:
             number_of_epochs_trained = len(f.readlines()) - 1  #the first line is description
             print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
-        if ctx.HP.Epochs + number_of_epochs_trained > ctx.HP.MaxEpochs:
-            final_epochs = ctx.HP.MaxEpochs
+        if Epochs + number_of_epochs_trained > MaxEpochs:
+            final_epochs = MaxEpochs
         else:
-            final_epochs = ctx.HP.Epochs + number_of_epochs_trained
+            final_epochs = Epochs + number_of_epochs_trained
 
         ctx.fit_options = {
             "epochs": final_epochs,
@@ -428,10 +437,10 @@ def define_model(ctx, restore_training):
         if ctx.inputs.gpus > 1:
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
-def run_model(ctx, restore_training = True):
+def run_model(restore_training = True):
     #build callbacks
-    define_callbacks(ctx)
-    define_model(ctx, restore_training)
+    callbacks = define_callbacks()
+    define_model(restore_training)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
@@ -443,7 +452,7 @@ def run_model(ctx, restore_training = True):
         ctx.Data.X["train"], 
         ctx.Data.Y["train"],
         batch_size=ctx.HP.BatchSize,
-        callbacks=ctx.callbacks,
+        callbacks=callbacks,
         validation_data=(ctx.Data.X["val"], ctx.Data.Y["val"]),
         verbose=verbose,
         **ctx.fit_options,
@@ -486,10 +495,10 @@ def run_model(ctx, restore_training = True):
         #wait for a fraction of epoch time
         time.sleep(float(epoch_time) * 0.2)
     
-def run_large_model(ctx, restore_training = True):
+def run_large_model(restore_training = True):
     #build callbacks
-    define_callbacks(ctx)
-    define_model(ctx, restore_training)
+    callbacks = define_callbacks()
+    define_model(restore_training)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
@@ -510,7 +519,7 @@ def run_large_model(ctx, restore_training = True):
         max_queue_size = 16,
         use_multiprocessing = True,
         workers = 12,
-        callbacks = ctx.callbacks,
+        callbacks = callbacks,
         **ctx.fit_options,
         )
 

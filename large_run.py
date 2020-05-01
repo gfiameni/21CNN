@@ -1,8 +1,9 @@
 import argparse
 ###############################################################################
-#define context variable, Namespace with all important objects
+#define context, module with important variables
 ###############################################################################
-ctx = argparse.Namespace()
+from src.py21cnn import ctx
+ctx.init()
 ###############################################################################
 #parsing inputs
 ###############################################################################
@@ -135,4 +136,4 @@ ModelClass.build()
 
 ctx.model = ModelClass.model
 
-utilities.run_large_model(ctx)
+utilities.run_large_model()

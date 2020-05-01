@@ -134,4 +134,4 @@ ModelClass.build()
 
 ctx.model = ModelClass.model
 
-utilities.run_model(ctx)
+utilities.run_model()
