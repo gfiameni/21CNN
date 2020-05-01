@@ -1,11 +1,12 @@
-import argparse
 ###############################################################################
-#define context variable, Namespace with all important objects
+#define context, module with important variables
 ###############################################################################
-ctx = argparse.Namespace()
+from src.py21cnn import ctx
+ctx.init()
 ###############################################################################
 #parsing inputs
 ###############################################################################
+import argparse
 parser = argparse.ArgumentParser(prog = 'Run Model')
 
 parser.add_argument('--simple_run', type=int, choices=[0, 1], default = 0)
