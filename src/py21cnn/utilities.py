@@ -396,8 +396,10 @@ def define_model(restore_training):
     Epochs = ctx.HP.Epochs
     MaxEpochs = ctx.HP.MaxEpochs
     if ctx.inputs.gpus > 1:
+        print(f"IN define_model, HVD SIZE: {hvd.size()}")
         Epochs //= hvd.size()
         MaxEpochs //= hvd.size()
+        print(f"EPOCHS AND MAX EPOCHS: {Epochs} {MaxEpochs}")
 
     #load the model
     if load_model == True:
