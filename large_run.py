@@ -1,4 +1,3 @@
-import argparse
 ###############################################################################
 #define context, module with important variables
 ###############################################################################
@@ -7,6 +6,7 @@ ctx.init()
 ###############################################################################
 #parsing inputs
 ###############################################################################
+import argparse
 parser = argparse.ArgumentParser(prog = 'Large Database Model Run')
 
 parser.add_argument('--simple_run', type=int, choices=[0, 1], default = 0)
