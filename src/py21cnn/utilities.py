@@ -440,6 +440,7 @@ def define_model(restore_training):
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
 def run_model(restore_training = True):
+    print(f"IN run_model, HOROVOD RANK: {hvd.rank()}")
     #build callbacks
     callbacks = define_callbacks()
     define_model(restore_training)
