@@ -393,13 +393,11 @@ def define_model(restore_training):
         load_model = False
 
     #correct number of epochs in multigpu training
-    Epochs = ctx.HP.Epochs
-    MaxEpochs = ctx.HP.MaxEpochs
     if ctx.inputs.gpus > 1:
         print(f"IN define_model, HVD SIZE: {hvd.size()}")
-        Epochs //= hvd.size()
-        MaxEpochs //= hvd.size()
-        print(f"EPOCHS AND MAX EPOCHS: {Epochs} {MaxEpochs}")
+        ctx.HP.Epochs //= hvd.size()
+        ctx.HP.MaxEpochs //= hvd.size()
+        print(f"EPOCHS AND MAX EPOCHS: {ctx.HP.Epochs} {ctx.HP.MaxEpochs}")
 
     #load the model
     if load_model == True:
@@ -416,10 +414,10 @@ def define_model(restore_training):
         with open(f"{ctx.filepath}.log") as f:
             number_of_epochs_trained = len(f.readlines()) - 1  #the first line is description
             print("NUMBER_OF_EPOCHS_TRAINED", number_of_epochs_trained)
-        if Epochs + number_of_epochs_trained > MaxEpochs:
-            final_epochs = MaxEpochs
+        if ctx.HP.Epochs + number_of_epochs_trained > ctx.HP.MaxEpochs:
+            final_epochs = ctx.HP.MaxEpochs
         else:
-            final_epochs = Epochs + number_of_epochs_trained
+            final_epochs = ctx.HP.Epochs + number_of_epochs_trained
 
         ctx.fit_options = {
             "epochs": final_epochs,
