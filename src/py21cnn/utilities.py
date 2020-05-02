@@ -499,6 +499,7 @@ def run_model(restore_training = True):
         time.sleep(float(epoch_time) * 0.2)
     
 def run_large_model(restore_training = True):
+    print(f"IN run_model, HOROVOD RANK: {hvd.rank()}")
     #build callbacks
     callbacks = define_callbacks()
     define_model(restore_training)
