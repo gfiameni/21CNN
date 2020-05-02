@@ -100,10 +100,16 @@ if ctx.inputs.simple_run == True:
 else:
     HP = hyperparameters.HP()
     HP_list = list(itertools.product(*HP.values()))
-    HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))
+    HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))    
 
-if ctx.inputs.LR_correction == True and ctx.inputs.gpus > 1:
-    HP_dict["LearningRate"] *= hvd.size()
+#correct number of epochs in multigpu training and LR
+if ctx.inputs.gpus > 1:
+    if ctx.inputs.LR_correction == True:
+        HP_dict["LearningRate"] *= hvd.size()
+    # print(f"IN define_model, HVD SIZE: {hvd.size()}")
+    HP_dict["Epochs"] //= hvd.size()
+    HP_dict["MaxEpochs"] //= hvd.size()
+    # print(f"EPOCHS AND MAX EPOCHS: {ctx.HP.Epochs} {ctx.HP.MaxEpochs}")
 HP = utilities.AuxiliaryHyperparameters(
     model_name=f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", 
     Epochs=ctx.inputs.epochs, 

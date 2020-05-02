@@ -392,13 +392,6 @@ def define_model(restore_training):
     else:
         load_model = False
 
-    #correct number of epochs in multigpu training
-    if ctx.inputs.gpus > 1:
-        print(f"IN define_model, HVD SIZE: {hvd.size()}")
-        ctx.HP.Epochs //= hvd.size()
-        ctx.HP.MaxEpochs //= hvd.size()
-        print(f"EPOCHS AND MAX EPOCHS: {ctx.HP.Epochs} {ctx.HP.MaxEpochs}")
-
     #load the model
     if load_model == True:
         custom_obj = {}
