@@ -309,7 +309,7 @@ class LR_scheduler:
         Returns learning rate at a given epoch. 
         Recieves total number of epochs and initial learning rate
         """
-        print(f"IN LR_scheduler, initLR {self.initial_LR}, epoch {epoch}, frac. {(epoch + 1) / self.total_epochs}")
+        # print(f"IN LR_scheduler, initLR {self.initial_LR}, epoch {epoch}, frac. {(epoch + 1) / self.total_epochs}")
         if (epoch + 1) / self.total_epochs < 0.5:
             return self.initial_LR
         elif (epoch + 1) / self.total_epochs < 0.75:
@@ -445,8 +445,8 @@ def run_model(restore_training = True):
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
-    # verbose = 2 if main_process == True else 0
-    verbose = 2
+    verbose = 2 if main_process == True else 0
+    # verbose = 2
 
     #fit model
     ctx.model.fit(
@@ -508,8 +508,8 @@ def run_large_model(restore_training = True):
         "test": DataGenerator(ctx.Data.partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False),
         }
     
-    # verbose = 2 if main_process == True else 0
-    verbose = 2
+    verbose = 2 if main_process == True else 0
+    # verbose = 2
 
     #fit model
     ctx.model.fit_generator(
