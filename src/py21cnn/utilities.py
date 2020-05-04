@@ -466,7 +466,7 @@ def run_model(restore_training = True):
         )
 
     #predict on test data
-    if main_process == True:
+    if ctx.main_process == True:
         true = ctx.Data.Y["test"]
         pred = ctx.model.predict(ctx.Data.X["test"], verbose=False)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
@@ -535,7 +535,7 @@ def run_large_model(restore_training = True):
         )
 
     #predict on test data
-    if main_process == True:
+    if ctx.main_process == True:
         true = ctx.generators["test"].extract_labels()
 
         pred = ctx.model.predict_generator(
