@@ -353,6 +353,7 @@ def define_callbacks():
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_last.hdf5", monitor='val_loss', save_best_only=False, verbose=True), 
             keras.callbacks.CSVLogger(f"{ctx.filepath}.log", separator=',', append=True),
+            LR_tracer(),
             ]
     else:
         saving_callbacks = []
@@ -366,7 +367,6 @@ def define_callbacks():
         horovod_callbacks = []
     
     important_callbacks = [
-        LR_tracer(),
         keras.callbacks.TerminateOnNaN(),
         ]
     if ctx.HP.ReducingLR == True:
