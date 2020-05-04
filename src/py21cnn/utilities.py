@@ -400,6 +400,16 @@ def define_model(restore_training):
     else:
         load_model = False
 
+    #determine steps_per_epoch
+    if isinstance(ctx.Data, Data):
+        steps_per_epoch = ctx.Data.X["train"].shape[0] // ctx.inputs.gpus // ctx.HP.BatchSize
+        validation_steps = ctx.Data.X["val"].shape[0] // ctx.HP.BatchSize
+    elif isinstance(ctx.Data, LargeData):
+        steps_per_epoch = len(ctx.Data.partition["train"]) // ctx.inputs.gpus // ctx.HP.BatchSize
+        validation_steps = len(ctx.Data.partition["validation"]) // ctx.HP.BatchSize
+    else:
+        raise TypeError("ctx.Data should be an instance of {Data, LargeData} class")
+
     #load the model
     if load_model == True:
         custom_obj = {}
@@ -423,12 +433,16 @@ def define_model(restore_training):
         ctx.fit_options = {
             "epochs": final_epochs,
             "initial_epoch": number_of_epochs_trained,
+            "steps_per_epoch": steps_per_epoch,
+            "validation_steps": validation_steps,
             }
         ctx.compile_options = {}
     else:
         ctx.fit_options = {
             "epochs": ctx.HP.Epochs,
             "initial_epoch": 0,
+            "steps_per_epoch": steps_per_epoch,
+            "validation_steps": validation_steps,
             }
         ctx.compile_options = {
             "loss": ctx.HP.Loss[1],
@@ -445,7 +459,7 @@ def run_model(restore_training = True):
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
-    verbose = 2 if main_process == True else 0
+    verbose = 2 if ctx.main_process == True else 0
     # verbose = 2
 
     #fit model
@@ -508,7 +522,7 @@ def run_large_model(restore_training = True):
         "test": DataGenerator(ctx.Data.partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False),
         }
     
-    verbose = 2 if main_process == True else 0
+    verbose = 2 if ctx.main_process == True else 0
     # verbose = 2
 
     #fit model
