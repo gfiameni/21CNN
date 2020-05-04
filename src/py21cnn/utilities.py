@@ -437,17 +437,11 @@ def define_model(restore_training):
             }
         if ctx.inputs.gpus > 1:
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
-    return ctx.inputs.gpus
 
 def run_model(restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
     gpus = define_model(restore_training)
-    
-    #broadcast ctx
-    if gpus > 1:
-        ctx = hvd.broadcast(ctx, 0, name='ctx')
-
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
@@ -504,12 +498,7 @@ def run_model(restore_training = True):
 def run_large_model(restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
-    gpus = define_model(restore_training)
-
-    #broadcast ctx
-    if gpus > 1:
-        ctx = hvd.broadcast(ctx, 0, name='ctx')
-
+    define_model(restore_training)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
