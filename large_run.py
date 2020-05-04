@@ -121,8 +121,10 @@ else:
     HP_list = list(itertools.product(*HP.values()))
     HP_dict = dict(zip(HP.keys(), HP_list[ctx.inputs.HyperparameterIndex]))    
 
-if ctx.inputs.gpus > 1:
-    if ctx.inputs.LR_correction == True:
+#correct learning rate for multigpu run
+if ctx.inputs.LR_correction == True:
+        HP_dict["LearningRate"] *= ctx.inputs.gpus
+        
 HP = utilities.AuxiliaryHyperparameters(
     model_name=f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", 
     Epochs=ctx.inputs.epochs, 
