@@ -74,13 +74,19 @@ if ctx.inputs.tf == 1:
         raise ValueError('number of gpus shoud be > 0')
 else:
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    # assert(ctx.inputs.gpus == len(gpus))
-    print(gpus)
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
+    # for gpu in gpus:
+    #     tf.config.experimental.set_memory_growth(gpu, True)
+    # if ctx.inputs.gpus > 1:
+    #     hvd.init()
+    #     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+
+    #assuming each node has one gpu, for other configurations, has to be properly modified
+    #gpus has only one member
+    gpu = gpus[0]
+    tf.config.experimental.set_memory_growth(gpu, True)
     if ctx.inputs.gpus > 1:
         hvd.init()
-        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+    tf.config.experimental.set_visible_devices(gpu, "GPU")
 
 #importing keras at the end, I had some issues if I import it before setting GPUs
 from tensorflow import keras
