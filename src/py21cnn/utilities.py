@@ -240,8 +240,8 @@ class DataGenerator(keras.utils.Sequence):
 
         # Generate data
         X, y = self.__data_generation(list_IDs_temp)
-
-        return X, y
+        return tf.data.Dataset.from_tensor_slices((X, y))
+        # return X, y
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
