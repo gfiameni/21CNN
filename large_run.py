@@ -33,6 +33,8 @@ parser.add_argument('--file_prefix', type=str, default="")
 # parser.add_argument('--patience', type=int, default=10)
 parser.add_argument('--warmup', type=int, default=0)
 
+parser.add_argument('--tf', type = int, choices = [1, 2], default = 2)
+
 inputs = parser.parse_args()
 inputs.LR_correction = bool(inputs.LR_correction)
 inputs.simple_run = bool(inputs.simple_run)
@@ -54,27 +56,36 @@ ctx.inputs = inputs
 ###############################################################################
 import tensorflow as tf
 import horovod.tensorflow.keras as hvd
-# tf.compat.v1.enable_eager_execution()
-if ctx.inputs.gpus == 1:
-    # #setting up GPU
-    config = tf.compat.v1.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
-    config.gpu_options.visible_device_list = "0" #for picking only some devices
-    config.gpu_options.allow_growth = True
-    # config.log_device_placement=True
-    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-    # tf.compat.v1.enable_eager_execution(config=config)
-elif ctx.inputs.gpus > 1:
-    #init Horovod
-    hvd.init()
-    # Horovod: pin GPU to be used to process local rank (one GPU per process)
-    config = tf.compat.v1.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.gpu_options.visible_device_list = str(hvd.local_rank())
-    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-    # tf.compat.v1.enable_eager_execution(config=config)
+if ctx.inputs.tf == 1:
+    # tf.compat.v1.enable_eager_execution()
+    if ctx.inputs.gpus == 1:
+        # #setting up GPU
+        config = tf.compat.v1.ConfigProto()
+        config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
+        config.gpu_options.visible_device_list = "0" #for picking only some devices
+        config.gpu_options.allow_growth = True
+        # config.log_device_placement=True
+        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+        # tf.compat.v1.enable_eager_execution(config=config)
+    elif ctx.inputs.gpus > 1:
+        #init Horovod
+        hvd.init()
+        # Horovod: pin GPU to be used to process local rank (one GPU per process)
+        config = tf.compat.v1.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+        # tf.compat.v1.enable_eager_execution(config=config)
+    else:
+        raise ValueError('number of gpus shoud be > 0')
 else:
-    raise ValueError('number of gpus shoud be > 0')
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    assert(ctx.inputs.gpus == len(gpus))
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if ctx.inputs.gpus > 1:
+        hvd.init()
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 #importing keras at the end, I had some issues if I import it before setting GPUs
 from tensorflow import keras
 keras.backend.set_image_data_format('channels_last')
