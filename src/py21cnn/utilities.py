@@ -441,7 +441,7 @@ def define_model(restore_training):
 def run_model(restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
-    gpus = define_model(restore_training)
+    define_model(restore_training)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
