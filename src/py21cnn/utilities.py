@@ -379,16 +379,24 @@ def define_callbacks():
 def define_model(restore_training):
     model_exists = os.path.exists(f"{ctx.filepath}_last.hdf5")
     #define in what case to load the model
+    # if model_exists == True and restore_training == True:
+    #     if ctx.inputs.gpus == 1:
+    #         load_model = True
+    #         load_function = keras.models.load_model
+    #     else:
+    #         if hvd.rank() == 0:
+    #             load_model = True
+    #             load_function = hvd.load_model
+    #         else:
+    #             load_model = False
+    # else:
+    #     load_model = False
     if model_exists == True and restore_training == True:
+        load_model = True
         if ctx.inputs.gpus == 1:
-            load_model = True
             load_function = keras.models.load_model
         else:
-            if hvd.rank() == 0:
-                load_model = True
-                load_function = hvd.load_model
-            else:
-                load_model = False
+            load_function = hvd.load_model
     else:
         load_model = False
 
@@ -431,7 +439,6 @@ def define_model(restore_training):
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
 def run_model(restore_training = True):
-    print(f"IN run_model, HOROVOD RANK: {hvd.rank()}")
     #build callbacks
     callbacks = define_callbacks()
     define_model(restore_training)
@@ -490,7 +497,6 @@ def run_model(restore_training = True):
         time.sleep(float(epoch_time) * 0.2)
     
 def run_large_model(restore_training = True):
-    print(f"IN run_model, HOROVOD RANK: {hvd.rank()}")
     #build callbacks
     callbacks = define_callbacks()
     define_model(restore_training)
