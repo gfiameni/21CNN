@@ -429,20 +429,15 @@ def define_model(restore_training):
             }
         if ctx.inputs.gpus > 1:
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
+    return ctx.inputs.gpus
 
-def run_model(restore_training = True):
-    #define main process
-    if ctx.inputs.gpus > 1:
-        main_process = True if hvd.rank() == 0 else False
-    else:
-        main_process = True
-
+def run_model(main_process, restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
-    define_model(restore_training)
+    gpus = define_model(restore_training)
     
     #broadcast ctx
-    if ctx.inputs.gpus > 1:
+    if gpus > 1:
         ctx = hvd.broadcast(ctx, 0, name='ctx')
 
     if len(ctx.compile_options) > 0:
@@ -498,19 +493,13 @@ def run_model(restore_training = True):
         #wait for a fraction of epoch time
         time.sleep(float(epoch_time) * 0.2)
     
-def run_large_model(restore_training = True):
-    #define main process
-    if ctx.inputs.gpus > 1:
-        main_process = True if hvd.rank() == 0 else False
-    else:
-        main_process = True
-
+def run_large_model(main_process, restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
-    define_model(restore_training)
+    gpus = define_model(restore_training)
 
     #broadcast ctx
-    if ctx.inputs.gpus > 1:
+    if gpus > 1:
         ctx = hvd.broadcast(ctx, 0, name='ctx')
 
     if len(ctx.compile_options) > 0:
