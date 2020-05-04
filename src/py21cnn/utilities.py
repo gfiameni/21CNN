@@ -437,15 +437,21 @@ def define_model(restore_training):
             }
         if ctx.inputs.gpus > 1:
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
+    return ctx.inputs.gpus
 
 def run_model(restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
-    define_model(restore_training)
+    gpus = define_model(restore_training)
+    
+    #broadcast ctx
+    if gpus > 1:
+        ctx = hvd.broadcast(ctx, 0, name='ctx')
+
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
-    # verbose = 2 if ctx.main_process == True else 0
+    # verbose = 2 if main_process == True else 0
     verbose = 2
 
     #fit model
@@ -459,9 +465,8 @@ def run_model(restore_training = True):
         **ctx.fit_options,
         )
 
-
     #predict on test data
-    if ctx.main_process == True:
+    if main_process == True:
         true = ctx.Data.Y["test"]
         pred = ctx.model.predict(ctx.Data.X["test"], verbose=False)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
@@ -499,7 +504,12 @@ def run_model(restore_training = True):
 def run_large_model(restore_training = True):
     #build callbacks
     callbacks = define_callbacks()
-    define_model(restore_training)
+    gpus = define_model(restore_training)
+
+    #broadcast ctx
+    if gpus > 1:
+        ctx = hvd.broadcast(ctx, 0, name='ctx')
+
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
@@ -509,7 +519,7 @@ def run_large_model(restore_training = True):
         "test": DataGenerator(ctx.Data.partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False),
         }
     
-    # verbose = 2 if ctx.main_process == True else 0
+    # verbose = 2 if main_process == True else 0
     verbose = 2
 
     #fit model
@@ -525,7 +535,7 @@ def run_large_model(restore_training = True):
         )
 
     #predict on test data
-    if ctx.main_process == True:
+    if main_process == True:
         true = ctx.generators["test"].extract_labels()
 
         pred = ctx.model.predict_generator(
