@@ -516,7 +516,7 @@ def run_large_model(restore_training = True):
         generator=ctx.generators["train"],
         validation_data=ctx.generators["validation"],
         verbose = verbose,
-        max_queue_size = 16,
+        max_queue_size = 4,
         use_multiprocessing = True,
         workers = 12,
         callbacks = callbacks,
@@ -529,10 +529,10 @@ def run_large_model(restore_training = True):
 
         pred = ctx.model.predict_generator(
             generator = ctx.generators["test"], 
-            max_queue_size=16, 
-            workers=12, 
-            use_multiprocessing=True,
-            verbose=False,
+            max_queue_size = 4, 
+            workers = 12, 
+            use_multiprocessing = True,
+            verbose = False,
             )
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
 
