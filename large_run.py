@@ -80,7 +80,8 @@ if ctx.inputs.tf == 1:
         raise ValueError('number of gpus shoud be > 0')
 else:
     gpus = tf.config.experimental.list_physical_devices('GPU')
-    assert(ctx.inputs.gpus == len(gpus))
+    # assert(ctx.inputs.gpus == len(gpus))
+    print(gpus)
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
     if ctx.inputs.gpus > 1:
