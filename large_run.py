@@ -107,13 +107,16 @@ if ctx.inputs.gpus > 1:
     if ctx.inputs.LR_correction == True:
         HP_dict["LearningRate"] *= hvd.size()
     # print(f"IN define_model, HVD SIZE: {hvd.size()}")
-    HP_dict["Epochs"] //= hvd.size()
-    HP_dict["MaxEpochs"] //= hvd.size()
+    Epochs = ctx.inputs.epochs // hvd.size()
+    MaxEpochs = ctx.inputs.max_epochs // hvd.size()
     # print(f"EPOCHS AND MAX EPOCHS: {ctx.HP.Epochs} {ctx.HP.MaxEpochs}")
+else:
+    Epochs = ctx.inputs.epochs
+    MaxEpochs = ctx.inputs.max_epochs 
 HP = utilities.AuxiliaryHyperparameters(
     model_name=f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", 
-    Epochs=ctx.inputs.epochs, 
-    MaxEpochs=ctx.inputs.max_epochs, 
+    Epochs=Epochs, 
+    MaxEpochs=MaxEpochs, 
     **HP_dict,
     )
 
