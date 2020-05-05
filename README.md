@@ -1,5 +1,5 @@
 # 21CNN
-Training CNNs & RNNs with 21cmFAST images
+Training CNNs & RNNs with 21cmFAST images.
 
 ## Small database
 ### Example
@@ -66,6 +66,7 @@ For large database, where each lightcone is in a seperate `.npy` file:
 | `simple_run` | | | _-\|\|-_ |
 | `data_location` | | | _-\|\|-_|
 | `saving_location`| | | _-\|\|-_|
+| `logs_location`| | | _-\|\|-_|
 | `model`| | | _-\|\|-_|
 | `model_type`| | | _-\|\|-_|
 | `HyperparameterIndex`| | | _-\|\|-_|
