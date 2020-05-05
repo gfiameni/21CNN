@@ -55,7 +55,7 @@ For large database, where each lightcone is in a seperate `.npy` file:
 | Flag | Choices | Default | Description|
 | ---:| :------:| :------:| :------ |
 | `N_walker` | | 10000 | Number of different realizations of the 21cmFAST, which are funnily defined by walker vairable. |
-| `N_slice` | | 4 | Number of slices to train on. By default, from one simulations, 4 slices are created, we can take all or some of them. |
+| `N_slice` | | 4 | Number of slices to train on. By default, 4 slices are created from every simulation, we can take all or some of them. |
 | `N_noise` | | 10 | Number of noise realizations to train on. |
 | `X_fstring` | | <sup id="a1">[\*](#f1)</sup> | Combining above parameters into f-string that defines name of the files in database. |
 | `X_shape` | | `25,25,526` | Shape of the data. |
