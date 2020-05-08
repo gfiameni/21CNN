@@ -217,10 +217,11 @@ class DataGenerator(keras.utils.Sequence):
                 dimY,
                 data_filepath,
                 model_type,
-                batch_size, 
+                batch_size,
                 initial_epoch,
                 N_noise,
                 noise_rolling,
+                iterations,
                 n_channels=1,
                 shuffle=True,
                 ):
@@ -239,16 +240,19 @@ class DataGenerator(keras.utils.Sequence):
         self.noise_rolling = noise_rolling
         self.n_channels = n_channels
         self.shuffle = shuffle
-        self.iterations = self.__len__()
+        self.iterations = iterations
+        self.__len__()
         self.iteration_index = 0
         self.on_epoch_end()
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        if self.noise_rolling == True:
-            return len(self.list_IDs[0]) // self.batch_size
-        else:
-            return len(self.list_IDs) // self.batch_size
+        if self.iterations == None:
+            if self.noise_rolling == True:
+                self.iterations = len(self.list_IDs[0]) // self.batch_size
+            else:
+                self.iterations =  len(self.list_IDs) // self.batch_size
+        return self.iterations
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -573,8 +577,8 @@ def run_large_model(restore_training = True):
     else:
         data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"], **generator_options, noise_rolling = ctx.inputs.noise_rolling),
-        "validation": DataGenerator(data_partition["validation"], **generator_options, noise_rolling = ctx.inputs.noise_rolling),
+        "train": DataGenerator(data_partition["train"], **generator_options, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
+        "validation": DataGenerator(data_partition["validation"], **generator_options, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["validation_steps"]),
         "test": DataGenerator(ctx.Data.partition["test"], **generator_options, shuffle = False, noise_rolling = False),
         }
     
