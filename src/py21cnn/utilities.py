@@ -548,9 +548,9 @@ def run_large_model(restore_training = True):
     else:
         data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, initial_epoch = ctx.fit_options["initial_epoch"]),
-        "validation": DataGenerator(data_partition["validation"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, initial_epoch = ctx.fit_options["initial_epoch"]),
-        "test": DataGenerator(data_partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False, initial_epoch = ctx.fit_options["initial_epoch"]),
+        "train": DataGenerator(data_partition["train"]),
+        "validation": DataGenerator(data_partition["validation"]),
+        "test": DataGenerator(data_partition["test"], shuffle=False),
         }
     
     verbose = 2 if ctx.main_process == True else 0
