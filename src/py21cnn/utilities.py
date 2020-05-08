@@ -270,7 +270,7 @@ class DataGenerator(keras.utils.Sequence):
         'Updates indexes after each epoch'
         if self.noise_rolling == True:
             self.noise_index = (self.noise_index + 1) % self.N_noise
-            self.indexes = np.arange(len(self.list_IDs[self.noise_index]))
+            self.indexes = np.arange(len(self.list_IDs[0]))
         else:
             self.indexes = np.arange(len(self.list_IDs))
 
@@ -434,8 +434,12 @@ def define_model(restore_training):
         steps_per_epoch = ctx.Data.X["train"].shape[0] // ctx.inputs.gpus // ctx.HP.BatchSize
         validation_steps = ctx.Data.X["val"].shape[0] // ctx.HP.BatchSize
     elif isinstance(ctx.Data, LargeData):
-        steps_per_epoch = len(ctx.Data.partition["train"]) // ctx.inputs.gpus // ctx.HP.BatchSize
-        validation_steps = len(ctx.Data.partition["validation"]) // ctx.HP.BatchSize
+        if ctx.inputs.noise_rolling == True:
+            steps_per_epoch = len(ctx.Data.noise_rolling_partition["train"][0]) // ctx.inputs.gpus // ctx.HP.BatchSize
+            validation_steps = len(ctx.Data.noise_rolling_partition["validation"][0]) // ctx.HP.BatchSize   
+        else:         
+            steps_per_epoch = len(ctx.Data.partition["train"]) // ctx.inputs.gpus // ctx.HP.BatchSize
+            validation_steps = len(ctx.Data.partition["validation"]) // ctx.HP.BatchSize
     else:
         raise TypeError("ctx.Data should be an instance of {Data, LargeData} class")
 
