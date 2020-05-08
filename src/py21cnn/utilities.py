@@ -239,6 +239,8 @@ class DataGenerator(keras.utils.Sequence):
         self.noise_rolling = noise_rolling
         self.n_channels = n_channels
         self.shuffle = shuffle
+        self.iterations = self.__len__()
+        self.iteration_index = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -253,6 +255,10 @@ class DataGenerator(keras.utils.Sequence):
         # Generate indexes of the batch
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
+        #define noise_index
+        self.iteration_index = (self.iteration_index + 1) % self.iterations
+        if self.iteration_index == 0:
+            self.noise_index = (self.noise_index + 1) % self.N_noise
         # Find list of IDs
         if self.noise_rolling == True:
             list_IDs_temp = [self.list_IDs[self.noise_index][k] for k in indexes]
@@ -269,7 +275,7 @@ class DataGenerator(keras.utils.Sequence):
     def on_epoch_end(self):
         'Updates indexes after each epoch'
         if self.noise_rolling == True:
-            self.noise_index = (self.noise_index + 1) % self.N_noise
+            # self.noise_index = (self.noise_index + 1) % self.N_noise
             self.indexes = np.arange(len(self.list_IDs[0]))
         else:
             self.indexes = np.arange(len(self.list_IDs))
