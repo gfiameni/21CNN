@@ -212,15 +212,15 @@ class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
                 list_IDs,
-                labels = ctx.Data.labels, 
-                dimX = ctx.inputs.X_shape, 
-                dimY = ctx.inputs.Y_shape,
-                data_filepath = ctx.inputs.data_location,
-                model_type = ctx.inputs.model_type,
-                batch_size = ctx.HP.BatchSize, 
-                initial_epoch = ctx.fit_options["initial_epoch"],
-                N_noise = ctx.inputs.N_noise,
-                noise_rolling = ctx.inputs.noise_rolling,
+                labels, 
+                dimX, 
+                dimY,
+                data_filepath,
+                model_type,
+                batch_size, 
+                initial_epoch,
+                N_noise,
+                noise_rolling,
                 n_channels=1,
                 shuffle=True,
                 ):
@@ -543,14 +543,25 @@ def run_large_model(restore_training = True):
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
+    generator_options = {
+        "labels": ctx.Data.labels, 
+        "dimX": ctx.inputs.X_shape, 
+        "dimY": ctx.inputs.Y_shape,
+        "data_filepath": ctx.inputs.data_location,
+        "model_type": ctx.inputs.model_type,
+        "batch_size": ctx.HP.BatchSize, 
+        "initial_epoch": ctx.fit_options["initial_epoch"],
+        "N_noise": ctx.inputs.N_noise,
+        "noise_rolling": ctx.inputs.noise_rolling,
+        }
     if ctx.inputs.noise_rolling == True:
         data_partition = ctx.Data.noise_rolling_partition
     else:
         data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"]),
-        "validation": DataGenerator(data_partition["validation"]),
-        "test": DataGenerator(data_partition["test"], shuffle=False),
+        "train": DataGenerator(data_partition["train"], **generator_options),
+        "validation": DataGenerator(data_partition["validation"], **generator_options),
+        "test": DataGenerator(data_partition["test"], **generator_options, shuffle=False),
         }
     
     verbose = 2 if ctx.main_process == True else 0
