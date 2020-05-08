@@ -236,7 +236,7 @@ class DataGenerator(keras.utils.Sequence):
         self.labels = labels
         self.list_IDs = list_IDs
         self.N_noise = N_noise
-        self.noise_index = initial_epoch % self.N_noise - 1
+        self.initial_epoch = initial_epoch
         self.noise_rolling = noise_rolling
         self.n_channels = n_channels
         self.shuffle = shuffle
@@ -260,13 +260,13 @@ class DataGenerator(keras.utils.Sequence):
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
         #define noise_index
-        self.iteration_index = (self.iteration_index + 1) % self.iterations
-        if self.iteration_index == 0:
-            self.noise_index = (self.noise_index + 1) % self.N_noise
-        print(self.iteration_index, self.noise_index)
+        self.iteration_index += 1
+        print(self.iteration_index)
+        noise_index = (initial_epoch + self.iteration_index // self.iterations) % self.N_noise
+        print(noise_index)
         # Find list of IDs
         if self.noise_rolling == True:
-            list_IDs_temp = [self.list_IDs[self.noise_index][k] for k in indexes]
+            list_IDs_temp = [self.list_IDs[noise_index][k] for k in indexes]
         else:
             list_IDs_temp = [self.list_IDs[k] for k in indexes]
         
