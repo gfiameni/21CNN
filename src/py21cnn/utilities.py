@@ -599,6 +599,8 @@ def run_large_model(restore_training = True):
             use_multiprocessing = True,
             verbose = False,
             )
+        print(true)
+        print(pred)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
 
         #making prediction from best model
