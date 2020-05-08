@@ -60,6 +60,7 @@ For large database, where each lightcone is in a seperate `.npy` file:
 | `X_fstring` | | <sup id="a1">[\*](#f1)</sup> | Combining above parameters into f-string that defines name of the files in database. |
 | `X_shape` | | `25,25,526` | Shape of the data. |
 | `Y_filename` | | `NormalizedParams` | Filename for _labels_. |
+| `noise_rolling` | {0, 1} | 0 | If 1, cycles (rolls) through noise by changing the realization of it every epoch. Otherwise, all noise realizations are part of one epoch. |
 | `pTVT` | | `0.8,0.1,0.1` | Probabilities for train, validation and test. |
 | | | | |
 | `simple_run` | | | _-\|\|-_ |
