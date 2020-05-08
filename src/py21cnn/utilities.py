@@ -237,7 +237,7 @@ class DataGenerator(keras.utils.Sequence):
         self.list_IDs = list_IDs
         self.N_noise = N_noise
         self.initial_epoch = initial_epoch
-        self.noise_index = self.intial_epoch % self.N_noise
+        self.noise_index = self.initial_epoch % self.N_noise
         self.noise_rolling = noise_rolling
         self.n_channels = n_channels
         self.shuffle = shuffle
