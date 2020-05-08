@@ -5,7 +5,7 @@ def leakyrelu(x):
 def HP():
     HyP = {}
     HyP["Loss"] = [[None, "mse"]]
-    HyP["BatchSize"] = [20]
+    HyP["BatchSize"] = [5]
     HyP["LearningRate"] = [0.001, 0.0001]
     HyP["Dropout"] = [0.2]
     HyP["ReducingLR"] = [True]
@@ -53,7 +53,7 @@ def HP_large():
 def HP_simple():
     HP_dict = {
         "Loss": [None, "mse"],
-        "BatchSize": 20,
+        "BatchSize": 5,
         "LearningRate": 1e-4,
         "Dropout": 0.5,
         "ReducingLR": True,
