@@ -611,7 +611,7 @@ def run_large_model(restore_training = True):
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
         pred = ctx.model.predict(
-            generator = ctx.generators["test"], 
+            ctx.generators["test"], 
             max_queue_size = 16, 
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
