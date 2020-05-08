@@ -300,7 +300,7 @@ class DataGenerator(keras.utils.Sequence):
         y = np.empty((len(self.list_IDs), self.dimY))
         for i, ID in enumerate(self.list_IDs):
             y[i] = self.labels[ID]
-        return y
+        return y, self.list_IDs
 
 
 class TimeHistory(keras.callbacks.Callback):
@@ -442,6 +442,9 @@ def define_model(restore_training):
             validation_steps = len(ctx.Data.partition["validation"]) // ctx.HP.BatchSize
     else:
         raise TypeError("ctx.Data should be an instance of {Data, LargeData} class")
+
+    if validation_steps == 0:
+        raise ValueError("Number of validation steps per epoch is 0. Change batch size, validation probability, or give me more data.")
 
     #load the model
     if load_model == True:
@@ -586,8 +589,9 @@ def run_large_model(restore_training = True):
 
     #predict on test data
     if ctx.main_process == True:
-        true = ctx.generators["test"].extract_labels()
-
+        print("PREDICTING THE MODEL")
+        true, IDs = ctx.generators["test"].extract_labels()
+        print(IDs)
         pred = ctx.model.predict_generator(
             generator = ctx.generators["test"], 
             max_queue_size = 16, 
