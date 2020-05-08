@@ -564,7 +564,7 @@ def run_large_model(restore_training = True):
     else:
         data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"], **generator_options, noise_rolling = ctx.inpus.noise_rolling),
+        "train": DataGenerator(data_partition["train"], **generator_options, noise_rolling = ctx.inputs.noise_rolling),
         "validation": DataGenerator(data_partition["validation"], **generator_options, noise_rolling = ctx.inputs.noise_rolling),
         "test": DataGenerator(ctx.Data.partition["test"], **generator_options, shuffle = False, noise_rolling = False),
         }
