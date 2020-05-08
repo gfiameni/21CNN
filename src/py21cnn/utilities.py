@@ -262,7 +262,7 @@ class DataGenerator(keras.utils.Sequence):
         #define noise_index
         self.iteration_index += 1
         print(self.iteration_index)
-        noise_index = (initial_epoch + self.iteration_index // self.iterations) % self.N_noise
+        noise_index = (self.initial_epoch + self.iteration_index // self.iterations) % self.N_noise
         print(noise_index)
         # Find list of IDs
         if self.noise_rolling == True:
