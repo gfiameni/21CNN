@@ -258,6 +258,8 @@ class DataGenerator(keras.utils.Sequence):
             list_IDs_temp = [self.list_IDs[self.noise_index][k] for k in indexes]
         else:
             list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        
+        print(list_IDs_temp)
 
         # Generate data
         X, y = self.__data_generation(list_IDs_temp)
