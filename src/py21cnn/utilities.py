@@ -275,7 +275,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def on_epoch_end(self):
         self.noise_index  = (self.noise_index + 1) % self.N_noise
-        print(self.noise_index)
+        print("NOISE INDEX", self.noise_index)
         'Updates indexes after each epoch'
         if self.noise_rolling == True:
             # self.noise_index = (self.noise_index + 1) % self.N_noise
