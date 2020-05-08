@@ -136,12 +136,20 @@ class LargeData:
             "train": [], 
             "validation": [], 
             "test": []}
+        self.noise_rolling_partition = {
+            "train": [], 
+            "validation": [], 
+            "test": []}
+        for key in list(self.noise_rolling_partition.keys()):
+            for seed in range(ctx.inputs.N_noise):
+                self.noise_rolling_partition[key].append([])
         self.labels = {}
         keys = list(self.partition.keys())
         for walker in range(ctx.inputs.N_walker):
             for s in range(ctx.inputs.N_slice):
                 for seed in range(ctx.inputs.N_noise):
                     self.partition[keys[permutation[walker]]].append(ctx.inputs.X_fstring.format(walker, s, seed))
+                    self.noise_rolling_partition[keys[permutation[walker]]][seed].append(ctx.inputs.X_fstring.format(walker, s, seed))
                     self.labels[ctx.inputs.X_fstring.format(walker, s, seed)] = Y[walker]
         # print(self.partition)
 
@@ -200,18 +208,22 @@ class AuxiliaryHyperparameters:
         return hashlib.md5(self.hashstring().encode()).hexdigest()
 
 
-
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
                 list_IDs,
-                labels, 
-                dimX, dimY,
-                data_filepath,
-                model_type,
-                batch_size=20, 
+                labels = ctx.Data.labels, 
+                dimX = ctx.inputs.X_shape, 
+                dimY = ctx.inputs.Y_shape,
+                data_filepath = ctx.inputs.data_location,
+                model_type = ctx.inputs.model_type,
+                batch_size = ctx.HP.BatchSize, 
+                initial_epoch = ctx.fit_options["initial_epoch"],
+                N_noise = ctx.inputs.N_noise,
+                noise_rolling = ctx.inputs.noise_rolling,
                 n_channels=1,
-                shuffle=True):
+                shuffle=True,
+                ):
         self.model_type = model_type
         if self.model_type == "RNN":
             self.dimX = dimX[::-1]
@@ -222,13 +234,19 @@ class DataGenerator(keras.utils.Sequence):
         self.batch_size = batch_size
         self.labels = labels
         self.list_IDs = list_IDs
+        self.N_noise = N_noise
+        self.noise_index = initial_epoch % self.N_noise - 1
+        self.noise_rolling = noise_rolling
         self.n_channels = n_channels
         self.shuffle = shuffle
         self.on_epoch_end()
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.list_IDs) / self.batch_size))
+        if self.noise_rolling == True:
+            return len(self.list_IDs[0]) // self.batch_size
+        else:
+            return len(self.list_IDs) // self.batch_size
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -236,7 +254,10 @@ class DataGenerator(keras.utils.Sequence):
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
         # Find list of IDs
-        list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        if self.noise_rolling == True:
+            list_IDs_temp = [self.list_IDs[self.noise_index][k] for k in indexes]
+        else:
+            list_IDs_temp = [self.list_IDs[k] for k in indexes]
 
         # Generate data
         X, y = self.__data_generation(list_IDs_temp)
@@ -245,9 +266,15 @@ class DataGenerator(keras.utils.Sequence):
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
-        self.indexes = np.arange(len(self.list_IDs))
+        if self.noise_rolling == True:
+            self.noise_index = (self.noise_index + 1) % self.N_noise
+            self.indexes = np.arange(len(self.list_IDs[self.noise_index]))
+        else:
+            self.indexes = np.arange(len(self.list_IDs))
+
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
+            
     def loadX(self, filename):
         if self.model_type == "RNN":
             return np.swapaxes(np.load(filename), 0, -1)[..., np.newaxis]
@@ -516,10 +543,14 @@ def run_large_model(restore_training = True):
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
+    if ctx.inputs.noise_rolling == True:
+        data_partition = ctx.Data.noise_rolling_partition
+    else:
+        data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(ctx.Data.partition["train"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize),
-        "validation": DataGenerator(ctx.Data.partition["validation"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize),
-        "test": DataGenerator(ctx.Data.partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False),
+        "train": DataGenerator(data_partition["train"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, initial_epoch = ctx.fit_options["initial_epoch"]),
+        "validation": DataGenerator(data_partition["validation"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, initial_epoch = ctx.fit_options["initial_epoch"]),
+        "test": DataGenerator(data_partition["test"], ctx.Data.labels, ctx.inputs.X_shape, ctx.inputs.Y_shape, ctx.inputs.data_location, ctx.inputs.model_type, ctx.HP.BatchSize, shuffle=False, initial_epoch = ctx.fit_options["initial_epoch"]),
         }
     
     verbose = 2 if ctx.main_process == True else 0

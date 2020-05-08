@@ -17,6 +17,7 @@ parser.add_argument('--Y_filename', type=str, default = "NormalizedParams")
 parser.add_argument('--N_walker', type=int, default=10000)
 parser.add_argument('--N_slice', type=int, default=4)
 parser.add_argument('--N_noise', type=int, default=10)
+parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 0)
 parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
 
 parser.add_argument('--data_location', type=str, default="data/")
@@ -38,6 +39,7 @@ parser.add_argument('--tf', type = int, choices = [1, 2], default = 1)
 inputs = parser.parse_args()
 inputs.LR_correction = bool(inputs.LR_correction)
 inputs.simple_run = bool(inputs.simple_run)
+inputs.noise_rolling = bool(inputs.noise_rolling)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
