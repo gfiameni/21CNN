@@ -221,7 +221,7 @@ class DataGenerator(keras.utils.Sequence):
                 initial_epoch,
                 N_noise,
                 noise_rolling,
-                iterations,
+                iterations = None,
                 n_channels=1,
                 shuffle=True,
                 ):
