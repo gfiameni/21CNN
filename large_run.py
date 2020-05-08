@@ -19,6 +19,7 @@ parser.add_argument('--N_slice', type=int, default=4)
 parser.add_argument('--N_noise', type=int, default=10)
 parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 0)
 parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
+parser.add_argument('--workers', type=int, default=24)
 
 parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--saving_location', type=str, default="models/")

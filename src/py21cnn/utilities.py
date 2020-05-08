@@ -572,9 +572,9 @@ def run_large_model(restore_training = True):
         generator=ctx.generators["train"],
         validation_data=ctx.generators["validation"],
         verbose = verbose,
-        max_queue_size = 4,
+        max_queue_size = 16,
         use_multiprocessing = True,
-        workers = 12,
+        workers = ctx.inputs.workers,
         callbacks = callbacks,
         **ctx.fit_options,
         )
@@ -585,8 +585,8 @@ def run_large_model(restore_training = True):
 
         pred = ctx.model.predict_generator(
             generator = ctx.generators["test"], 
-            max_queue_size = 4, 
-            workers = 12, 
+            max_queue_size = 16, 
+            workers = ctx.inputs.workers, 
             use_multiprocessing = True,
             verbose = False,
             )
@@ -601,8 +601,8 @@ def run_large_model(restore_training = True):
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
         pred = ctx.model.predict_generator(
             generator = ctx.generators["test"], 
-            max_queue_size=16, 
-            workers=12, 
+            max_queue_size = 16, 
+            workers = ctx.inputs.workers, 
             use_multiprocessing=True,
             verbose=False,
             )
