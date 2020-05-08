@@ -598,6 +598,7 @@ def run_large_model(restore_training = True):
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
             verbose = False,
+            shuffle = False,
             )
         print(true)
         print(pred)
@@ -614,8 +615,9 @@ def run_large_model(restore_training = True):
             generator = ctx.generators["test"], 
             max_queue_size = 16, 
             workers = ctx.inputs.workers, 
-            use_multiprocessing=True,
-            verbose=False,
+            use_multiprocessing = True,
+            verbose = False,
+            shuffle = False,
             )
         np.save(f"{ctx.filepath}_prediction_best.npy", pred)
 
