@@ -62,6 +62,7 @@ For large database, where each lightcone is in a seperate `.npy` file:
 | `Y_filename` | | `NormalizedParams` | Filename for _labels_. |
 | `noise_rolling` | {0, 1} | 0 | If 1, cycles (rolls) through noise by changing the realization of it every epoch. Otherwise, all noise realizations are part of one epoch. |
 | `pTVT` | | `0.8,0.1,0.1` | Probabilities for train, validation and test. |
+| `workers` | | 24 | Number of cpu workers for data loading. |
 | | | | |
 | `simple_run` | | | _-\|\|-_ |
 | `data_location` | | | _-\|\|-_|
