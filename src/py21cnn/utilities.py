@@ -263,6 +263,7 @@ class DataGenerator(keras.utils.Sequence):
         self.iteration_index = (self.iteration_index + 1) % self.iterations
         if self.iteration_index == 0:
             self.noise_index = (self.noise_index + 1) % self.N_noise
+        print(self.iteration_index, self.noise_index)
         # Find list of IDs
         if self.noise_rolling == True:
             list_IDs_temp = [self.list_IDs[self.noise_index][k] for k in indexes]
