@@ -558,16 +558,15 @@ def run_large_model(restore_training = True):
         "batch_size": ctx.HP.BatchSize, 
         "initial_epoch": ctx.fit_options["initial_epoch"],
         "N_noise": ctx.inputs.N_noise,
-        "noise_rolling": ctx.inputs.noise_rolling,
         }
     if ctx.inputs.noise_rolling == True:
         data_partition = ctx.Data.noise_rolling_partition
     else:
         data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"], **generator_options),
-        "validation": DataGenerator(data_partition["validation"], **generator_options),
-        "test": DataGenerator(data_partition["test"], **generator_options, shuffle=False),
+        "train": DataGenerator(data_partition["train"], **generator_options, noise_rolling = ctx.inpus.noise_rolling),
+        "validation": DataGenerator(data_partition["validation"], **generator_options, noise_rolling = ctx.inputs.noise_rolling),
+        "test": DataGenerator(ctx.Data.partition["test"], **generator_options, shuffle = False, noise_rolling = False),
         }
     
     verbose = 2 if ctx.main_process == True else 0
