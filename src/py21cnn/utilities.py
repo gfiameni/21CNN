@@ -314,6 +314,79 @@ class DataGenerator(keras.utils.Sequence):
         return y, self.list_IDs
 
 
+class SimpleDataGenerator(keras.utils.Sequence):
+    'Generates data for Keras'
+    def __init__(self, 
+                list_IDs,
+                labels, 
+                dimX, 
+                dimY,
+                data_filepath,
+                model_type,
+                batch_size,
+                noise_rolling,
+                iterations = None,
+                n_channels=1,
+                ):
+        self.model_type = model_type
+        if self.model_type == "RNN":
+            self.dimX = dimX[::-1]
+        else:
+            self.dimX = dimX
+        self.dimY = dimY
+        self.data_filepath = data_filepath
+        self.batch_size = batch_size
+        self.labels = labels
+        self.list_IDs = list_IDs
+        self.n_channels = n_channels
+        self.iterations = iterations
+        self.__len__()
+        self.iteration_index = 0
+        self.on_epoch_end()
+
+    def __len__(self):
+        'Denotes the number of batches per epoch'
+        if self.iterations == None:
+            self.iterations =  len(self.list_IDs) // self.batch_size
+        return self.iterations
+
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        # Generate indexes of the batch
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        X, y = self.__data_generation(list_IDs_temp)
+        return X, y
+
+    def on_epoch_end(self):
+        pass
+
+    def loadX(self, filename):
+        if self.model_type == "RNN":
+            return np.swapaxes(np.load(filename), 0, -1)[..., np.newaxis]
+        else:
+            return np.load(filename)[..., np.newaxis]
+
+    def __data_generation(self, list_IDs_temp):
+        'Generates data containing batch_size samples'
+        X = np.empty((self.batch_size, *self.dimX, self.n_channels))
+        y = np.empty((self.batch_size, self.dimY))
+
+        for i, ID in enumerate(list_IDs_temp):
+            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+            y[i] = self.labels[ID]
+
+        return X, y
+        
+    def extract_labels(self):
+        """
+        Extracting all the labels, used for testing purposes to access true values of 'labels'
+        """
+        y = np.empty((len(self.list_IDs), self.dimY))
+        for i, ID in enumerate(self.list_IDs):
+            y[i] = self.labels[ID]
+        return y, self.list_IDs
+
 class TimeHistory(keras.callbacks.Callback):
     def __init__(self, filename):
         self.filename = filename
