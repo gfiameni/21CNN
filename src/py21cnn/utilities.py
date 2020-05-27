@@ -1,6 +1,8 @@
 from . import ctx
 
-from .formatting import Filters
+from . import formatting
+Filters = formatting.Filters
+
 import os
 import time
 import copy
