@@ -391,11 +391,11 @@ class SimpleDataGenerator(keras.utils.Sequence):
         """
         Extracting all the labels, used for testing purposes to access true values of 'labels'
         """
-        lab = []
-        print("IN extract_labels, list_IDs:", self.list_IDs)
+        l = []
         for ID in self.list_IDs:
-            lab.append([ID, self.labels[ID]])
-        return lab
+            l.append([ID, self.labels[ID]])
+        print("IN extract_labels, list_IDs and labels:", l, self.list_IDs)
+        return l
 
 class TimeHistory(keras.callbacks.Callback):
     def __init__(self, filename):
