@@ -313,8 +313,7 @@ class DataGenerator(keras.utils.Sequence):
             y[i] = self.labels[ID]
         return y, self.list_IDs
 
-
-class SimpleDataGenerator(keras.utils.Sequence):
+class TestDataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
                 list_IDs,
@@ -324,7 +323,6 @@ class SimpleDataGenerator(keras.utils.Sequence):
                 data_filepath,
                 model_type,
                 batch_size,
-                noise_rolling,
                 iterations = None,
                 n_channels=1,
                 ):
@@ -341,11 +339,9 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.n_channels = n_channels
         self.iterations = iterations
         self.__len__()
-        self.iteration_index = 0
-        self.on_epoch_end()
 
     def __len__(self):
-        'Denotes the number of batches per epoch'
+        'Denotes the number of batches'
         if self.iterations == None:
             self.iterations =  len(self.list_IDs) // self.batch_size
         return self.iterations
@@ -356,6 +352,10 @@ class SimpleDataGenerator(keras.utils.Sequence):
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
         X, y = self.__data_generation(list_IDs_temp)
+
+        for i in zip(list_IDs_temp, y):
+            ctx.test_data.append(i)
+
         return X, y
 
     def on_epoch_end(self):
@@ -382,10 +382,10 @@ class SimpleDataGenerator(keras.utils.Sequence):
         """
         Extracting all the labels, used for testing purposes to access true values of 'labels'
         """
-        y = np.empty((len(self.list_IDs), self.dimY))
-        for i, ID in enumerate(self.list_IDs):
-            y[i] = self.labels[ID]
-        return y, self.list_IDs
+        lab = []
+        for ID in self.list_IDs:
+            lab.append([ID, self.labels[ID]])
+        return lab
 
 class TimeHistory(keras.callbacks.Callback):
     def __init__(self, filename):
@@ -642,18 +642,16 @@ def run_large_model(restore_training = True):
         "dimY": ctx.inputs.Y_shape,
         "data_filepath": ctx.inputs.data_location,
         "model_type": ctx.inputs.model_type,
-        "batch_size": ctx.HP.BatchSize, 
-        "initial_epoch": ctx.fit_options["initial_epoch"],
-        "N_noise": ctx.inputs.N_noise,
+        "batch_size": ctx.HP.BatchSize,
         }
     if ctx.inputs.noise_rolling == True:
         data_partition = ctx.Data.noise_rolling_partition
     else:
         data_partition = ctx.Data.partition
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"], **generator_options, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
-        "validation": DataGenerator(data_partition["validation"], **generator_options, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["validation_steps"]),
-        "test": DataGenerator(ctx.Data.partition["test"], **generator_options, shuffle = False, noise_rolling = False),
+        "train": DataGenerator(data_partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
+        "validation": DataGenerator(data_partition["validation"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["validation_steps"]),
+        "test": TestDataGenerator(ctx.Data.partition["test"], **generator_options),
         }
     
     verbose = 2 if ctx.main_process == True else 0
@@ -673,9 +671,11 @@ def run_large_model(restore_training = True):
 
     #predict on test data
     if ctx.main_process == True:
+        print("EXTRACTING THE LABELS BEFORE PREDICTION")
+        true = ctx.generators["test"].extract_labels()
+        print(true)
+        true = true[:, 1]
         print("PREDICTING THE MODEL")
-        true, IDs = ctx.generators["test"].extract_labels()
-        print(IDs)
         pred = ctx.model.predict(
             ctx.generators["test"], 
             max_queue_size = 16, 
@@ -683,8 +683,9 @@ def run_large_model(restore_training = True):
             use_multiprocessing = True,
             verbose = False,
             )
-        print(true)
         print(pred)
+        print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
+        print(ctx.test_data)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
 
         #making prediction from best model
@@ -694,6 +695,7 @@ def run_large_model(restore_training = True):
         if ctx.HP.ActivationFunction[0] == "leakyrelu":
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
+        print("PREDICTING THE BEST MODEL")
         pred = ctx.model.predict(
             ctx.generators["test"], 
             max_queue_size = 16, 
@@ -701,6 +703,9 @@ def run_large_model(restore_training = True):
             use_multiprocessing = True,
             verbose = False,
             )
+        print(pred)
+        print("WHAT'S IN THE ctx.test_data")
+        print(ctx.test_data)
         np.save(f"{ctx.filepath}_prediction_best.npy", pred)
 
         with open(f"{ctx.filepath}_summary.txt", "w") as f:
