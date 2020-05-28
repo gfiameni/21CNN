@@ -671,8 +671,8 @@ def run_large_model(restore_training = True):
         }
     ctx.generators = {
         "train": DataGenerator(partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
-        "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"]),
-        "test": SimpleDataGenerator(partition["test"], **generator_options),
+        "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"], data_type = "validation"),
+        "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
         }
     
     verbose = 2 if ctx.main_process == True else 0
@@ -706,8 +706,7 @@ def run_large_model(restore_training = True):
             )
         print(pred)
         print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
-        for i in ctx.test_data:
-            print(i)
+        print(ctx.test_data)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
 
         #making prediction from best model
@@ -727,8 +726,7 @@ def run_large_model(restore_training = True):
             )
         print(pred)
         print("WHAT'S IN THE ctx.test_data")
-        for i in ctx.test_data:
-            print(i)
+        print(ctx.test_data)
         np.save(f"{ctx.filepath}_prediction_best.npy", pred)
 
         with open(f"{ctx.filepath}_summary.txt", "w") as f:
