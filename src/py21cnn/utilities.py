@@ -696,6 +696,7 @@ def run_large_model(restore_training = True):
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
             verbose = False,
+            shuffle = False,
             )
         print(pred)
         print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
@@ -716,6 +717,7 @@ def run_large_model(restore_training = True):
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
             verbose = False,
+            shuffle = False,
             )
         print(pred)
         print("WHAT'S IN THE ctx.test_data")
