@@ -313,7 +313,7 @@ class DataGenerator(keras.utils.Sequence):
             y[i] = self.labels[ID]
         return y, self.list_IDs
 
-class TestDataGenerator(keras.utils.Sequence):
+class SimpleDataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
                 list_IDs,
@@ -325,6 +325,7 @@ class TestDataGenerator(keras.utils.Sequence):
                 batch_size,
                 iterations = None,
                 n_channels=1,
+                data_type = "test",
                 ):
         self.model_type = model_type
         if self.model_type == "RNN":
@@ -338,6 +339,7 @@ class TestDataGenerator(keras.utils.Sequence):
         self.list_IDs = list_IDs
         self.n_channels = n_channels
         self.iterations = iterations
+        self.data_type = data_type
         self.__len__()
 
     def __len__(self):
@@ -353,8 +355,9 @@ class TestDataGenerator(keras.utils.Sequence):
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
         X, y = self.__data_generation(list_IDs_temp)
 
-        for i in zip(list_IDs_temp, y):
-            ctx.test_data.append(i)
+        if self.data_type == "test":
+            for i in zip(list_IDs_temp, y):
+                ctx.test_data.append(i)
 
         return X, y
 
@@ -645,13 +648,21 @@ def run_large_model(restore_training = True):
         "batch_size": ctx.HP.BatchSize,
         }
     if ctx.inputs.noise_rolling == True:
-        data_partition = ctx.Data.noise_rolling_partition
+        partition = {
+            "train": ctx.Data.noise_rolling_partition["train"],
+            "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
+            "test": ctx.Data.partition["test"],
+        }
     else:
-        data_partition = ctx.Data.partition
+        partition = {
+            "train": ctx.Data.partition["train"],
+            "validation": ctx.Data.partition["validation"],
+            "test": ctx.Data.partition["test"],
+        }
     ctx.generators = {
-        "train": DataGenerator(data_partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
-        "validation": DataGenerator(data_partition["validation"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["validation_steps"]),
-        "test": TestDataGenerator(ctx.Data.partition["test"], **generator_options),
+        "train": DataGenerator(partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
+        "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"]),
+        "test": SimpleDataGenerator(partition["test"], **generator_options),
         }
     
     verbose = 2 if ctx.main_process == True else 0
