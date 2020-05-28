@@ -359,6 +359,8 @@ class SimpleDataGenerator(keras.utils.Sequence):
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
         X, y = self.__data_generation(list_IDs_temp)
 
+        print("IN SIMPLE DATA GENERATOR", list_ID_s_temp)
+
         if self.data_type == "test":
             for i in zip(list_IDs_temp, y):
                 ctx.test_data.append(i)
@@ -390,6 +392,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
         Extracting all the labels, used for testing purposes to access true values of 'labels'
         """
         lab = []
+        print("IN extract_labels, list_IDs:", self.list_IDs)
         for ID in self.list_IDs:
             lab.append([ID, self.labels[ID]])
         return lab
