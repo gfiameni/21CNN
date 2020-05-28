@@ -340,6 +340,8 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.n_channels = n_channels
         self.iterations = iterations
         self.data_type = data_type
+        if self.data_type == "test":
+            ctx.test_data = []
         self.__len__()
         self.indexes = np.arange(len(self.list_IDs))
 
