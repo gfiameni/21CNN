@@ -341,6 +341,8 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.iterations = iterations
         self.data_type = data_type
         self.__len__()
+        self.indexes = np.arange(len(self.list_IDs))
+
 
     def __len__(self):
         'Denotes the number of batches'
@@ -361,8 +363,8 @@ class SimpleDataGenerator(keras.utils.Sequence):
 
         return X, y
 
-    def on_epoch_end(self):
-        pass
+    # def on_epoch_end(self):
+    #     pass
 
     def loadX(self, filename):
         if self.model_type == "RNN":
@@ -684,8 +686,10 @@ def run_large_model(restore_training = True):
     if ctx.main_process == True:
         print("EXTRACTING THE LABELS BEFORE PREDICTION")
         true = ctx.generators["test"].extract_labels()
-        print(true)
-        true = true[:, 1]
+        for i in len(true):
+            print(true[i])
+            true[i] = true[i][1]
+        true = np.array[true]
         print("PREDICTING THE MODEL")
         pred = ctx.model.predict(
             ctx.generators["test"], 
@@ -696,7 +700,8 @@ def run_large_model(restore_training = True):
             )
         print(pred)
         print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
-        print(ctx.test_data)
+        for i in ctx.test_data:
+            print(i)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
 
         #making prediction from best model
@@ -716,7 +721,8 @@ def run_large_model(restore_training = True):
             )
         print(pred)
         print("WHAT'S IN THE ctx.test_data")
-        print(ctx.test_data)
+        for i in ctx.test_data:
+            print(i)
         np.save(f"{ctx.filepath}_prediction_best.npy", pred)
 
         with open(f"{ctx.filepath}_summary.txt", "w") as f:
