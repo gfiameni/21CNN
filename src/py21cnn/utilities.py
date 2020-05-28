@@ -391,11 +391,14 @@ class SimpleDataGenerator(keras.utils.Sequence):
         """
         Extracting all the labels, used for testing purposes to access true values of 'labels'
         """
-        l = []
+        labels = []
+        IDs = []
         for ID in self.list_IDs:
-            l.append([ID, self.labels[ID]])
-        print("IN extract_labels, list_IDs and labels:", l, self.list_IDs)
-        return l
+            IDs.append(ID)
+            labels.append(self.labels[ID])
+        labels = np.array(labels)
+        print("IN extract_labels, list_IDs and labels:", labels, IDs)
+        return labels, IDs
 
 class TimeHistory(keras.callbacks.Callback):
     def __init__(self, filename):
@@ -690,11 +693,9 @@ def run_large_model(restore_training = True):
     #predict on test data
     if ctx.main_process == True:
         print("EXTRACTING THE LABELS BEFORE PREDICTION")
-        true = ctx.generators["test"].extract_labels()
-        for i in len(true):
-            print(true[i])
-            true[i] = true[i][1]
-        true = np.array[true]
+        true, IDs = ctx.generators["test"].extract_labels()
+        print(IDs)
+        print(true)
         print("PREDICTING THE MODEL")
         pred = ctx.model.predict(
             ctx.generators["test"], 
