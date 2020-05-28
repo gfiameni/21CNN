@@ -359,7 +359,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
         X, y = self.__data_generation(list_IDs_temp)
 
-        print("IN SIMPLE DATA GENERATOR", list_ID_s_temp)
+        print("IN SIMPLE DATA GENERATOR", list_IDs_temp)
 
         if self.data_type == "test":
             for i in zip(list_IDs_temp, y):
