@@ -340,6 +340,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.n_channels = n_channels
         self.iterations = iterations
         self.data_type = data_type
+        self.test_data = []
         self.__len__()
         self.indexes = np.arange(len(self.list_IDs))
 
@@ -360,7 +361,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
 
         if self.data_type == "test":
             for i in zip(self.list_IDs_temp, y):
-                ctx.test_data.append(i)
+                self.test_data.append(i)
 
         return X, y
 
@@ -686,21 +687,21 @@ def run_large_model(restore_training = True):
     #predict on test data
     if ctx.main_process == True:
         print("EXTRACTING THE LABELS BEFORE PREDICTION")
-        true, IDs = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test").extract_labels()
+        last_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test")
+        true, IDs = last_generator.extract_labels()
         print(IDs)
         print(true)
         print("PREDICTING THE MODEL")
         pred = ctx.model.predict(
-            SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test"), 
+            last_generator, 
             max_queue_size = 16, 
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
             verbose = False,
-            shuffle = False,
             )
         print(pred)
         print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
-        print(ctx.test_data)
+        print(last_generator.test_data)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
 
         #making prediction from best model
@@ -711,17 +712,17 @@ def run_large_model(restore_training = True):
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
         print("PREDICTING THE BEST MODEL")
+        best_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test")
         pred = ctx.model.predict(
-            SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test"), 
+            best_generator, 
             max_queue_size = 16, 
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
             verbose = False,
-            shuffle = False,
             )
         print(pred)
-        print("WHAT'S IN THE ctx.test_data")
-        print(ctx.test_data)
+        print("WHAT'S IN THE best_generator.test_data")
+        print(best_generator.test_data)
         np.save(f"{ctx.filepath}_prediction_best.npy", pred)
 
         with open(f"{ctx.filepath}_summary.txt", "w") as f:
