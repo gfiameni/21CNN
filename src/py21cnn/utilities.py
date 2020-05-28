@@ -358,11 +358,13 @@ class SimpleDataGenerator(keras.utils.Sequence):
 
         print("IN SIMPLE DATA GENERATOR", self.list_IDs_temp)
 
-        return X, y
-    def on_batch_end(self):
         if self.data_type == "test":
             for i in zip(self.list_IDs_temp, y):
                 ctx.test_data.append(i)
+
+        return X, y
+    def on_batch_end(self):
+        pass
 
     # def on_epoch_end(self):
     #     pass
