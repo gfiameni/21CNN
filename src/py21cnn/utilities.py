@@ -363,11 +363,6 @@ class SimpleDataGenerator(keras.utils.Sequence):
                 ctx.test_data.append(i)
 
         return X, y
-    def on_batch_end(self):
-        pass
-
-    # def on_epoch_end(self):
-    #     pass
 
     def loadX(self, filename):
         if self.model_type == "RNN":
@@ -396,7 +391,6 @@ class SimpleDataGenerator(keras.utils.Sequence):
             IDs.append(ID)
             labels.append(self.labels[ID])
         labels = np.array(labels)
-        print("IN extract_labels, list_IDs and labels:", labels, IDs)
         return labels, IDs
 
 class TimeHistory(keras.callbacks.Callback):
@@ -660,18 +654,18 @@ def run_large_model(restore_training = True):
         partition = {
             "train": ctx.Data.noise_rolling_partition["train"],
             "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
-            "test": ctx.Data.partition["test"],
+            # "test": ctx.Data.partition["test"],
         }
     else:
         partition = {
             "train": ctx.Data.partition["train"],
             "validation": ctx.Data.partition["validation"],
-            "test": ctx.Data.partition["test"],
+            # "test": ctx.Data.partition["test"],
         }
     ctx.generators = {
         "train": DataGenerator(partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
         "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"], data_type = "validation"),
-        "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
+        # "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
         }
     
     verbose = 2 if ctx.main_process == True else 0
@@ -697,7 +691,7 @@ def run_large_model(restore_training = True):
         print(true)
         print("PREDICTING THE MODEL")
         pred = ctx.model.predict(
-            ctx.generators["test"], 
+            SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test"), 
             max_queue_size = 16, 
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
@@ -717,7 +711,7 @@ def run_large_model(restore_training = True):
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
         print("PREDICTING THE BEST MODEL")
         pred = ctx.model.predict(
-            ctx.generators["test"], 
+            SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test"), 
             max_queue_size = 16, 
             workers = ctx.inputs.workers, 
             use_multiprocessing = True,
