@@ -17,4 +17,4 @@ def init():
     compile_options = None # dictionary passed to model.compile
     generators = None # in the case of large_run, dictionary of train, validation, test generators
 
-    test_data = None # in the case of large_run, saving the actual filenames and "labels" is needed for prediction
+    test_data = [] # in the case of large_run, saving the actual filenames and "labels" is needed for prediction

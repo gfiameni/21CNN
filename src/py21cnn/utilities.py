@@ -340,11 +340,8 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.n_channels = n_channels
         self.iterations = iterations
         self.data_type = data_type
-        if self.data_type == "test":
-            ctx.test_data = []
         self.__len__()
         self.indexes = np.arange(len(self.list_IDs))
-
 
     def __len__(self):
         'Denotes the number of batches'
@@ -356,16 +353,16 @@ class SimpleDataGenerator(keras.utils.Sequence):
         'Generate one batch of data'
         # Generate indexes of the batch
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-        list_IDs_temp = [self.list_IDs[k] for k in indexes]
-        X, y = self.__data_generation(list_IDs_temp)
+        self.list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        X, y = self.__data_generation(self.list_IDs_temp)
 
-        print("IN SIMPLE DATA GENERATOR", list_IDs_temp)
-
-        if self.data_type == "test":
-            for i in zip(list_IDs_temp, y):
-                ctx.test_data.append(i)
+        print("IN SIMPLE DATA GENERATOR", self.list_IDs_temp)
 
         return X, y
+    def on_batch_end(self):
+        if self.data_type == "test":
+            for i in zip(self.list_IDs_temp, y):
+                ctx.test_data.append(i)
 
     # def on_epoch_end(self):
     #     pass
