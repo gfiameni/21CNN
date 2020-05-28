@@ -686,7 +686,7 @@ def run_large_model(restore_training = True):
     #predict on test data
     if ctx.main_process == True:
         print("EXTRACTING THE LABELS BEFORE PREDICTION")
-        true, IDs = ctx.generators["test"].extract_labels()
+        true, IDs = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, data_type = "test").extract_labels()
         print(IDs)
         print(true)
         print("PREDICTING THE MODEL")
