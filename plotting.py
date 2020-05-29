@@ -207,14 +207,14 @@ for i in range(4):
     interp = 'gaussian'
 #     interp = None
     im = ax_joint.imshow(hist, origin='low', vmin = 0, vmax = 1.5, interpolation=interp, cmap=plt.cm.jet, extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
-    ax_joint.set_xlabel("$%s_{%s} \,\, True$"%(y_range["LatexNames"][i], y_range["LatexUnits"][i]), fontsize = 14)
-    ax_joint.set_ylabel("$%s_{%s} \,\, Pred$"%(y_range["LatexNames"][i], y_range["LatexUnits"][i]), fontsize = 14)
+    ax_joint.set_xlabel("$%s_{%s} \\,\\, True$"%(y_range["LatexNames"][i], y_range["LatexUnits"][i]), fontsize = 14)
+    ax_joint.set_ylabel("$%s_{%s} \\,\\, Pred$"%(y_range["LatexNames"][i], y_range["LatexUnits"][i]), fontsize = 14)
     ax_joint.text(0.12, 0.95, "$R^2 = %.4f$"%(r2_score[i]), horizontalalignment='center', verticalalignment='center', transform=ax_joint.transAxes, fontsize = 16, color='white')
 
     ax_marg_x.hlines(0, minmax[0], minmax[1], colors='k')
     ax_marg_x.errorbar(centers, delta['pred'], deviation['pred'])
     plt.setp(ax_marg_x.get_xticklabels(), visible=False)
-    ax_marg_x.set_ylabel("$\epsilon_{%s}$"%(y_range["LatexUnits"][i]), fontsize = 14)
+    ax_marg_x.set_ylabel("$\\epsilon_{%s}$"%(y_range["LatexUnits"][i]), fontsize = 14)
     ax_marg_x.set_xlim(minmax[0], minmax[1])
 #     ax_marg_x.set_title("$R^2 = %.4f$"%(r2_score[i]) , fontsize = 16)
     ax_marg_x.tick_params(direction='in')
@@ -223,7 +223,7 @@ for i in range(4):
     ax_marg_y.vlines(0, minmax[0], minmax[1], colors='k')
     ax_marg_y.errorbar(delta['true'], centers, xerr = deviation['true'])
     plt.setp(ax_marg_y.get_yticklabels(), visible=False)
-    ax_marg_y.set_xlabel("$\epsilon_{%s}$"%(y_range["LatexUnits"][i]), fontsize = 14)
+    ax_marg_y.set_xlabel("$\\epsilon_{%s}$"%(y_range["LatexUnits"][i]), fontsize = 14)
     ax_marg_y.set_ylim(minmax[0], minmax[1])
     ax_marg_y.tick_params(direction='in')
 
@@ -236,7 +236,7 @@ for i in range(4):
     cbaxes.tick_params(color = 'white')
 
 #     cbar = fig.colorbar(im, ticks=[0, 0.5, 1, 1.5], pad=0.2)
-    cbar.set_label("$\log_{10} (N_{pix} + 1)$", fontsize = 14, labelpad=-40, color='white')
+    cbar.set_label("$\\log_{10} (N_{pix} + 1)$", fontsize = 14, labelpad=-40, color='white')
     plt.savefig(pics_filepath + f'{i}.pdf')
 #     plt.show()
 
@@ -261,7 +261,7 @@ plt.plot(logs['epoch'], np.log10(logs['loss']), label = 'train')
 plt.plot(logs['epoch'], np.log10(logs['val_loss']), label = 'validation')
 plt.legend()
 plt.xlabel("Epoch")
-plt.ylabel("$\log_{10} L$")
+plt.ylabel("$\\log_{10} L$")
 # plt.yticks([-1., -1.5, -2, -2.5])
 plt.grid()
 plt.tight_layout()
