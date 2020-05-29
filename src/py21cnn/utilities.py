@@ -8,6 +8,7 @@ import time
 import copy
 import hashlib
 import numpy as np
+import io
 import tensorflow as tf
 # import keras
 from tensorflow import keras
@@ -325,6 +326,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
                 batch_size,
                 iterations = None,
                 n_channels=1,
+                filename = None,
                 ):
         self.model_type = model_type
         if self.model_type == "RNN":
@@ -338,7 +340,11 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.list_IDs = list_IDs
         self.n_channels = n_channels
         self.iterations = iterations
-        self.data = []
+        # self.data = []
+        if isinstance(filename, str):
+            self.file = open(filename, "w")
+        else:
+            self.file = None
         self.__len__()
         self.indexes = np.arange(len(self.list_IDs))
 
@@ -357,8 +363,10 @@ class SimpleDataGenerator(keras.utils.Sequence):
 
         print("IN SIMPLE DATA GENERATOR", self.list_IDs_temp)
 
-        for i in zip(self.list_IDs_temp, y):
-            self.data.append(i)
+        for ID, label in zip(self.list_IDs_temp, y):
+            self.file.write("{} {:.15f} {:.15f} {:.15f} {:.15f}".format(ID, *label))
+        self.file.flush()
+        os.fsync(self.file.fileno())
 
         return X, y
 
@@ -378,6 +386,13 @@ class SimpleDataGenerator(keras.utils.Sequence):
             y[i] = self.labels[ID]
 
         return X, y
+
+    def close_file(self):
+        if isinstance(self.file, io.TextIOWrapper):
+            try:
+                self.file.close()
+            except:
+                pass
         
     def extract_labels(self):
         """
@@ -663,7 +678,7 @@ def run_large_model(restore_training = True):
     ctx.generators = {
         "train": DataGenerator(partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
         "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"]),
-        # "test": SimpleDataGenerator(partition["test"], **generator_options),
+        # "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
         }
     
     verbose = 2 if ctx.main_process == True else 0
@@ -684,7 +699,7 @@ def run_large_model(restore_training = True):
     #predict on test data
     if ctx.main_process == True:
         print("EXTRACTING THE LABELS BEFORE PREDICTION")
-        last_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options)
+        last_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_last.txt")
         true, IDs = last_generator.extract_labels()
         print(IDs)
         print(true)
@@ -696,10 +711,13 @@ def run_large_model(restore_training = True):
             use_multiprocessing = True,
             verbose = False,
             )
+        last_generator.close_file()
         print(pred)
-        print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
-        print(last_generator.data)
         np.save(f"{ctx.filepath}_prediction_last.npy", pred)
+        print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
+        with open(f"{ctx.filepath}_true_last.txt", "r") as f:
+            for line in f:
+                print(line, end='')
 
         #making prediction from best model
         custom_obj = {}
@@ -709,7 +727,7 @@ def run_large_model(restore_training = True):
             custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
         ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
         print("PREDICTING THE BEST MODEL")
-        best_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options)
+        best_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_best.txt")
         pred = ctx.model.predict(
             best_generator, 
             max_queue_size = 16, 
@@ -717,10 +735,16 @@ def run_large_model(restore_training = True):
             use_multiprocessing = True,
             verbose = False,
             )
+        best_generator.close_file()
         print(pred)
-        print("WHAT'S IN THE best_generator.test_data")
-        print(best_generator.data)
         np.save(f"{ctx.filepath}_prediction_best.npy", pred)
+        print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
+        true = []
+        with open(f"{ctx.filepath}_true_best.txt", "r") as f:
+            for line in f:
+                print(line, end='')
+                true.append([float(i) for i in line.rstrip("\n").split(" ")[1:]])
+        true = np.array(true)
 
         with open(f"{ctx.filepath}_summary.txt", "w") as f:
             f.write(f"DATA: {str(ctx.Data)}\n")
