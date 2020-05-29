@@ -363,10 +363,11 @@ class SimpleDataGenerator(keras.utils.Sequence):
 
         print("IN SIMPLE DATA GENERATOR", self.list_IDs_temp)
 
-        for ID, label in zip(self.list_IDs_temp, y):
-            self.file.write("{} {:.15f} {:.15f} {:.15f} {:.15f}".format(ID, *label))
-        self.file.flush()
-        os.fsync(self.file.fileno())
+        if self.file != None:
+            for ID, label in zip(self.list_IDs_temp, y):
+                self.file.write("{} {:.15f} {:.15f} {:.15f} {:.15f}".format(ID, *label))
+            self.file.flush()
+            os.fsync(self.file.fileno())
 
         return X, y
 
