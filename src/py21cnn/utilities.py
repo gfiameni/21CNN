@@ -134,6 +134,8 @@ class LargeData:
         permutation = Filters.constructIndexArray(ctx.inputs.N_walker, *ctx.inputs.pTVT, 1312)
         # print(permutation)
         Y = np.load(f"{ctx.inputs.data_location}{ctx.inputs.Y_filename}.npy")
+        self.y_max = np.amax(Y, axis = 0)
+        self.y_min = np.amin(Y, axis = 0)
         ctx.inputs.Y_shape = Y.shape[-1]
         self.partition = {
             "train": [], 
@@ -164,6 +166,7 @@ class AuxiliaryHyperparameters:
         model_name,
         Epochs = 200,
         MaxEpochs = 200,
+        NoiseRolling = None,
         # Loss = {"instance": keras.losses.mean_squared_error, "name": "mse"},
         Loss = [keras.losses.mean_squared_error, "mse"],
         # Optimizer = {"instance": keras.optimizers.RMSprop(), "name": "RMSprop"},
@@ -197,15 +200,20 @@ class AuxiliaryHyperparameters:
             "Optimizer": self.Optimizer[1],
             "ActivationFunction": self.ActivationFunction[0],
             }
+        self.NoiseRolling = NoiseRolling
 
     def __str__(self):
         S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[0]}"
         S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}__Epochs:{self.MaxEpochs:05d}"
+        if self.NoiseRolling != None:
+            S += f"__NoiseRolling:{self.NoiseRolling}"
         return S
     def hashstring(self):
         #differences from __str__ in not including epochs
         S = f"Loss:{self.Loss[1]}__Optimizer:{self.Optimizer[1]}__LR:{self.LearningRate:.10f}__Activation:{self.ActivationFunction[0]}"
         S += f"__BN:{self.BatchNormalization}__dropout:{self.Dropout:.2f}__reduceLR:{self.ReducingLR}__Batch:{self.BatchSize:05d}"
+        if self.NoiseRolling != None:
+            S += f"__NoiseRolling:{self.NoiseRolling}"        
         return S
     def hash(self):
         return hashlib.md5(self.hashstring().encode()).hexdigest()
