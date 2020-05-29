@@ -718,7 +718,7 @@ def run_large_model(restore_training = True):
         print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
         with open(f"{ctx.filepath}_true_last.txt", "r") as f:
             for line in f:
-                print(line)
+                print(line, end="")
 
         #making prediction from best model
         custom_obj = {}
@@ -743,7 +743,7 @@ def run_large_model(restore_training = True):
         true = []
         with open(f"{ctx.filepath}_true_best.txt", "r") as f:
             for line in f:
-                print(line)
+                print(line, end="")
                 true.append([float(i) for i in line.rstrip("\n").split(" ")[1:]])
         true = np.array(true)
 
