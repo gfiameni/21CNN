@@ -502,8 +502,9 @@ def define_callbacks():
         horovod_callbacks = [
             hvd.callbacks.BroadcastGlobalVariablesCallback(0),
             hvd.callbacks.MetricAverageCallback(),
-            hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=ctx.inputs.warmup),
             ]
+            if ctx.load_model == False:
+                horovod_callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=ctx.inputs.warmup))
     else:
         horovod_callbacks = []
     
@@ -540,6 +541,7 @@ def define_model(restore_training):
             load_function = hvd.load_model
     else:
         load_model = False
+    ctx.load_model = load_model
 
     #determine steps_per_epoch
     if isinstance(ctx.Data, Data):
@@ -602,8 +604,8 @@ def define_model(restore_training):
 
 def run_model(restore_training = True):
     #build callbacks
-    callbacks = define_callbacks()
     define_model(restore_training)
+    callbacks = define_callbacks()
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
