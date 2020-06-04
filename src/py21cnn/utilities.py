@@ -785,6 +785,15 @@ def predict_large(Type):
         custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
     ctx.model = keras.models.load_model(f"{ctx.filepath}_{Type}.hdf5", custom_objects=custom_obj)
     print(f"PREDICTING THE MODEL {Type}")
+    generator_options = {
+        "labels": ctx.Data.labels, 
+        "dimX": ctx.inputs.X_shape, 
+        "dimY": ctx.inputs.Y_shape,
+        "data_filepath": ctx.inputs.data_location,
+        "model_type": ctx.inputs.model_type,
+        "batch_size": ctx.HP.BatchSize,
+        # "batch_size": 1,
+        }
     generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_{Type}.txt")
     pred = ctx.model.predict(
         generator, 
