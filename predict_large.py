@@ -247,7 +247,7 @@ for i in range(4):
 
 #     cbar = fig.colorbar(im, ticks=[0, 0.5, 1, 1.5], pad=0.2)
     cbar.set_label("$\\log_{10} (N_{pix} + 1)$", fontsize = 14, labelpad=-40, color='white')
-    plt.savefig(f'{ctx.filepath}_true_vs_pred_{i}.pdf')
+    plt.savefig(f'{ctx.filepath}_true_vs_pred_best_{i}.pdf')
 #     plt.show()
 
 
@@ -276,5 +276,5 @@ plt.ylabel("$\\log_{10} L$")
 # plt.yticks([-1., -1.5, -2, -2.5])
 plt.grid()
 plt.tight_layout()
-plt.savefig(f'{ctx.filepath}_loss.pdf')
+plt.savefig(f'{ctx.filepath}_loss_best.pdf')
 # plt.show()
