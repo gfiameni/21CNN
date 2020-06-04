@@ -133,6 +133,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as plticker
 import matplotlib.cm as cm
