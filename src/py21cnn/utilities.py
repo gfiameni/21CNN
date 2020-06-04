@@ -503,8 +503,8 @@ def define_callbacks():
             hvd.callbacks.BroadcastGlobalVariablesCallback(0),
             hvd.callbacks.MetricAverageCallback(),
             ]
-            if ctx.load_model == False:
-                horovod_callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=ctx.inputs.warmup))
+        if ctx.load_model == False:
+            horovod_callbacks.append(hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=ctx.inputs.warmup))
     else:
         horovod_callbacks = []
     
