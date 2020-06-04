@@ -806,7 +806,7 @@ def predict_large(Type):
     # print(pred)
     np.save(f"{ctx.filepath}_prediction_{Type}.npy", pred)
     true = []
-    with open(f"{ctx.filepath}_true_{type}.txt", "r") as f:
+    with open(f"{ctx.filepath}_true_{Type}.txt", "r") as f:
         for line in f:
             print(line, end="")
             true.append([float(i) for i in line.rstrip("\n").split(" ")[1:]])
