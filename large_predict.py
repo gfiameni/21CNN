@@ -119,6 +119,7 @@ ctx.Data = Data
 
 ctx.filepath = f"{ctx.inputs.saving_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}_{ctx.inputs.model[1]}_{ctx.HP.hash()}_{ctx.Data.hash()}"
 ctx.logdir = f"{ctx.inputs.logs_location}{ctx.inputs.file_prefix}{ctx.inputs.model[0]}/{ctx.inputs.model[1]}/{ctx.Data.hash()}/{ctx.HP.hash()}"
+print("FILENAME:", ctx.filepath)
 
 ###############################################################################
 #predicting the model
