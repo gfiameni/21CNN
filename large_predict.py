@@ -163,7 +163,10 @@ y_range = {
 
 # rescaling the actual data
 minimum, maximum = ctx.Data.y_min, ctx.Data.y_max
-print(minimum, maximum)
+print("BEFORE SCALING")
+print("MIN MAX OF THE WHOLE DATA", minimum, maximum)
+print("MIN MAX OF THE TRAIN DATA", np.amin(y_true, axis=0), np.amax(y_true, axis=0))
+print("MIN MAX OF THE PRED DATA", np.amin(y_pred, axis=0), np.amax(y_pred, axis=0))
 y_true = (y_true - minimum)/(maximum - minimum)
 y_pred = (y_pred - minimum)/(maximum - minimum)
 print('min max after scaling to 0-1')
