@@ -132,6 +132,7 @@ HP = utilities.AuxiliaryHyperparameters(
     model_name=f"{ctx.inputs.model[0]}_{ctx.inputs.model[1]}", 
     Epochs=ctx.inputs.epochs, 
     MaxEpochs=ctx.inputs.max_epochs, 
+    NoiseRolling=ctx.inputs.noise_rolling,
     **HP_dict,
     )
 
