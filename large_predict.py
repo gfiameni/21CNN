@@ -130,6 +130,7 @@ y_true, y_pred, r2_score = utilities.predict_large("best")
 ###############################################################################
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as plticker
