@@ -700,7 +700,7 @@ def run_large_model(restore_training = True):
         ctx.generators["train"],
         validation_data=ctx.generators["validation"],
         verbose = verbose,
-        max_queue_size = 16,
+        max_queue_size = 512,
         use_multiprocessing = True,
         workers = ctx.inputs.workers,
         callbacks = callbacks,
@@ -799,7 +799,7 @@ def predict_large(Type):
     generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_{Type}.txt")
     pred = ctx.model.predict(
         generator, 
-        max_queue_size = 16, 
+        max_queue_size = 512, 
         workers = ctx.inputs.workers, 
         use_multiprocessing = True,
         verbose = False,
