@@ -3,6 +3,7 @@ def init():
     global filepath, logdir, main_process
     global fit_options, compile_options, generators
     global test_data
+    global load_model
     
     inputs = None # argparse.Namespace object, with all input variables
     HP = None # py21cnn.utilities.AuxiliaryHyperparameters object
@@ -18,3 +19,5 @@ def init():
     generators = None # in the case of large_run, dictionary of train, validation, test generators
 
     test_data = [] # in the case of large_run, saving the actual filenames and "labels" is needed for prediction
+
+    load_model = None # if we are loading the model or have training from beginning - important for warmup callback
