@@ -488,7 +488,7 @@ def define_callbacks():
 
     if saving_callbacks == True:
         saving_callbacks = [
-            # keras.callbacks.TensorBoard(ctx.logdir, update_freq='batch'),
+            keras.callbacks.TensorBoard(ctx.logdir, update_freq="epoch"),
             # hp.KerasCallback(logdir, HP_TensorBoard),
             TimeHistory(f"{ctx.filepath}_time.txt"),
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
@@ -677,7 +677,8 @@ def run_large_model(restore_training = True):
     if ctx.inputs.noise_rolling == True:
         partition = {
             "train": ctx.Data.noise_rolling_partition["train"],
-            "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
+            "validation": ctx.Data.partition["validation"],
+            # "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
             # "test": ctx.Data.partition["test"],
         }
     else:
