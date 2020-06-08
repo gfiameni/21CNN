@@ -312,15 +312,6 @@ class DataGenerator(keras.utils.Sequence):
 
         return X, y
 
-    def extract_labels(self):
-        """
-        Extracting all the labels, used for testing purposes to access true values of 'labels'
-        """
-        y = np.empty((len(self.list_IDs), self.dimY))
-        for i, ID in enumerate(self.list_IDs):
-            y[i] = self.labels[ID]
-        return y, self.list_IDs
-
 class SimpleDataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
@@ -404,7 +395,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
         
     def extract_labels(self):
         """
-        Extracting all the labels, used for testing purposes to access true values of 'labels'
+        Extracting all the labels, used for testing to access true values of 'labels'
         """
         labels = []
         IDs = []
