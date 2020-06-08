@@ -593,9 +593,9 @@ def define_model(restore_training):
             ctx.compile_options["optimizer"] = hvd.DistributedOptimizer(ctx.compile_options["optimizer"])
 
 def run_model(restore_training = True):
-    #build callbacks
-    define_model(restore_training)
+    #build callbacks and model
     callbacks = define_callbacks()
+    define_model(restore_training)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
@@ -650,7 +650,7 @@ def run_model(restore_training = True):
         time.sleep(float(epoch_time) * 0.2)
     
 def run_large_model(restore_training = True):
-    #build callbacks
+    #build callbacks and model
     callbacks = define_callbacks()
     define_model(restore_training)
     if len(ctx.compile_options) > 0:
