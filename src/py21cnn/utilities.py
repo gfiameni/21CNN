@@ -253,7 +253,6 @@ class DataGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
         self.iterations = iterations
         self.__len__()
-        self.iteration_index = 0
         self.on_epoch_end()
 
     def __len__(self):
