@@ -112,7 +112,7 @@ ctx.HP = HP
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
 data_shape = ctx.inputs.X_shape[::-1] + (1,) if ctx.inputs.model_type == "RNN" else ctx.inputs.X_shape + (1,)
-Data = utilities.LargeData(ctx, dimensionality = 3, shape = data_shape)
+Data = utilities.LargeData(dimensionality = 3, shape = data_shape)
 
 print("DATA:", str(Data))
 ctx.Data = Data

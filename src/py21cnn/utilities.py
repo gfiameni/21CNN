@@ -85,7 +85,6 @@ class Data:
 class LargeData:
     def __init__(
         self,
-        ctx,
         dimensionality = 2,
         removed_average = True,
         normalized = True,
@@ -115,7 +114,7 @@ class LargeData:
             self.formatting = formatting
         self.noise = noise + [f"walkers_{ctx.inputs.N_walker}", f"slices_{ctx.inputs.N_slice}", f"noise_{ctx.inputs.N_noise}"]
         self.shape = shape
-        self.load(ctx)
+        self.load()
 
     def __str__(self):
         self.formatting.sort()
@@ -130,7 +129,7 @@ class LargeData:
     def hash(self):
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
-    def load(self, ctx):
+    def load(self):
         permutation = Filters.constructIndexArray(ctx.inputs.N_walker, *ctx.inputs.pTVT, 1312)
         # print(permutation)
         Y = np.load(f"{ctx.inputs.data_location}{ctx.inputs.Y_filename}.npy")
@@ -145,11 +144,11 @@ class LargeData:
             "train": [], 
             "validation": [], 
             "test": []}
-        for key in list(self.noise_rolling_partition.keys()):
+        keys = list(self.partition.keys())
+        for key in keys:
             for seed in range(ctx.inputs.N_noise):
                 self.noise_rolling_partition[key].append([])
         self.labels = {}
-        keys = list(self.partition.keys())
         for walker in range(ctx.inputs.N_walker):
             for s in range(ctx.inputs.N_slice):
                 for seed in range(ctx.inputs.N_noise):
