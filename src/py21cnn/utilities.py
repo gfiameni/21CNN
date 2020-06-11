@@ -666,8 +666,8 @@ def run_large_model(restore_training = True):
     if ctx.inputs.noise_rolling == True:
         partition = {
             "train": ctx.Data.noise_rolling_partition["train"],
-            "validation": ctx.Data.partition["validation"],
-            # "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
+            # "validation": ctx.Data.partition["validation"],
+            "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
             # "test": ctx.Data.partition["test"],
         }
     else:
