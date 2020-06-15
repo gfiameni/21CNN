@@ -26,7 +26,7 @@ def multiplicative_factor(z):
 
 print("calculating muliplicative factors")
 multiplicative_fact = np.array([multiplicative_factor(z) for z in redshifts_mean])
-multiplicative_fact = multiplicative_fact[..., np.newaxis, np.newaxis, np.newaxis]
+multiplicative_fact = multiplicative_fact[..., np.newaxis, np.newaxis, np.newaxis].astype(np.float32)
 
 #for the total cube
 k_perp = np.fft.fftfreq(Box_shape[0], d=1.5)
@@ -35,9 +35,9 @@ k_cube = np.meshgrid(k_perp, k_perp, k_parallel)
 
 print("calculating for 2107 cube")
 W = k_cube[2] / np.sqrt(k_cube[0]**2 + k_cube[1]**2)
-W = np.broadcast_to(W[np.newaxis, ...], (Box_shape[-1], *Box_shape))
+W = np.broadcast_to(W[np.newaxis, ...], (Box_shape[-1], *Box_shape)).astype(np.float32)
 W = W / multiplicative_fact
-W = 1 - ((W >= -1.) * (W <= 1.)).astype(np.float32)
+W = ~((W >= -1.) * (W <= 1.)) # ~ is negative a of bool array, saved as bool to save memory
 np.save("W_2107.npy", W)
 
 #for 200 slice
@@ -46,7 +46,7 @@ k = np.fft.fftfreq(200, d=1.5)
 k_cube = np.meshgrid(k, k, k)
 
 W = k_cube[2] / np.sqrt(k_cube[0]**2 + k_cube[1]**2)
-W = np.broadcast_to(W[np.newaxis, ...], (Box_shape[-1],) + (200,)*3)
+W = np.broadcast_to(W[np.newaxis, ...], (Box_shape[-1],) + (200,)*3).astype(np.float32)
 W = W / multiplicative_fact
-W = 1 - ((W >= -1.) * (W <= 1.)).astype(np.float32)
+W = ~((W >= -1.) * (W <= 1.))
 np.save("W_200.npy", W)
