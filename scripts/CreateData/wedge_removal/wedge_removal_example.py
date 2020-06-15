@@ -1,3 +1,11 @@
+import time
+tic = time.time()
+def timing():
+    global tic
+    toc = time.time()
+    print(toc-tic)
+    tic = toc
+    
 import argparse
 parser = argparse.ArgumentParser(prog = 'Run Model')
 parser.add_argument('--WalkerID', type=int, choices=range(10000), default=0)
@@ -90,6 +98,9 @@ def noise(depth_mhz, seed_index):
     return finalBox
 
 Noise = noise(inputs.depth_mhz, seed_index = 0).astype(np.float32)
+box_n_noise = np.fft.fft2(Box, axes=(0, 1)) + Noise
+box_n_noise[uv_bool] = 0
+box_n_noise = np.real(np.fft.ifft2(box_n_noise, axes=(0, 1)))
 
 def simple_sliding(W_bool, Box):
     assert(W_bool.shape[-1] == Box.shape[-1])
@@ -100,7 +111,7 @@ def simple_sliding(W_bool, Box):
     Box_inv[uv_bool] = 0
     Box_inv = np.fft.fft(Box_inv, axis = -1)
     
-    for i in range(Box.shape[-1])
+    for i in range(Box.shape[-1]):
         print(i, end=' ')
         Box_final[..., i] = np.real(np.fft.ifftn(Box_inv * W_bool[i, ...]))[..., i]
     return Box_final
@@ -145,7 +156,7 @@ def slicing(W_bool, Box, chunk_length = 200):
         Box_final[..., i * chunk_length: (i + 1) * chunk_length] = np.real(np.fft.ifftn(np.fft.fft(t_box, axis = -1) * W_bool[W_index, ...]))
     return Box_final
 
-def plotting(box, box_cleaned, filename):
+def plotting(box, box_cleaned, box_n_noise, filename):
     fig, ax =plt.subplots(2, 1, figsize=(25, 3*2))
     im = ax[0].imshow(box[0], vmin = -1e2, vmax = 1e2)
     ax[0].set_xticks(np.array(range(9)) * 250)
@@ -154,7 +165,6 @@ def plotting(box, box_cleaned, filename):
     plt.colorbar(im, ax = ax[0], fraction=0.005, pad=0.005)
     ax[0].set_title("signal + noise", fontsize=16)
 
-    fig, ax =plt.subplots(2, 1, figsize=(25, 3*2))
     im = ax[1].imshow(box_cleaned[0], vmin = -1e2, vmax = 1e2)
     ax[1].set_xticks(np.array(range(9)) * 250)
     ax[1].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
@@ -165,19 +175,26 @@ def plotting(box, box_cleaned, filename):
     plt.savefig(filename)
 #     plt.show()
 
+timing()
+print("LOADING LARGE W")
 W_bool = np.load(f"{inputs.W_filepath}W_2107.npy")
-
+timing()
+print("CALCULATING simple_sliding")
 Box_final = simple_sliding(W_bool, Box)
-plotting(Box, Box_final, "simple_sliding.pdf")
-
-
+plotting(Box, Box_final, box_n_noise, f"{inputs.saving_location}simple_sliding_{inputs.WalkerID:04d}.pdf")
+timing()
+print("LOADING SMALL W")
 W_bool = np.load(f"{inputs.W_filepath}W_200.npy")
-
+timing()
+print("CALCULATING sliding_blackman")
 Box_final = sliding(W_bool, Box, blackman = True)
-plotting(Box, Box_final, "sliding_blackman.pdf")
-
+plotting(Box, Box_final, box_n_noise, f"{inputs.saving_location}sliding_blackman_{inputs.WalkerID:04d}.pdf")
+timing()
+print("CALCULATING sliding")
 Box_final = sliding(W_bool, Box, blackman = False)
-plotting(Box, Box_final, "sliding.pdf")
-
+plotting(Box, Box_final, box_n_noise, f"{inputs.saving_location}sliding_{inputs.WalkerID:04d}.pdf")
+timing()
+print("CALCULATING slicing")
 Box_final = slicing(W_bool, Box)
-plotting(Box, Box_final, "slicing.pdf")
+plotting(Box, Box_final, box_n_noise, f"{inputs.saving_location}slicing_{inputs.WalkerID:04d}.pdf")
+timing()
