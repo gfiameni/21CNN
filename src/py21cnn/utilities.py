@@ -149,12 +149,17 @@ class LargeData:
             for seed in range(ctx.inputs.N_noise):
                 self.noise_rolling_partition[key].append([])
         self.labels = {}
+        if ctx.inputs.load_all == True:
+            self.inputs = {}
         for walker in range(ctx.inputs.N_walker):
             for s in range(ctx.inputs.N_slice):
                 for seed in range(ctx.inputs.N_noise):
-                    self.partition[keys[permutation[walker]]].append(ctx.inputs.X_fstring.format(walker, s, seed))
-                    self.noise_rolling_partition[keys[permutation[walker]]][seed].append(ctx.inputs.X_fstring.format(walker, s, seed))
-                    self.labels[ctx.inputs.X_fstring.format(walker, s, seed)] = Y[walker]
+                    ID = ctx.inputs.X_fstring.format(walker, s, seed)
+                    self.partition[keys[permutation[walker]]].append(ID)
+                    self.noise_rolling_partition[keys[permutation[walker]]][seed].append(ID)
+                    self.labels[ID] = Y[walker]
+                    if ctx.inputs.load_all == True:
+                        self.inputs[ID] = np.load(f"{ctx.inputs.data_location}{ID}.npy")
         # print(self.partition)
 
 
@@ -302,12 +307,16 @@ class DataGenerator(keras.utils.Sequence):
             return np.load(filename)[..., np.newaxis]
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples'
-        X = np.empty((self.batch_size, *self.dimX, self.n_channels))
-        y = np.empty((self.batch_size, self.dimY))
+        X = np.empty((self.batch_size, *self.dimX, self.n_channels), dtype = np.float32)
+        y = np.empty((self.batch_size, self.dimY), dtype = np.float32)
 
         for i, ID in enumerate(list_IDs_temp):
-            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            y[i] = self.labels[ID]
+            if ctx.inputs.load_all == True:
+                X[i,] = self.inputs[ID]
+                y[i] = self.labels[ID]
+            else:
+                X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+                y[i] = self.labels[ID]
 
         return X, y
 
