@@ -58,7 +58,7 @@ BoxAverage = Filters.RemoveLargeZ(BoxAverage, database, Z=Zmax)
 Box -= BoxAverage
 Box = Box.astype(np.float32)
 
-uv = np.load(inputs.uv_filename)
+uv = np.load(inputs.uv_filename).astype(np.float32)
 uv_bool = (uv < 1)
 
 import tools21cm as t2c
