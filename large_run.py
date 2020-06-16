@@ -21,7 +21,7 @@ parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 0)
 parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
 parser.add_argument('--workers', type=int, default=24)
 # parser.add_argument('--load_all', type=int, default=0)
-# parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=2)
+parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=2)
 
 parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--saving_location', type=str, default="models/")
