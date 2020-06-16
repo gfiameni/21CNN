@@ -334,7 +334,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
                 data_filepath,
                 model_type,
                 batch_size,
-                load_all,
+                # load_all,
                 iterations = None,
                 n_channels=1,
                 filename = None,
@@ -347,7 +347,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.dimY = dimY
         self.data_filepath = data_filepath
         self.batch_size = batch_size
-        self.load_all = load_all
+        # self.load_all = load_all
         self.labels = labels
         self.list_IDs = list_IDs
         self.n_channels = n_channels
