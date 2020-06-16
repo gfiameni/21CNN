@@ -233,6 +233,7 @@ class DataGenerator(keras.utils.Sequence):
                 data_filepath,
                 model_type,
                 batch_size,
+                load_all,
                 initial_epoch,
                 N_noise,
                 noise_rolling,
@@ -248,6 +249,7 @@ class DataGenerator(keras.utils.Sequence):
         self.dimY = dimY
         self.data_filepath = data_filepath
         self.batch_size = batch_size
+        self.load_all = load_all
         self.labels = labels
         self.list_IDs = list_IDs
         self.N_noise = N_noise
@@ -311,7 +313,7 @@ class DataGenerator(keras.utils.Sequence):
         y = np.empty((self.batch_size, self.dimY), dtype = np.float32)
 
         for i, ID in enumerate(list_IDs_temp):
-            if ctx.inputs.load_all == True:
+            if self.load_all == True:
                 X[i,] = self.inputs[ID]
                 y[i] = self.labels[ID]
             else:
@@ -330,6 +332,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
                 data_filepath,
                 model_type,
                 batch_size,
+                load_all,
                 iterations = None,
                 n_channels=1,
                 filename = None,
@@ -342,6 +345,7 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.dimY = dimY
         self.data_filepath = data_filepath
         self.batch_size = batch_size
+        self.load_all = load_all
         self.labels = labels
         self.list_IDs = list_IDs
         self.n_channels = n_channels
@@ -389,8 +393,12 @@ class SimpleDataGenerator(keras.utils.Sequence):
         y = np.empty((self.batch_size, self.dimY))
 
         for i, ID in enumerate(list_IDs_temp):
-            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            y[i] = self.labels[ID]
+            if self.load_all == True:
+                X[i,] = self.inputs[ID]
+                y[i] = self.labels[ID]
+            else:
+                X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+                y[i] = self.labels[ID]
 
         return X, y
 
@@ -671,6 +679,7 @@ def run_large_model(restore_training = True):
         "data_filepath": ctx.inputs.data_location,
         "model_type": ctx.inputs.model_type,
         "batch_size": ctx.HP.BatchSize,
+        "load_all": ctx.inputs.load_all,
         }
     if ctx.inputs.noise_rolling == True:
         partition = {
