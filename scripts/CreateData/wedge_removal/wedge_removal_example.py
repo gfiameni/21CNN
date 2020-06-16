@@ -160,7 +160,7 @@ def slicing(W_bool, Box, chunk_length = 200):
     return Box_final
 
 def plotting(box, box_cleaned, box_n_noise, filename):
-    fig, ax =plt.subplots(2, 1, figsize=(25, 3*2))
+    fig, ax =plt.subplots(2, 1, figsize=(25, 3*3))
     im = ax[0].imshow(box[0], vmin = -1e2, vmax = 1e2)
     ax[0].set_xticks(np.array(range(9)) * 250)
     ax[0].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
@@ -168,12 +168,19 @@ def plotting(box, box_cleaned, box_n_noise, filename):
     plt.colorbar(im, ax = ax[0], fraction=0.005, pad=0.005)
     ax[0].set_title("signal + noise", fontsize=16)
 
-    im = ax[1].imshow(box_cleaned[0], vmin = -1e2, vmax = 1e2)
+    im = ax[1].imshow(box_n_noise[0], vmin = -1e2, vmax = 1e2)
     ax[1].set_xticks(np.array(range(9)) * 250)
     ax[1].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
     ax[1].set_yticks([])
     plt.colorbar(im, ax = ax[1], fraction=0.005, pad=0.005)
-    ax[1].set_title("signal + noise + wedge removal", fontsize=16)
+    ax[1].set_title("signal + noise", fontsize=16)
+
+    im = ax[2].imshow(box_cleaned[0], vmin = -1e2, vmax = 1e2)
+    ax[2].set_xticks(np.array(range(9)) * 250)
+    ax[2].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
+    ax[2].set_yticks([])
+    plt.colorbar(im, ax = ax[1], fraction=0.005, pad=0.005)
+    ax[2].set_title("signal + noise + wedge_removal", fontsize=16)
     # plt.suptitle(f"uv lightcone", fontsize=20)
     plt.savefig(filename)
 #     plt.show()
