@@ -618,7 +618,7 @@ def run_model(restore_training = True):
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
-    verbose = ctx.inputs.verbose if ctx.main_process == True else 0
+    verbose = 2 if ctx.main_process == True else 0
     # verbose = 2
 
     #fit model
@@ -703,7 +703,7 @@ def run_large_model(restore_training = True):
         # "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
         }
     
-    verbose = ctx.inputs.verbose if ctx.main_process == True else 0
+    verbose = 2 if ctx.main_process == True else 0
     # verbose = 2
 
     #fit model
