@@ -168,6 +168,9 @@ def slicing(W_bool, Box, chunk_length = 200):
     return Box_final
 
 def plotting(box, box_cleaned, box_n_noise, filename):
+    box = box.get()
+    box_cleaned = box_cleaned.get()
+    box_n_noise = box_n_noise.get()
     fig, ax =plt.subplots(2, 1, figsize=(25, 3*3))
     im = ax[0].imshow(box[0], vmin = -1e2, vmax = 1e2)
     ax[0].set_xticks(np.array(range(9)) * 250)
