@@ -102,7 +102,7 @@ def noise(depth_mhz, seed_index):
 #     finalBox[uv_bool] = 0
     return finalBox
 
-Noise = noise(inputs.depth_mhz, seed_index = 0).astype(np.float32)
+Noise = noise(inputs.depth_mhz, seed_index = 0).astype(np.complex64)
 #move everything to GPU
 Noise = cp.asarray(Noise)
 uv = cp.asarray(uv)
@@ -121,7 +121,7 @@ def simple_sliding(W_bool, Box):
         # box_inv = np.copy(Box_inv)
         # box_inv[W_bool[i, ...]] = 0
         # Box_final[..., i] = np.real(np.fft.ifftn(box_inv))[..., i]
-        w = cp.asarray(W_bool[..., i]) # as W_bool is too large for GPU
+        w = cp.asarray(W_bool[i, ...]) # as W_bool is too large for GPU
         Box_final[..., i] = cp.real(cp.fft.ifftn(Box_inv * w))[..., i]
     return Box_final
 
