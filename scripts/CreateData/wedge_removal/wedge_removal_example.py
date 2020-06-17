@@ -181,7 +181,7 @@ def plotting(box, box_cleaned, box_n_noise, filename):
     ax[2].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
     ax[2].set_yticks([])
     plt.colorbar(im, ax = ax[1], fraction=0.005, pad=0.005)
-    ax[2].set_title("signal + noise + wedge_removal", fontsize=16)
+    ax[2].set_title("signal + noise + wedge removal", fontsize=16)
     # plt.suptitle(f"uv lightcone", fontsize=20)
     plt.savefig(filename)
 #     plt.show()
