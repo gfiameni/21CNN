@@ -497,7 +497,7 @@ def define_callbacks():
 
     if saving_callbacks == True:
         saving_callbacks = [
-            keras.callbacks.TensorBoard(ctx.logdir, update_freq="epoch"),
+            # keras.callbacks.TensorBoard(ctx.logdir, update_freq="epoch"),
             # hp.KerasCallback(logdir, HP_TensorBoard),
             TimeHistory(f"{ctx.filepath}_time.txt"),
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
