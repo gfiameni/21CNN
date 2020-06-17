@@ -79,6 +79,7 @@ d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
 cdist = np.array(range(Box.shape[-1] + 1))*1.5 + d0
 redshifts = t2c.cosmology.cdist_to_z(cdist)
 redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
+print(f"redshifts_mean {redshifts_mean.shape}")
 
 def noise(depth_mhz, seed_index):
     finalBox = []
