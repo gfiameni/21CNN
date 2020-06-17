@@ -117,7 +117,6 @@ def simple_sliding(W_bool, Box):
     Box_inv = cp.fft.fft(Box_inv, axis = -1)
     
     for i in range(Box.shape[-1]):
-        print(i, end=' ')
         # box_inv = np.copy(Box_inv)
         # box_inv[W_bool[i, ...]] = 0
         # Box_final[..., i] = np.real(np.fft.ifftn(box_inv))[..., i]
