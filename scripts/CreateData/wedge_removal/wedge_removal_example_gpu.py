@@ -133,7 +133,7 @@ def sliding(W_bool, Box, chunk_length = 200, blackman = True):
     
     BM = cp.blackman(chunk_length)[cp.newaxis, cp.newaxis, :]
     
-    for i in len(redshifts_mean):
+    for i in range(Box.shape[-1]):
         w = cp.asarray(W_bool[i, ...]) #should put on GPU the whole W in final version
         if i < chunk_length // 2 or i > Box.shape[-1] - chunk_length // 2:
             continue
