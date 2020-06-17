@@ -168,7 +168,7 @@ def plotting(box, box_cleaned, box_n_noise, filename):
     box = box.get()
     box_cleaned = box_cleaned.get()
     box_n_noise = box_n_noise.get()
-    fig, ax =plt.subplots(2, 1, figsize=(25, 3*3))
+    fig, ax =plt.subplots(3, 1, figsize=(25, 3*3))
     im = ax[0].imshow(box[0], vmin = -1e2, vmax = 1e2)
     ax[0].set_xticks(np.array(range(9)) * 250)
     ax[0].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
