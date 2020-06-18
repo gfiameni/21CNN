@@ -42,10 +42,12 @@ uv_cpu = np.load(inputs.uv_filename).astype(np.float32)
 uv_gpu = cp.asarray(uv_cpu)
 uv_bool = (uv_gpu < 1)
 
-averages = cp.empty((10000, 1, 1, 2107))
+Box_shape = (200, 200, 2107)
+
+averages = cp.empty((10000, 1, 1, Box_shape[-1]))
 for walker in range(10000):
     average = np.load(inputs.averages_fstring.format(walker)).astype(np.float32)
-    average = Filters.RemoveLargeZ(BoxAverage, database, Z=Zmax)
+    average = Filters.RemoveLargeZ(average, database, Z=Zmax)
     averages[walker, ...] = cp.asarray(average)
 
 
@@ -60,7 +62,7 @@ t2c.const.set_ns(0.968)
 t2c.const.set_sigma_8(0.815)
 
 d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
-cdist = np.array(range(Box.shape[-1] + 1))*1.5 + d0
+cdist = np.array(range(Box_shape[-1] + 1))*1.5 + d0
 redshifts = t2c.cosmology.cdist_to_z(cdist)
 redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
 
