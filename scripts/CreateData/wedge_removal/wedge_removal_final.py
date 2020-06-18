@@ -1,7 +1,7 @@
 import argparse
 parser = argparse.ArgumentParser(prog = 'wedge removal')
 parser.add_argument('--max_WalkerID', type=int, default=10000)
-parser.add_argument('--noise_realization', type=int, default=0)
+parser.add_argument('--seed_index', type=int, default=0)
 parser.add_argument('--uv_filename', type=str, default='uv_final.npy')
 parser.add_argument('--saving_fstring', type=str, default='lightcone_depthMhz_0_walker_{:04d}_slice_{:d}_seed_{:d}')
 parser.add_argument('--averages_fstring', type=str, default='averages_{}_float32.npy')
