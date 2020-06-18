@@ -1,7 +1,7 @@
 import argparse
 parser = argparse.ArgumentParser(prog = 'wedge removal')
-# parser.add_argument('--WalkerID', type=int, choices=range(10000), default=0)
-parser.add_argument('--noise_realization', type=int, choice=range(10), default=0)
+parser.add_argument('--max_WalkerID', type=int, default=10000)
+parser.add_argument('--noise_realization', type=int, default=0)
 parser.add_argument('--uv_filename', type=str, default='uv_final.npy')
 parser.add_argument('--W_filepath', type=str, default='')
 parser.add_argument('--saving_fstring', type=str, default='lightcone_depthMhz_0_walker_{:04d}_slice_{:d}_seed_{:d}')
@@ -44,8 +44,8 @@ uv_bool = (uv_gpu < 1)
 
 Box_shape = (200, 200, 2107)
 
-averages = cp.empty((10000, 1, 1, Box_shape[-1]))
-for walker in range(10000):
+averages = cp.empty((inputs.max_WalkerID, 1, 1, Box_shape[-1]))
+for walker in range(inputs.max_WalkerID):
     average = np.load(inputs.averages_fstring.format(walker)).astype(np.float32)
     average = Filters.RemoveLargeZ(average, database, Z=Zmax)
     averages[walker, ...] = cp.asarray(average)
@@ -133,8 +133,8 @@ def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
     return cp.einsum('ijklmn->ikm', data[:s[0]//Nx*Nx, :s[1]//Ny*Ny, :s[2]//Nz*Nz].reshape((s[0]//Nx, Nx, s[1]//Ny, Ny, s[2]//Nz, Nz))) / (Nx*Ny*Nz).astype(np.float32)
 
 
-result = np.empty((10000, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
-for walker in range(10000):
+result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
+for walker in range(inputs.max_WalkerID):
     if walker%10 == 0:
         print(walker, end= " ")
     Noise = noise(inputs.depth_mhz, inputs.seed_index, walker)
@@ -151,7 +151,7 @@ for walker in range(10000):
     result[walker, ...] = BoxCar3D_smart(manual_sliding(Box, Noise, wedge_correction=inputs.wedge_correction)).get()
 
 print("saving data")
-for walker in range(10000):
+for walker in range(inputs.max_WalkerID):
     np.save(inputs.saving_fstring.format(walker, 0, inputs.seed_index), result[walker, :25, :25, :])
     np.save(inputs.saving_fstring.format(walker, 1, inputs.seed_index), result[walker, :25, 25:, :])
     np.save(inputs.saving_fstring.format(walker, 2, inputs.seed_index), result[walker, 25:, :25, :])
