@@ -712,8 +712,8 @@ def run_large_model(restore_training = True):
         validation_data=ctx.generators["validation"],
         verbose = verbose,
         max_queue_size = 512,
-        use_multiprocessing = True,
-        workers = ctx.inputs.workers,
+        # use_multiprocessing = True,
+        # workers = ctx.inputs.workers,
         callbacks = callbacks,
         **ctx.fit_options,
         )
