@@ -153,14 +153,14 @@ def sliding(W_bool, Box, chunk_length = 200, blackman = True):
 def slicing(W_bool, Box, chunk_length = 200):
     assert(W_bool.shape[-1] == chunk_length)
     slices = Box.shape[-1] // chunk_length
-    Box_final = cp.empty(slices * chunk_length, dtype = np.float32)
+    Box_final = cp.empty((Box.shape[0], Box.shape[1], slices * chunk_length), dtype = np.float32)
 #     Noise = noise(inputs.depth_mhz, seed_index = 0).astype(np.float32)
     Box_uv = cp.fft.fft2(Box, axes=(0, 1)) + Noise
     Box_uv[uv_bool] = 0
     
     for i in range(slices):
         t_box = Box_uv[..., i * chunk_length: (i + 1) * chunk_length]
-        W_index = (i + 1) * slices if i != slices - 1 else -1
+        W_index = (i + 1) * slices
         w = cp.asarray(W_bool[W_index, ...])
         Box_final[..., i * chunk_length: (i + 1) * chunk_length] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))
     return Box_final
@@ -188,7 +188,7 @@ def plotting(box, box_cleaned, box_n_noise, filename):
     ax[2].set_xticks(np.array(range(9)) * 250)
     ax[2].set_xticklabels([ f"{i:.1f}" for i in t2c.cosmology.cdist_to_z(np.array(range(9)) * 250 * 1.5 + d0)])
     ax[2].set_yticks([])
-    plt.colorbar(im, ax = ax[1], fraction=0.005, pad=0.005)
+    plt.colorbar(im, ax = ax[2], fraction=0.005, pad=0.005)
     ax[2].set_title("signal + noise + wedge removal", fontsize=16)
     # plt.suptitle(f"uv lightcone", fontsize=20)
     plt.savefig(filename)
