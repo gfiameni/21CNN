@@ -139,7 +139,7 @@ for walker in range(inputs.max_WalkerID):
     Noise = noise(inputs.depth_mhz, inputs.seed_index, walker)
     Noise = cp.asarray(Noise)
 
-    Box = database.CombineBoxes(inputs.WalkerID)
+    Box = database.CombineBoxes(walker)
     Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
     np.nan_to_num(Box, copy=False, nan=deltaTmin, posinf=deltaTmax, neginf=deltaTmin)
     Box = cp.asarray(Box)
