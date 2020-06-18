@@ -1,3 +1,11 @@
+import time
+tic = time.time()
+def timing(end = '\n'):
+    global tic
+    toc = time.time()
+    print(toc-tic, end=end)
+    tic = toc
+
 import argparse
 parser = argparse.ArgumentParser(prog = 'wedge removal')
 parser.add_argument('--max_WalkerID', type=int, default=10000)
@@ -133,9 +141,9 @@ def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
 
 
 result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
+
+timing()
 for walker in range(inputs.max_WalkerID):
-    if walker%10 == 0:
-        print(walker, end= " ")
     Noise = noise(inputs.depth_mhz, inputs.seed_index, walker)
     Noise = cp.asarray(Noise)
 
@@ -148,6 +156,8 @@ for walker in range(inputs.max_WalkerID):
     Box = Box.astype(np.float32)
 
     result[walker, ...] = BoxCar3D_smart(manual_sliding(Box, Noise, wedge_correction=inputs.wedge_correction)).get()
+
+    timing(" ")
 
 print("saving data")
 for walker in range(inputs.max_WalkerID):
