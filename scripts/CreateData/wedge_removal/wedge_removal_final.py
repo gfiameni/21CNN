@@ -129,7 +129,7 @@ def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
     s = data.shape
     if len(s) != 3:
         raise AttributeError("data has to be 3D")
-    return cp.einsum('ijklmn->ikm', data[:s[0]//Nx*Nx, :s[1]//Ny*Ny, :s[2]//Nz*Nz].reshape((s[0]//Nx, Nx, s[1]//Ny, Ny, s[2]//Nz, Nz))) / (Nx*Ny*Nz).astype(np.float32)
+    return (cp.einsum('ijklmn->ikm', data[:s[0]//Nx*Nx, :s[1]//Ny*Ny, :s[2]//Nz*Nz].reshape((s[0]//Nx, Nx, s[1]//Ny, Ny, s[2]//Nz, Nz))) / (Nx*Ny*Nz)).astype(np.float32)
 
 
 result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
