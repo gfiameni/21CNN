@@ -45,7 +45,7 @@ def multiplicative_factor(z):
 multiplicative_fact = cp.array([multiplicative_factor(z) for z in redshifts_mean]).astype(np.float32)
 
 W_bool = cp.empty((Box_shape[-1],) + inputs.dimensions, dtype = bool)
-for i in range(len(multiplicative_fact.shape)):
+for i in range(len(multiplicative_fact)):
     W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * (multiplicative_fact[i] / inputs.wedge_correction) + BM_smoothing)
     W_bool[i, ...] = cp.logical_or(W < -1., W > 1.)
 
