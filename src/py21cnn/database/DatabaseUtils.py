@@ -1,11 +1,13 @@
 import numpy as np
+import cupy as cp
 
 class Database:
     def __init__(self, Parameters, Redshifts, 
                  BoxesPath = "", ParametersPath = "", 
                  BoxType = "delta_T", BoxRes = 200, BoxSize = 300,
                  WalkerID = 0, WalkerSteps = 10000, 
-                 Dtype = 'float32'):
+                 Dtype = 'float32',
+                 xp = np):
         self.BoxesPath = BoxesPath
         self.ParametersPath = ParametersPath
         self.BoxType = BoxType
@@ -16,7 +18,7 @@ class Database:
         self.WalkerSteps = WalkerSteps
         self.Parameters = Parameters
         self.Dtype = Dtype
-
+        self.xp = xp
         self.NumBoxes = len(Redshifts) - 1
 
     def CreateFilepath(self, RedshiftIndex, WalkerIndex):
@@ -36,7 +38,7 @@ class Database:
 
         filepath = self.CreateFilepath(RedshiftIndex, WalkerIndex)
         
-        f = np.fromfile(open(filepath,'rb'), dtype = np.dtype(self.Dtype))
+        f = self.xp.fromfile(open(filepath,'rb'), dtype = np.dtype(self.Dtype))
         f = f.reshape((int(self.BoxRes), int(self.BoxRes), int(len(f) / self.BoxRes**2))) #I assume z is axis=2, therefore last axis is not generally dim=BoxRes
         f = f.astype(self.Dtype)
         return f
@@ -52,7 +54,7 @@ class Database:
         for i in range(StartIndex + 1, StartIndex + NumberOfBoxes):
             #not sure about the axis = 0, 1, 2? It seems from 21cmFAST, it should be axis=0
             #but from created images, axis 2 is the right one
-            Box = np.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2)
+            Box = self.xp.concatenate((Box, self.LoadBox(i, WalkerIndex)), axis=2)
             # print(i)
         Box = Box.astype(self.Dtype)
         return Box

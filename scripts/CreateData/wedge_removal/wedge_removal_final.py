@@ -41,7 +41,7 @@ plt.rc('font', family='serif')
 Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '011.42503', \
             '013.25424', '015.51874', '018.36856', '022.02434', '026.82138', '033.28927', '034.50984']
 Parameters = ["ZETA", "TVIR_MIN", "L_X", "NU_X_THRESH"]
-database = DatabaseUtils.Database(Parameters, Redshifts, inputs.BoxesPath, inputs.ParametersPath)
+database = DatabaseUtils.Database(Parameters, Redshifts, inputs.BoxesPath, inputs.ParametersPath, xp = cp)
 deltaTmin = -250
 deltaTmax = 50
 Zmax = 30
@@ -150,10 +150,11 @@ for walker in range(inputs.max_WalkerID):
 
     Box = database.CombineBoxes(walker)
     Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
-    Box = cp.asarray(Box)
-    print("nans", cp.sum(cp.isnan(Box)))
-    print("infs", cp.sum(cp.isinf(Box)))
-    cp.nan_to_num(Box, copy=False, nan=deltaTmin)
+    # Box = cp.asarray(Box)
+    # print("nans", cp.sum(cp.isnan(Box)))
+    # print("infs", cp.sum(cp.isinf(Box)))
+    Box[cp.isnan(Box)] = deltaTmin
+    # cp.nan_to_num(Box, copy=False, nan=deltaTmin)
     cp.clip(Box, deltaTmin, deltaTmax, out=Box)
     Box -= averages[walker]
     Box = Box.astype(np.float32)

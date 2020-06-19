@@ -1,4 +1,5 @@
 import numpy as np
+import cupy as cp
 from scipy.signal import correlate
 from sklearn.utils import shuffle
 from astropy.cosmology import FlatLambdaCDM
