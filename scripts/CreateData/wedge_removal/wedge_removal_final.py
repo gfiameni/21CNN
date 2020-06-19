@@ -19,8 +19,9 @@ parser.add_argument('--depth_mhz', type=int, default = 0) # if depth==0 calculat
 # parser.add_argument('--uv_treshold', type=int, default = 1) # taking in account only baselines which were visited uv_treshold amount of times 
 parser.add_argument('--SKA_observation_time', type=int, default = 1000)
 # inputs = parser.parse_args("--WalkerID 9999 --uv_filepath ../data/uv_Steven_15.npy --saving_location ../DatabaseTest --BoxesPath ../DatabaseTest --averages_fstring ../DatabaseTest/averages_{}_float32.npy".split(" "))
-parser.add_argument('--chunk_length', type = int, default = 200)
+parser.add_argument('--chunk_length', type = int, default = 201)
 parser.add_argument('--wedge_correction', type=float, default = 1)
+parser.add_argument('--W_filepath', type=str, default='')
 inputs = parser.parse_args()
 
 import numpy as np
@@ -103,10 +104,11 @@ multiplicative_fact = cp.array([multiplicative_factor(z) for z in redshifts_mean
 chunk_length = inputs.chunk_length
 BM = cp.blackman(chunk_length)[cp.newaxis, cp.newaxis, :]
 
-k = cp.fft.fftfreq(200, d=1.5)
-k_parallel = cp.fft.fftfreq(chunk_length, d=1.5)
-k_cube = cp.meshgrid(k, k, k_parallel)
-W = k_cube[2] / cp.sqrt(k_cube[0]**2 + k_cube[1]**2)
+# k = cp.fft.fftfreq(200, d=1.5)
+# k_parallel = cp.fft.fftfreq(chunk_length, d=1.5)
+# k_cube = cp.meshgrid(k, k, k_parallel)
+# W = k_cube[2] / cp.sqrt(k_cube[0]**2 + k_cube[1]**2)
+W = cp.load(f"{inputs.W_filepath}W_{inputs.chunk_length}_{inputs.wedge_correction}.npy")
 
 def manual_sliding(Box, Noise, blackman = True, wedge_correction = 1):
     Box_final = cp.empty(Box.shape, dtype = np.float32)
@@ -114,21 +116,21 @@ def manual_sliding(Box, Noise, blackman = True, wedge_correction = 1):
     Box_uv[uv_bool] = 0
                 
     t_box = cp.copy(Box_uv[..., :chunk_length])
-    t_W = W / (multiplicative_fact[chunk_length // 2] / wedge_correction)
-    w = cp.logical_or(t_W < -1., t_W > 1.)
+    # t_W = W / (multiplicative_fact[chunk_length // 2] / wedge_correction)
+    w = W[chunk_length // 2, ...]
     Box_final[..., :chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., :chunk_length // 2]
     
     t_box = cp.copy(Box_uv[..., -chunk_length:])
-    t_W = W / (multiplicative_fact[-chunk_length // 2] / wedge_correction)
-    w = cp.logical_or(t_W < -1., t_W > 1.)
+    # t_W = W / (multiplicative_fact[-chunk_length // 2] / wedge_correction)
+    w = W[-chunk_length // 2, ...]
     Box_final[..., -chunk_length // 2 : ] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., -chunk_length // 2 :]
     
-    for i in range(1, Box.shape[-1] - chunk_length):
+    for i in range(Box.shape[-1] - chunk_length + 1):
         t_box = cp.copy(Box_uv[..., i:i+chunk_length])
         if blackman == True:
             t_box *= BM
-        t_W = W / (multiplicative_fact[i + chunk_length // 2] / wedge_correction)
-        w = cp.logical_or(t_W < -1., t_W > 1.)
+        # t_W = W / (multiplicative_fact[i + chunk_length // 2] / wedge_correction)
+        w = W[i + chunk_length // 2, ...]
         Box_final[..., i + chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., chunk_length // 2]
         
     return Box_final.astype(np.float32)
