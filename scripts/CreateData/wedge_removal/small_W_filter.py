@@ -25,7 +25,7 @@ Redshifts = ['006.00060', '006.75589', '007.63960', '008.68274', '009.92624', '0
 Box_shape = (inputs.dimensions[0], inputs.dimensions[1], 2107)
 
 d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
-cdist = np.array(range(Box.shape[-1] + 1))*1.5 + d0
+cdist = np.array(range(Box_shape[-1] + 1))*1.5 + d0
 redshifts = t2c.cosmology.cdist_to_z(cdist)
 redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
 
