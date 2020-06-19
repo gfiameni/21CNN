@@ -5,7 +5,7 @@ parser.add_argument('--dimensions', type=str, default='200,200,201')
 parser.add_argument('--wedge_correction', type=float, default=5)
 
 inputs = parser.parse_args()
-inputs.dimensions = tuple([int(x) for x in inputs.dimension.split(",")])
+inputs.dimensions = tuple([int(x) for x in inputs.dimensions.split(",")])
 
 import numpy as np
 import cupy as cp
