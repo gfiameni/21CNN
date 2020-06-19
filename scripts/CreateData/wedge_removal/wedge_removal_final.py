@@ -46,8 +46,7 @@ deltaTmin = -250
 deltaTmax = 50
 Zmax = 30
 
-uv_cpu = np.load(inputs.uv_filename).astype(np.float32)
-uv_gpu = cp.asarray(uv_cpu)
+uv = cp.load(inputs.uv_filename).astype(np.float32)
 uv_bool = (uv_gpu < 1)
 
 Box_shape = (200, 200, 2107)
@@ -75,7 +74,7 @@ redshifts = t2c.cosmology.cdist_to_z(cdist)
 redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
 
 def noise(depth_mhz, seed_index, walker):
-    finalBox = np.empty(uv_cpu.shape, dtype = np.complex64)
+    finalBox = cp.empty(uv.shape, dtype = np.complex64)
     for i in range(uv_cpu.shape[-1]):
         if depth_mhz == 0:
             depth_mhz = t2c.cosmology.z_to_nu(redshifts[i]) - t2c.cosmology.z_to_nu(redshifts[i+1])
@@ -84,7 +83,7 @@ def noise(depth_mhz, seed_index, walker):
                                           depth_mhz=depth_mhz,
                                           obs_time=inputs.SKA_observation_time,
                                           boxsize=300, 
-                                          uv_map=uv_cpu[..., i],
+                                          uv_map=uv[..., i],
                                           N_ant=N_ant,
                                           seed = 1000000*i + 100*walker + seed_index, #last index is noise number index
                                           ) # I've corrected the function so it returns noise in uv, not in real space
@@ -110,7 +109,7 @@ BM = cp.blackman(chunk_length)[cp.newaxis, cp.newaxis, :]
 # W = k_cube[2] / cp.sqrt(k_cube[0]**2 + k_cube[1]**2)
 W = cp.load(f"{inputs.W_filepath}W_{inputs.chunk_length}_{inputs.wedge_correction}.npy")
 
-def manual_sliding(Box, Noise, blackman = True, wedge_correction = 1):
+def manual_sliding(Box, Noise, blackman = True):
     Box_final = cp.empty(Box.shape, dtype = np.float32)
     Box_uv = cp.fft.fft2(Box, axes=(0, 1)) + Noise
     Box_uv[uv_bool] = 0
@@ -147,19 +146,21 @@ result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np
 timing()
 for walker in range(inputs.max_WalkerID):
     Noise = noise(inputs.depth_mhz, inputs.seed_index, walker)
-    Noise = cp.asarray(Noise)
+    # Noise = cp.asarray(Noise)
 
     Box = database.CombineBoxes(walker)
     Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
-    np.nan_to_num(Box, copy=False, nan=deltaTmin, posinf=deltaTmax, neginf=deltaTmin)
     Box = cp.asarray(Box)
+    print("nans", cp.sum(cp.isnan(Box)))
+    print("neginfs, posinfs", cp.sum(cp.isneginf(Box)), cp.sum(cp.isposinf(Box)))
+    cp.nan_to_num(Box, copy=False, nan=deltaTmin)
     cp.clip(Box, deltaTmin, deltaTmax, out=Box)
     Box -= averages[walker]
     Box = Box.astype(np.float32)
 
-    result[walker, ...] = BoxCar3D_smart(manual_sliding(Box, Noise, wedge_correction=inputs.wedge_correction)).get()
+    result[walker, ...] = BoxCar3D_smart(manual_sliding(Box, Noise)).get()
 
-    timing(" ")
+    timing()
 
 print("saving data")
 for walker in range(inputs.max_WalkerID):
