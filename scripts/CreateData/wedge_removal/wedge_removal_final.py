@@ -20,7 +20,7 @@ parser.add_argument('--depth_mhz', type=int, default = 0) # if depth==0 calculat
 parser.add_argument('--SKA_observation_time', type=int, default = 1000)
 # inputs = parser.parse_args("--WalkerID 9999 --uv_filepath ../data/uv_Steven_15.npy --saving_location ../DatabaseTest --BoxesPath ../DatabaseTest --averages_fstring ../DatabaseTest/averages_{}_float32.npy".split(" "))
 parser.add_argument('--chunk_length', type = int, default = 201)
-parser.add_argument('--wedge_correction', type=float, default = 1)
+parser.add_argument('--wedge_correction', type=int, default = 1)
 parser.add_argument('--W_filepath', type=str, default='')
 inputs = parser.parse_args()
 
