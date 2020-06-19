@@ -152,7 +152,7 @@ for walker in range(inputs.max_WalkerID):
     Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
     Box = cp.asarray(Box)
     print("nans", cp.sum(cp.isnan(Box)))
-    print("neginfs, posinfs", cp.sum(cp.isneginf(Box)), cp.sum(cp.isposinf(Box)))
+    print("infs", cp.sum(cp.isinf(Box)))
     cp.nan_to_num(Box, copy=False, nan=deltaTmin)
     cp.clip(Box, deltaTmin, deltaTmax, out=Box)
     Box -= averages[walker]
