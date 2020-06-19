@@ -47,7 +47,7 @@ deltaTmax = 50
 Zmax = 30
 
 uv = cp.load(inputs.uv_filename).astype(np.float32)
-uv_bool = (uv_gpu < 1)
+uv_bool = (uv < 1)
 
 Box_shape = (200, 200, 2107)
 
@@ -75,7 +75,7 @@ redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
 
 def noise(depth_mhz, seed_index, walker):
     finalBox = cp.empty(uv.shape, dtype = np.complex64)
-    for i in range(uv_cpu.shape[-1]):
+    for i in range(uv.shape[-1]):
         if depth_mhz == 0:
             depth_mhz = t2c.cosmology.z_to_nu(redshifts[i]) - t2c.cosmology.z_to_nu(redshifts[i+1])
         noise = t2c.noise_model.noise_map(ncells=200,
