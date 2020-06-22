@@ -712,6 +712,8 @@ def run_large_model(restore_training = True):
         }
     
     verbose = ctx.inputs.verbose if ctx.main_process == True else 0
+    workers = ctx.inputs.workers if ctx.inputs.load_all == False else 1
+    use_multiprocessing = ctx.inputs.load_all
     # verbose = 2
 
     #fit model
@@ -720,8 +722,8 @@ def run_large_model(restore_training = True):
         validation_data=ctx.generators["validation"],
         verbose = verbose,
         max_queue_size = 16,
-        use_multiprocessing = True,
-        workers = ctx.inputs.workers,
+        use_multiprocessing = use_multiprocessing,
+        workers = workers,
         callbacks = callbacks,
         **ctx.fit_options,
         )
@@ -808,19 +810,24 @@ def predict_large(Type):
     print(f"PREDICTING THE MODEL {Type}")
     generator_options = {
         "labels": ctx.Data.labels, 
+        "inputs": ctx.Data.inputs,
         "dimX": ctx.inputs.X_shape, 
         "dimY": ctx.inputs.Y_shape,
         "data_filepath": ctx.inputs.data_location,
         "model_type": ctx.inputs.model_type,
         "batch_size": ctx.HP.BatchSize,
-        # "batch_size": 1,
+        "load_all": ctx.inputs.load_all,
         }
     generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_{Type}.txt")
+    
+    workers = ctx.inputs.workers if ctx.inputs.load_all == False else 1
+    use_multiprocessing = ctx.inputs.load_all
+    
     pred = ctx.model.predict(
         generator, 
         max_queue_size = 512, 
-        workers = ctx.inputs.workers, 
-        use_multiprocessing = True,
+        workers = workers, 
+        use_multiprocessing = use_multiprocessing,
         verbose = False,
         )
     generator.close_file()
