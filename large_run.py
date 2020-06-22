@@ -20,7 +20,7 @@ parser.add_argument('--N_noise', type=int, default=10)
 parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 0)
 parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
 parser.add_argument('--workers', type=int, default=24)
-# parser.add_argument('--load_all', type=int, default=0)
+parser.add_argument('--load_all', type=int, default=0)
 parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=2)
 
 parser.add_argument('--data_location', type=str, default="data/")
@@ -146,7 +146,7 @@ ctx.HP = HP
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
 data_shape = ctx.inputs.X_shape[::-1] + (1,) if ctx.inputs.model_type == "RNN" else ctx.inputs.X_shape + (1,)
-Data = utilities.LargeData(dimensionality = 3, shape = data_shape)
+Data = utilities.LargeData(dimensionality = 3, shape = data_shape, load_all = ctx.inputs.load_all)
 
 print("DATA:", str(Data))
 ctx.Data = Data

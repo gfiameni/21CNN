@@ -93,6 +93,7 @@ class LargeData:
         formatting = [],
         noise = ["tools21cm", "SKA1000"],
         shape = None,
+        load_all = False,
         ):
         self.dimensionality = dimensionality
         self.removed_average = removed_average
@@ -114,6 +115,7 @@ class LargeData:
             self.formatting = formatting
         self.noise = noise + [f"walkers_{ctx.inputs.N_walker}", f"slices_{ctx.inputs.N_slice}", f"noise_{ctx.inputs.N_noise}"]
         self.shape = shape
+        self.load_all = load_all
         self.load()
 
     def __str__(self):
@@ -149,8 +151,7 @@ class LargeData:
             for seed in range(ctx.inputs.N_noise):
                 self.noise_rolling_partition[key].append([])
         self.labels = {}
-        # if ctx.inputs.load_all == True:
-            # self.inputs = {}
+        self.inputs = {}
         for walker in range(ctx.inputs.N_walker):
             for s in range(ctx.inputs.N_slice):
                 for seed in range(ctx.inputs.N_noise):
@@ -158,8 +159,8 @@ class LargeData:
                     self.partition[keys[permutation[walker]]].append(ID)
                     self.noise_rolling_partition[keys[permutation[walker]]][seed].append(ID)
                     self.labels[ID] = Y[walker]
-                    # if ctx.inputs.load_all == True:
-                        # self.inputs[ID] = np.load(f"{ctx.inputs.data_location}{ID}.npy")
+                    if self.load_all == True:
+                        self.inputs[ID] = np.load(f"{ctx.inputs.data_location}{ID}.npy")
         # print(self.partition)
 
 
@@ -227,13 +228,14 @@ class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
                 list_IDs,
-                labels, 
+                labels,
+                inputs,
                 dimX, 
                 dimY,
                 data_filepath,
                 model_type,
                 batch_size,
-                # load_all,
+                load_all,
                 initial_epoch,
                 N_noise,
                 noise_rolling,
@@ -249,9 +251,10 @@ class DataGenerator(keras.utils.Sequence):
         self.dimY = dimY
         self.data_filepath = data_filepath
         self.batch_size = batch_size
-        # self.load_all = load_all
+        self.load_all = load_all
         self.labels = labels
         self.list_IDs = list_IDs
+        self.inputs = inputs
         self.N_noise = N_noise
         self.initial_epoch = initial_epoch
         self.noise_index = self.initial_epoch % self.N_noise - 1
@@ -313,14 +316,14 @@ class DataGenerator(keras.utils.Sequence):
         y = np.empty((self.batch_size, self.dimY))
 
         for i, ID in enumerate(list_IDs_temp):
-            # if self.load_all == True:
-            #     X[i,] = self.inputs[ID]
-            #     y[i] = self.labels[ID]
-            # else:
-            #     X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            #     y[i] = self.labels[ID]            
-            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            y[i] = self.labels[ID]
+            if self.load_all == True:
+                X[i,] = self.inputs[ID]
+                y[i] = self.labels[ID]
+            else:
+                X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+                y[i] = self.labels[ID]            
+            # X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+            # y[i] = self.labels[ID]
 
         return X, y
 
@@ -328,13 +331,14 @@ class SimpleDataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, 
                 list_IDs,
-                labels, 
+                labels,
+                inputs,
                 dimX, 
                 dimY,
                 data_filepath,
                 model_type,
                 batch_size,
-                # load_all,
+                load_all,
                 iterations = None,
                 n_channels=1,
                 filename = None,
@@ -347,9 +351,10 @@ class SimpleDataGenerator(keras.utils.Sequence):
         self.dimY = dimY
         self.data_filepath = data_filepath
         self.batch_size = batch_size
-        # self.load_all = load_all
+        self.load_all = load_all
         self.labels = labels
         self.list_IDs = list_IDs
+        self.inputs = inputs
         self.n_channels = n_channels
         self.iterations = iterations
         # self.data = []
@@ -395,14 +400,14 @@ class SimpleDataGenerator(keras.utils.Sequence):
         y = np.empty((self.batch_size, self.dimY))
 
         for i, ID in enumerate(list_IDs_temp):
-            # if self.load_all == True:
-            #     X[i,] = self.inputs[ID]
-            #     y[i] = self.labels[ID]
-            # else:
-            #     X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            #     y[i] = self.labels[ID]
-            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            y[i] = self.labels[ID]
+            if self.load_all == True:
+                X[i,] = self.inputs[ID]
+                y[i] = self.labels[ID]
+            else:
+                X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+                y[i] = self.labels[ID]
+            # X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+            # y[i] = self.labels[ID]
         return X, y
 
     def close_file(self):
@@ -677,12 +682,13 @@ def run_large_model(restore_training = True):
 
     generator_options = {
         "labels": ctx.Data.labels, 
+        "inputs": ctx.Data.inputs,
         "dimX": ctx.inputs.X_shape, 
         "dimY": ctx.inputs.Y_shape,
         "data_filepath": ctx.inputs.data_location,
         "model_type": ctx.inputs.model_type,
         "batch_size": ctx.HP.BatchSize,
-        # "load_all": ctx.inputs.load_all,
+        "load_all": ctx.inputs.load_all,
         }
     if ctx.inputs.noise_rolling == True:
         partition = {
