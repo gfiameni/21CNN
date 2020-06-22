@@ -41,3 +41,39 @@ class SummarySpace3D_simple:
         self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
         print(self.model.summary())
         return self.model
+
+class ConvRNN3D_simple:
+    def __init__(self, 
+                InputShape, 
+                # Data, 
+                AuxiliaryHP, 
+                # RNNLayer = keras.layers.CuDNNLSTM,
+                RNNLayer = CuDNNLSTM,
+                ):
+        self.InputShape = InputShape
+        # self.Data = Data
+        self.AuxHP = AuxiliaryHP
+        self.RNNLayer = RNNLayer
+        if self.AuxHP.ActivationFunction[0] == "selu":
+            self.DropoutLayer = keras.layers.AlphaDropout
+        else:
+            self.DropoutLayer = keras.layers.Dropout
+    
+    def build(self):
+        img_input = keras.layers.Input(shape=self.InputShape)
+
+        x = keras.layers.ConvLSTM2D(filters=32, kernel_size=(8, 8), return_sequences=True)(img_input)
+        x = keras.layers.TimeDistributed(keras.layers.MaxPooling2D(), name='pool_1')(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.TimeDistributed(keras.layers.Flatten(), name='flatten')(x)
+        x = keras.layers.TimeDistributed(self.DropoutLayer(self.AuxHP.Dropout), name='dropout')(x)
+        x = self.RNNLayer(32, return_sequences=False)(x)
+        if self.AuxHP.BatchNormalization == True:
+            x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Dense(16, **self.AuxHP.ActivationFunction[1])(x)
+        x = keras.layers.Dense(4)(x)
+
+        self.model = keras.models.Model(inputs = img_input, outputs = x, name= self.AuxHP.model_name)
+        print(self.model.summary())
+        return self.model
