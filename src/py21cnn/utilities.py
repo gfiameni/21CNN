@@ -305,25 +305,26 @@ class DataGenerator(keras.utils.Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
             
-    def loadX(self, filename):
-        if self.model_type == "RNN":
-            return np.swapaxes(np.load(filename), 0, -1)[..., np.newaxis]
+    def loadX(self, ID, filename):
+        if self.load_all == True:
+            if self.model_type == "RNN":
+                return np.swapaxes(self.inputs[ID], 0, -1)[..., np.newaxis]
+            else:
+                return self.inputs[ID][..., np.newaxis]
         else:
-            return np.load(filename)[..., np.newaxis]
+            if self.model_type == "RNN":
+                return np.swapaxes(np.load(filename), 0, -1)[..., np.newaxis]
+            else:
+                return np.load(filename)[..., np.newaxis]
+
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples'
         X = np.empty((self.batch_size, *self.dimX, self.n_channels))
         y = np.empty((self.batch_size, self.dimY))
 
-        for i, ID in enumerate(list_IDs_temp):
-            if self.load_all == True:
-                X[i,] = self.inputs[ID]
-                y[i] = self.labels[ID]
-            else:
-                X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-                y[i] = self.labels[ID]            
-            # X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
-            # y[i] = self.labels[ID]
+        for i, ID in enumerate(list_IDs_temp):           
+            X[i,] = self.loadX(f"{self.data_filepath}{ID}.npy")
+            y[i] = self.labels[ID]
 
         return X, y
 
