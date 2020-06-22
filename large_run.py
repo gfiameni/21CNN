@@ -43,7 +43,7 @@ inputs = parser.parse_args()
 inputs.LR_correction = bool(inputs.LR_correction)
 inputs.simple_run = bool(inputs.simple_run)
 inputs.noise_rolling = bool(inputs.noise_rolling)
-# inputs.load_all = bool(inputs.load_all)
+inputs.load_all = bool(inputs.load_all)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
