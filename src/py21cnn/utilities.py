@@ -712,8 +712,8 @@ def run_large_model(restore_training = True):
         }
     
     verbose = ctx.inputs.verbose if ctx.main_process == True else 0
-    workers = ctx.inputs.workers if ctx.inputs.load_all == False else 1
-    use_multiprocessing = ctx.inputs.load_all
+    workers = 1 if ctx.inputs.load_all == True else ctx.inputs.workers
+    use_multiprocessing = False if ctx.inputs.load_all == True else True
     # verbose = 2
 
     #fit model
@@ -820,8 +820,8 @@ def predict_large(Type):
         }
     generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_{Type}.txt")
     
-    workers = ctx.inputs.workers if ctx.inputs.load_all == False else 1
-    use_multiprocessing = ctx.inputs.load_all
+    workers = 1 if ctx.inputs.load_all == True else ctx.inputs.workers
+    use_multiprocessing = False if ctx.inputs.load_all == True else True
     
     pred = ctx.model.predict(
         generator, 
