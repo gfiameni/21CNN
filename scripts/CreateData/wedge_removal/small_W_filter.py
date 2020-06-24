@@ -35,7 +35,7 @@ k_cube = cp.meshgrid(k0, k1, k2)
 
 BM = cp.abs(cp.fft.fft(cp.blackman(inputs.dimensions[2])))**2
 BM = BM / cp.amax(BM)
-BM_smoothing = delta_k * (cp.sum(BM > 1e-10) - 1) / 2
+BM_smoothing = delta_k * (cp.where(BM <= 1e-10)[0][0] - 1)
 
 from scipy.integrate import quadrature
 def one_over_E(z):
@@ -44,9 +44,9 @@ def multiplicative_factor(z):
     return 1 / one_over_E(z) / (1+z) * quadrature(one_over_E, 0, z)[0]
 multiplicative_fact = cp.array([multiplicative_factor(z) for z in redshifts_mean]).astype(np.float32)
 
-W_bool = cp.empty((Box_shape[-1],) + inputs.dimensions, dtype = bool)
+W_bool = np.empty((Box_shape[-1],) + inputs.dimensions, dtype = bool)
 for i in range(len(multiplicative_fact)):
     W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * (multiplicative_fact[i] / inputs.wedge_correction) + BM_smoothing)
-    W_bool[i, ...] = cp.logical_or(W < -1., W > 1.)
+    W_bool[i, ...] = cp.logical_or(W < -1., W > 1.).get()
 
-cp.save(f"{inputs.saving_location}W_{inputs.dimensions[-1]}_{inputs.wedge_correction}", W_bool)
+np.save(f"{inputs.saving_location}W_{inputs.dimensions[-1]}", W_bool)
