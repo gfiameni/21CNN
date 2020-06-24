@@ -125,13 +125,13 @@ def manual_sliding(Box, Noise, blackman = True):
     t_box = cp.copy(Box_uv[..., :chunk_length])
     # W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[chunk_length - 1] + buffer)
     # w = cp.logical_or(W < -1., W > 1.)
-    w = cp.array(W[..., chunk_length - 1])
+    w = cp.array(W[chunk_length - 1])
     Box_final[..., :chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., :chunk_length // 2]
     
     t_box = cp.copy(Box_uv[..., -chunk_length:])
     # W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[-1] + buffer)
     # w = cp.logical_or(W < -1., W > 1.)
-    w = cp.array(W[..., -1])
+    w = cp.array(W[-1])
     Box_final[..., -chunk_length // 2 : ] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., -chunk_length // 2 :]
     
     for i in range(Box.shape[-1] - chunk_length + 1):
