@@ -9,7 +9,7 @@ def timing(end = '\n'):
 import argparse
 parser = argparse.ArgumentParser(prog = 'wedge removal')
 parser.add_argument('--max_WalkerID', type=int, default=10000)
-parser.add_argument('--seed_index', type=int, default=0)
+parser.add_argument('--gpu_index', type=int, default=0)
 parser.add_argument('--uv_filename', type=str, default='uv_final.npy')
 parser.add_argument('--saving_fstring', type=str, default='lightcone_depthMhz_0_walker_{:04d}_slice_{:d}_seed_{:d}')
 parser.add_argument('--averages_fstring', type=str, default='averages_{}_float32.npy')
@@ -154,25 +154,26 @@ def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
 # result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
 
 timing()
-for walker in range(inputs.max_WalkerID):
-    Noise = noise(inputs.depth_mhz, inputs.seed_index, walker)
-    # Noise = cp.asarray(Noise)
+for seed in range(10):
+    for walker in range(inputs.gpu_index * inputs.max_WalkerID // 4, (inputs.gpu_index + 1) * inputs.max_WalkerID // 4):
+        Noise = noise(inputs.depth_mhz, seed, walker)
+        # Noise = cp.asarray(Noise)
 
-    Box = database.CombineBoxes(walker)
-    Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
-    # Box = cp.asarray(Box)
-    # print("nans", cp.sum(cp.isnan(Box)))
-    # print("infs", cp.sum(cp.isinf(Box)))
-    Box[cp.isnan(Box)] = deltaTmin
-    # cp.nan_to_num(Box, copy=False, nan=deltaTmin)
-    cp.clip(Box, deltaTmin, deltaTmax, out=Box)
-    Box -= averages[walker]
-    Box = Box.astype(np.float32)
+        Box = database.CombineBoxes(walker)
+        Box = Filters.RemoveLargeZ(Box, database, Z=Zmax)
+        # Box = cp.asarray(Box)
+        # print("nans", cp.sum(cp.isnan(Box)))
+        # print("infs", cp.sum(cp.isinf(Box)))
+        Box[cp.isnan(Box)] = deltaTmin
+        # cp.nan_to_num(Box, copy=False, nan=deltaTmin)
+        cp.clip(Box, deltaTmin, deltaTmax, out=Box)
+        Box -= averages[walker]
+        Box = Box.astype(np.float32)
 
-    result = BoxCar3D_smart(manual_sliding(Box, Noise))
-    cp.save(inputs.saving_fstring.format(walker, 0, inputs.seed_index), result[:25, :25, :])
-    cp.save(inputs.saving_fstring.format(walker, 1, inputs.seed_index), result[:25, 25:, :])
-    cp.save(inputs.saving_fstring.format(walker, 2, inputs.seed_index), result[25:, :25, :])
-    cp.save(inputs.saving_fstring.format(walker, 3, inputs.seed_index), result[25:, 25:, :])
+        result = BoxCar3D_smart(manual_sliding(Box, Noise))
+        cp.save(inputs.saving_fstring.format(walker, 0, seed), result[:25, :25, :])
+        cp.save(inputs.saving_fstring.format(walker, 1, seed), result[:25, 25:, :])
+        cp.save(inputs.saving_fstring.format(walker, 2, seed), result[25:, :25, :])
+        cp.save(inputs.saving_fstring.format(walker, 3, seed), result[25:, 25:, :])
 
-    timing()
+        timing()
