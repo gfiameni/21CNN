@@ -73,7 +73,7 @@ t2c.const.set_sigma_8(0.815)
 d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
 cdist = np.array(range(Box_shape[-1] + 1))*1.5 + d0
 redshifts = t2c.cosmology.cdist_to_z(cdist)
-redshifts_mean = (redshifts[:-1] + redshifts[1:]) / 2
+redshifts_mean = cp.array((redshifts[:-1] + redshifts[1:]) / 2).astype(np.float32)
 
 def noise(depth_mhz, seed_index, walker):
     finalBox = cp.empty(uv.shape, dtype = np.complex64)
@@ -166,14 +166,10 @@ for walker in range(inputs.max_WalkerID):
     Box -= averages[walker]
     Box = Box.astype(np.float32)
 
-    result = BoxCar3D_smart(manual_sliding(Box, Noise)).get()
-    np.save(inputs.saving_fstring.format(walker, 0, inputs.seed_index), result[:25, :25, :])
-    np.save(inputs.saving_fstring.format(walker, 1, inputs.seed_index), result[:25, 25:, :])
-    np.save(inputs.saving_fstring.format(walker, 2, inputs.seed_index), result[25:, :25, :])
-    np.save(inputs.saving_fstring.format(walker, 3, inputs.seed_index), result[25:, 25:, :])
+    result = BoxCar3D_smart(manual_sliding(Box, Noise))
+    cp.save(inputs.saving_fstring.format(walker, 0, inputs.seed_index), result[:25, :25, :])
+    cp.save(inputs.saving_fstring.format(walker, 1, inputs.seed_index), result[:25, 25:, :])
+    cp.save(inputs.saving_fstring.format(walker, 2, inputs.seed_index), result[25:, :25, :])
+    cp.save(inputs.saving_fstring.format(walker, 3, inputs.seed_index), result[25:, 25:, :])
 
     timing()
-
-print("saving data")
-for walker in range(inputs.max_WalkerID):
-
