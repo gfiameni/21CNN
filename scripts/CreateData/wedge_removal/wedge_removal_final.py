@@ -19,10 +19,12 @@ parser.add_argument('--depth_mhz', type=int, default = 0) # if depth==0 calculat
 # parser.add_argument('--uv_treshold', type=int, default = 1) # taking in account only baselines which were visited uv_treshold amount of times 
 parser.add_argument('--SKA_observation_time', type=int, default = 1000)
 # inputs = parser.parse_args("--WalkerID 9999 --uv_filepath ../data/uv_Steven_15.npy --saving_location ../DatabaseTest --BoxesPath ../DatabaseTest --averages_fstring ../DatabaseTest/averages_{}_float32.npy".split(" "))
-parser.add_argument('--chunk_length', type = int, default = 201)
-parser.add_argument('--wedge_correction', type=int, default = 1)
+parser.add_argument('--chunk_length', type = int, default = 501)
+parser.add_argument('--wedge_type', type=str, choices = ["horizon", "fwhm"], default = "horizon")
 parser.add_argument('--W_filepath', type=str, default='')
 inputs = parser.parse_args()
+if inputs.wedge_type == "fwhm":
+    raise ValueError("FWHM cut not implemented yet")
 
 import numpy as np
 import cupy as cp
@@ -101,35 +103,40 @@ def multiplicative_factor(z):
 multiplicative_fact = cp.array([multiplicative_factor(z) for z in redshifts_mean]).astype(np.float32)
 
 chunk_length = inputs.chunk_length
+k = cp.fft.fftfreq(200, d=1.5)
+k_parallel = cp.fft.fftfreq(chunk_length, d=1.5)
+delta_k = k_parallel[1] - k_parallel[0]
+k_cube = cp.meshgrid(k, k, k_parallel)
+
+bm = cp.abs(cp.fft.fft(cp.blackman(chunk_length)))**2
+buffer = delta_k * (cp.where(bm / cp.amax(bm) <= 1e-10)[0][0] - 1)
+
 BM = cp.blackman(chunk_length)[cp.newaxis, cp.newaxis, :]
 
-# k = cp.fft.fftfreq(200, d=1.5)
-# k_parallel = cp.fft.fftfreq(chunk_length, d=1.5)
-# k_cube = cp.meshgrid(k, k, k_parallel)
-# W = k_cube[2] / cp.sqrt(k_cube[0]**2 + k_cube[1]**2)
-W = cp.load(f"{inputs.W_filepath}W_{inputs.chunk_length}_{inputs.wedge_correction}.npy")
 
+# W = k_cube[2] / cp.sqrt(k_cube[0]**2 + k_cube[1]**2)
+# W = cp.load(f"{inputs.W_filepath}W_{inputs.chunk_length}_{inputs.wedge_correction}.npy")
 def manual_sliding(Box, Noise, blackman = True):
     Box_final = cp.empty(Box.shape, dtype = np.float32)
     Box_uv = cp.fft.fft2(Box, axes=(0, 1)) + Noise
     Box_uv[uv_bool] = 0
-                
+    
     t_box = cp.copy(Box_uv[..., :chunk_length])
-    # t_W = W / (multiplicative_fact[chunk_length // 2] / wedge_correction)
-    w = W[chunk_length // 2, ...]
+    W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[chunk_length - 1] + buffer)
+    w = cp.logical_or(W < -1., W > 1.)
     Box_final[..., :chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., :chunk_length // 2]
     
     t_box = cp.copy(Box_uv[..., -chunk_length:])
-    # t_W = W / (multiplicative_fact[-chunk_length // 2] / wedge_correction)
-    w = W[-chunk_length // 2, ...]
+    W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[-1] + buffer)
+    w = cp.logical_or(W < -1., W > 1.)
     Box_final[..., -chunk_length // 2 : ] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., -chunk_length // 2 :]
     
     for i in range(Box.shape[-1] - chunk_length + 1):
         t_box = cp.copy(Box_uv[..., i:i+chunk_length])
+        W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[i + chunk_length - 1] + buffer)
+        w = cp.logical_or(W < -1., W > 1.)
         if blackman == True:
             t_box *= BM
-        # t_W = W / (multiplicative_fact[i + chunk_length // 2] / wedge_correction)
-        w = W[i + chunk_length // 2, ...]
         Box_final[..., i + chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., chunk_length // 2]
         
     return Box_final.astype(np.float32)
@@ -141,7 +148,7 @@ def BoxCar3D_smart(data, Nx = 4, Ny = 4, Nz = 4):
     return (cp.einsum('ijklmn->ikm', data[:s[0]//Nx*Nx, :s[1]//Ny*Ny, :s[2]//Nz*Nz].reshape((s[0]//Nx, Nx, s[1]//Ny, Ny, s[2]//Nz, Nz))) / (Nx*Ny*Nz)).astype(np.float32)
 
 
-result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
+# result = np.empty((inputs.max_WalkerID, 200 // 4, 200 // 4, 2107 // 4), dtype=np.float32)
 
 timing()
 for walker in range(inputs.max_WalkerID):
@@ -159,13 +166,14 @@ for walker in range(inputs.max_WalkerID):
     Box -= averages[walker]
     Box = Box.astype(np.float32)
 
-    result[walker, ...] = BoxCar3D_smart(manual_sliding(Box, Noise)).get()
+    result = BoxCar3D_smart(manual_sliding(Box, Noise)).get()
+    np.save(inputs.saving_fstring.format(walker, 0, inputs.seed_index), result[:25, :25, :])
+    np.save(inputs.saving_fstring.format(walker, 1, inputs.seed_index), result[:25, 25:, :])
+    np.save(inputs.saving_fstring.format(walker, 2, inputs.seed_index), result[25:, :25, :])
+    np.save(inputs.saving_fstring.format(walker, 3, inputs.seed_index), result[25:, 25:, :])
 
     timing()
 
 print("saving data")
 for walker in range(inputs.max_WalkerID):
-    np.save(inputs.saving_fstring.format(walker, 0, inputs.seed_index), result[walker, :25, :25, :])
-    np.save(inputs.saving_fstring.format(walker, 1, inputs.seed_index), result[walker, :25, 25:, :])
-    np.save(inputs.saving_fstring.format(walker, 2, inputs.seed_index), result[walker, 25:, :25, :])
-    np.save(inputs.saving_fstring.format(walker, 3, inputs.seed_index), result[walker, 25:, 25:, :])
+
