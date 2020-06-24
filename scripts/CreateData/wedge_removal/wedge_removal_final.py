@@ -73,7 +73,7 @@ t2c.const.set_sigma_8(0.815)
 d0 = t2c.cosmology.z_to_cdist(float(Redshifts[0]))
 cdist = np.array(range(Box_shape[-1] + 1))*1.5 + d0
 redshifts = t2c.cosmology.cdist_to_z(cdist)
-redshifts_mean = cp.array((redshifts[:-1] + redshifts[1:]) / 2).astype(np.float32)
+redshifts_mean = np.array((redshifts[:-1] + redshifts[1:]) / 2).astype(np.float32)
 
 def noise(depth_mhz, seed_index, walker):
     finalBox = cp.empty(uv.shape, dtype = np.complex64)
@@ -101,6 +101,7 @@ def one_over_E(z):
 def multiplicative_factor(z):
     return 1 / one_over_E(z) / (1+z) * quadrature(one_over_E, 0, z)[0]
 multiplicative_fact = cp.array([multiplicative_factor(z) for z in redshifts_mean]).astype(np.float32)
+redshifts_mean = cp.array(redshifts_mean).astype(np.float32)
 
 chunk_length = inputs.chunk_length
 k = cp.fft.fftfreq(200, d=1.5)
