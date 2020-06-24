@@ -116,26 +116,29 @@ BM = cp.blackman(chunk_length)[cp.newaxis, cp.newaxis, :]
 
 
 # W = k_cube[2] / cp.sqrt(k_cube[0]**2 + k_cube[1]**2)
-# W = cp.load(f"{inputs.W_filepath}W_{inputs.chunk_length}_{inputs.wedge_correction}.npy")
+W = np.load(f"{inputs.W_filepath}W_{inputs.chunk_length}.npy")
 def manual_sliding(Box, Noise, blackman = True):
     Box_final = cp.empty(Box.shape, dtype = np.float32)
     Box_uv = cp.fft.fft2(Box, axes=(0, 1)) + Noise
     Box_uv[uv_bool] = 0
     
     t_box = cp.copy(Box_uv[..., :chunk_length])
-    W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[chunk_length - 1] + buffer)
-    w = cp.logical_or(W < -1., W > 1.)
+    # W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[chunk_length - 1] + buffer)
+    # w = cp.logical_or(W < -1., W > 1.)
+    w = cp.array(W[..., chunk_length - 1])
     Box_final[..., :chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., :chunk_length // 2]
     
     t_box = cp.copy(Box_uv[..., -chunk_length:])
-    W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[-1] + buffer)
-    w = cp.logical_or(W < -1., W > 1.)
+    # W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[-1] + buffer)
+    # w = cp.logical_or(W < -1., W > 1.)
+    w = cp.array(W[..., -1])
     Box_final[..., -chunk_length // 2 : ] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., -chunk_length // 2 :]
     
     for i in range(Box.shape[-1] - chunk_length + 1):
         t_box = cp.copy(Box_uv[..., i:i+chunk_length])
-        W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[i + chunk_length - 1] + buffer)
-        w = cp.logical_or(W < -1., W > 1.)
+        # W = k_cube[2] / (cp.sqrt(k_cube[0]**2 + k_cube[1]**2) * multiplicative_fact[i + chunk_length - 1] + buffer)
+        # w = cp.logical_or(W < -1., W > 1.)
+        w = cp.array(W[i + chunk_length - 1])
         if blackman == True:
             t_box *= BM
         Box_final[..., i + chunk_length // 2] = cp.real(cp.fft.ifftn(cp.fft.fft(t_box, axis = -1) * w))[..., chunk_length // 2]
