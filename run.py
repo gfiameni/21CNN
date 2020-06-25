@@ -138,7 +138,7 @@ Data = utilities.Data(
     removed_average=ctx.inputs.removed_average, 
     Zmax=ctx.inputs.Zmax,
     )
-Data.loadTVT(model_type=ctx.inputs.model_type)
+Data.load(model_type=ctx.inputs.model_type)
 
 print("DATA:", str(Data))
 ctx.Data = Data

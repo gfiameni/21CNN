@@ -61,7 +61,7 @@ class Data:
     def hash(self):
         return hashlib.md5(self.__str__().encode()).hexdigest()
 
-    def loadTVT(self, model_type = None, pTVT = [0.8, 0.1, 0.1]):
+    def load(self, model_type = None, pTVT = [0.8, 0.1, 0.1]):
         Hash = self.hash()
         for p, key in zip(pTVT, ['train', 'val', 'test']):
             self.X[key] = np.load(f"{self.filepath}X_{key}_{p:.2f}_{Hash}.npy")
@@ -72,6 +72,8 @@ class Data:
         self.shape = self.X['test'].shape[1:]
         self.TrainExamples = self.X['test'].shape[0]
         # return self.X, self.Y
+        self.steps_per_epoch = self.X["train"].shape[0] // ctx.inputs.gpus // ctx.HP.BatchSize
+        self.validation_steps = self.X["val"].shape[0] // ctx.HP.BatchSize
 
     def saveTVT(self, pTVT = [0.8, 0.1, 0.1]):
         Hash = self.hash()
@@ -116,7 +118,6 @@ class LargeData:
         self.noise = noise + [f"walkers_{ctx.inputs.N_walker}", f"slices_{ctx.inputs.N_slice}", f"noise_{ctx.inputs.N_noise}"]
         self.shape = shape
         self.load_all = load_all
-        self.load()
 
     def __str__(self):
         self.formatting.sort()
@@ -163,7 +164,154 @@ class LargeData:
                         self.inputs[ID] = np.load(f"{ctx.inputs.data_location}{ID}.npy")
         # print(self.partition)
 
+        if ctx.inputs.noise_rolling == True:
+            self.steps_per_epoch = len(self.noise_rolling_partition["train"][0]) // ctx.inputs.gpus // ctx.HP.BatchSize
+            self.validation_steps = len(self.noise_rolling_partition["validation"][0]) // ctx.HP.BatchSize   
+        else:         
+            self.steps_per_epoch = len(self.partition["train"]) // ctx.inputs.gpus // ctx.HP.BatchSize
+            self.validation_steps = len(self.partition["validation"]) // ctx.HP.BatchSize
 
+
+class Data_tfrecord:
+    def __init__(
+        self,
+        dimensionality = 2,
+        removed_average = True,
+        normalized = True,
+        Zmax = 30,
+        filetype = 'float32',
+        formatting = [],
+        noise = ["tools21cm", "SKA1000"],
+        shape = None,
+        load_all = False,
+        ):
+        self.dimensionality = dimensionality
+        self.removed_average = removed_average
+        self.normalized = normalized
+        self.Zmax = Zmax
+        self.filetype = filetype
+        if len(formatting) == 0:
+            default_formatting = ['clipped_-250_+50', 'NaN_removed', 'TVT_parameterwise']
+            if self.dimensionality == 2:
+                default_formatting.append('boxcar44')
+                default_formatting.append('10slices')
+            if self.dimensionality == 3:
+                default_formatting.append('boxcar444')
+                default_formatting.append('sliced22')
+            # default_formatting.sort()
+            self.formatting = default_formatting
+        else:
+            # formatting.sort()
+            self.formatting = formatting
+        self.noise = noise + [f"walkers_{ctx.inputs.N_walker}", f"slices_{ctx.inputs.N_slice}", f"noise_{ctx.inputs.N_noise}"]
+        self.shape = shape
+        self.load_all = load_all
+
+    def __str__(self):
+        self.formatting.sort()
+        self.noise.sort()
+        S = f"dim:{self.dimensionality}__removed_average:{self.removed_average}__normalized:{self.normalized}__Zmax:{self.Zmax}__dtype:{self.filetype}"
+        for i in self.formatting:
+            S += f"__{i}"
+        for i in self.noise:
+            S += f"__{i}"
+        return S
+    
+    def hash(self):
+        return hashlib.md5(self.__str__().encode()).hexdigest()
+
+    def decode(self, serialized_example, model_type):
+        """Parses an image and label from the given `serialized_example`."""
+        print(serialized_example)
+        example = tf.io.parse_single_example(
+            serialized_example,
+            features={
+                'Xx': tf.io.FixedLenFeature([], tf.int64),
+                'Xy': tf.io.FixedLenFeature([], tf.int64),
+                'Xz': tf.io.FixedLenFeature([], tf.int64),
+                'X': tf.io.FixedLenFeature([], tf.string),
+                'Yx': tf.io.FixedLenFeature([], tf.int64),
+                'Y': tf.io.FixedLenFeature([], tf.string),
+            })
+        xx = tf.cast(example['Xx'], tf.int64)
+        xy = tf.cast(example['Xy'], tf.int64)
+        xz = tf.cast(example['Xz'], tf.int64)
+        x = tf.io.decode_raw(example['X'], tf.float32)
+        x = tf.reshape(x, (xx, xy, xz))
+        if model_type == "RNN":
+            x = tf.transpose(x)
+        x = tf.expand_dims(x, -1)
+        yx = tf.cast(example['Yx'], tf.int64)
+        y = tf.io.decode_raw(example['Y'], tf.float32)
+        y = tf.reshape(y, (yx,))
+        return x, y
+
+    def create_shards(self, filenames, ds_type):
+        shards = tf.data.Dataset.from_tensor_slices(filenames[0])
+        if ds_type == "train":
+            shards = shards.shuffle(len(filenames[0]))
+        for i in range(1, len(filenames)):
+            t_shards = tf.data.Dataset.from_tensor_slices(filenames[i])
+            if ds_type == "train":
+                t_shards = t_shards.shuffle(len(filenames[i]))
+            shards = shards.concatenate(t_shards)
+        #in the case of test database repeat only once, else repeat indefinitely
+        if ds_type == "test":
+            shards = shards.repeat(1)
+        else:
+            shards = shards.repeat()
+        return shards
+
+    def get_dataset(self, ds_type, filenames, model_type, batch_size, buffer_size, workers):
+        """Read TFRecords files and turn them into a TFRecordDataset."""
+        shards = self.create_shards(filenames, ds_type)
+        if ds_type == "train":
+            dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length = 5, block_length = 1)
+        else:
+            dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length = 1, block_length = 1)
+        #   dataset = dataset.shuffle(buffer_size=8192)
+        dataset = dataset.map(map_func = lambda x: self.decode(x, model_type), num_parallel_calls = workers).batch(batch_size = batch_size)
+        dataset = dataset.prefetch(buffer_size = buffer_size)
+        return dataset
+
+    def load(self):
+        shardsTVT = {
+            "train": int(ctx.inputs.N_walkers * ctx.inputs.N_slices * ctx.inputs.pTVT[0]) // 100,
+            "validation": int(ctx.inputs.N_walkers * ctx.inputs.N_slices * ctx.inputs.pTVT[1]) // 100,
+            "test": int(ctx.inputs.N_walkers * ctx.inputs.N_slices * ctx.inputs.pTVT[1]) // 100,
+            }
+        self.filenames = {
+            "train": [],
+            "validation": [],
+            "test": []
+            }
+        for key in self.filenames.keys():
+            for seed in range(ctx.inputs.N_noise):
+                self.filenames[key].append([ctx.inputs.data_fstring.format(key, seed, i, shardsTVT[key]-1) for i in range(shardsTVT[key])])
+
+        self.train_ds = self.get_dataset(
+            "train",
+            self.filenames["train"], 
+            ctx.inputs.model_type, 
+            batch_size = ctx.HP.BatchSize, 
+            buffer_size = 16, 
+            workers = ctx.inputs.workers)
+        self.validation_ds = self.get_dataset(
+            "validation",
+            [self.filenames["validation"][0]], 
+            ctx.inputs.model_type,
+            batch_size = ctx.HP.BatchSize, 
+            buffer_size = 16, 
+            workers = ctx.inputs.workers)
+        self.validation_ds = self.get_dataset(
+            "test",
+            self.filenames["train"], 
+            ctx.inputs.model_type,
+            batch_size = ctx.HP.BatchSize, 
+            buffer_size = 16, 
+            workers = ctx.inputs.workers)
+        self.steps_per_epoch = len(self.filenames["train"]) * 100 // ctx.HP.BatchSize
+        self.validation_steps = len(self.filenames["validation"]) * 100 // ctx.HP.BatchSize
 
 class AuxiliaryHyperparameters:
     def __init__(
@@ -559,23 +707,6 @@ def define_model(restore_training):
         load_model = False
     ctx.load_model = load_model
 
-    #determine steps_per_epoch
-    if isinstance(ctx.Data, Data):
-        steps_per_epoch = ctx.Data.X["train"].shape[0] // ctx.inputs.gpus // ctx.HP.BatchSize
-        validation_steps = ctx.Data.X["val"].shape[0] // ctx.HP.BatchSize
-    elif isinstance(ctx.Data, LargeData):
-        if ctx.inputs.noise_rolling == True:
-            steps_per_epoch = len(ctx.Data.noise_rolling_partition["train"][0]) // ctx.inputs.gpus // ctx.HP.BatchSize
-            validation_steps = len(ctx.Data.noise_rolling_partition["validation"][0]) // ctx.HP.BatchSize   
-        else:         
-            steps_per_epoch = len(ctx.Data.partition["train"]) // ctx.inputs.gpus // ctx.HP.BatchSize
-            validation_steps = len(ctx.Data.partition["validation"]) // ctx.HP.BatchSize
-    else:
-        raise TypeError("ctx.Data should be an instance of {Data, LargeData} class")
-
-    if validation_steps == 0:
-        raise ValueError("Number of validation steps per epoch is 0. Change batch size, validation probability, or give me more data.")
-
     #load the model
     if load_model == True:
         custom_obj = {}
@@ -599,16 +730,16 @@ def define_model(restore_training):
         ctx.fit_options = {
             "epochs": final_epochs,
             "initial_epoch": number_of_epochs_trained,
-            "steps_per_epoch": steps_per_epoch,
-            "validation_steps": validation_steps,
+            "steps_per_epoch": ctx.Data.steps_per_epoch,
+            "validation_steps": ctx.Data.validation_steps,
             }
         ctx.compile_options = {}
     else:
         ctx.fit_options = {
             "epochs": ctx.HP.Epochs,
             "initial_epoch": 0,
-            "steps_per_epoch": steps_per_epoch,
-            "validation_steps": validation_steps,
+            "steps_per_epoch": ctx.Data.steps_per_epoch,
+            "validation_steps": ctx.Data.validation_steps,
             }
         ctx.compile_options = {
             "loss": ctx.HP.Loss[1],
@@ -676,126 +807,67 @@ def run_model(restore_training = True):
         time.sleep(float(epoch_time) * 0.2)
     
 def run_large_model(restore_training = True):
+    verbose = ctx.inputs.verbose if ctx.main_process == True else 0
+
     #build callbacks and model
     callbacks = define_callbacks()
     define_model(restore_training)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
-    generator_options = {
-        "labels": ctx.Data.labels, 
-        "inputs": ctx.Data.inputs,
-        "dimX": ctx.inputs.X_shape, 
-        "dimY": ctx.inputs.Y_shape,
-        "data_filepath": ctx.inputs.data_location,
-        "model_type": ctx.inputs.model_type,
-        "batch_size": ctx.HP.BatchSize,
-        "load_all": ctx.inputs.load_all,
-        }
-    if ctx.inputs.noise_rolling == True:
-        partition = {
-            "train": ctx.Data.noise_rolling_partition["train"],
-            # "validation": ctx.Data.partition["validation"],
-            "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
-            # "test": ctx.Data.partition["test"],
-        }
+    if ctx.inputs.tfrecord_database == True:
+        ctx.model.fit(
+            ctx.Data.train_ds,
+            validation_data=ctx.Data.validation_ds,
+            verbose = verbose,
+            callbacks = callbacks,
+            **ctx.fit_options,
+            )        
     else:
-        partition = {
-            "train": ctx.Data.partition["train"],
-            "validation": ctx.Data.partition["validation"],
-            # "test": ctx.Data.partition["test"],
-        }
-    ctx.generators = {
-        "train": DataGenerator(partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
-        "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"]),
-        # "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
-        }
-    
-    verbose = ctx.inputs.verbose if ctx.main_process == True else 0
-    workers = 1 if ctx.inputs.load_all == True else ctx.inputs.workers
-    use_multiprocessing = False if ctx.inputs.load_all == True else True
-    # verbose = 2
+        generator_options = {
+            "labels": ctx.Data.labels, 
+            "inputs": ctx.Data.inputs,
+            "dimX": ctx.inputs.X_shape, 
+            "dimY": ctx.inputs.Y_shape,
+            "data_filepath": ctx.inputs.data_location,
+            "model_type": ctx.inputs.model_type,
+            "batch_size": ctx.HP.BatchSize,
+            "load_all": ctx.inputs.load_all,
+            }
+        if ctx.inputs.noise_rolling == True:
+            partition = {
+                "train": ctx.Data.noise_rolling_partition["train"],
+                # "validation": ctx.Data.partition["validation"],
+                "validation": ctx.Data.noise_rolling_partition["validation"][0], #zeroth noise
+                # "test": ctx.Data.partition["test"],
+            }
+        else:
+            partition = {
+                "train": ctx.Data.partition["train"],
+                "validation": ctx.Data.partition["validation"],
+                # "test": ctx.Data.partition["test"],
+            }
+        ctx.generators = {
+            "train": DataGenerator(partition["train"], **generator_options, initial_epoch = ctx.fit_options["initial_epoch"], N_noise = ctx.inputs.N_noise, noise_rolling = ctx.inputs.noise_rolling, iterations = ctx.fit_options["steps_per_epoch"]),
+            "validation": SimpleDataGenerator(partition["validation"], **generator_options, iterations = ctx.fit_options["validation_steps"]),
+            # "test": SimpleDataGenerator(partition["test"], **generator_options, data_type = "test"),
+            }
+        
+        workers = 1 if ctx.inputs.load_all == True else ctx.inputs.workers
+        use_multiprocessing = False if ctx.inputs.load_all == True else True
+        # verbose = 2
 
-    #fit model
-    ctx.model.fit(
-        ctx.generators["train"],
-        validation_data=ctx.generators["validation"],
-        verbose = verbose,
-        max_queue_size = 16,
-        use_multiprocessing = use_multiprocessing,
-        workers = workers,
-        callbacks = callbacks,
-        **ctx.fit_options,
-        )
-
-    # #predict on test data
-    # if ctx.main_process == True:
-    #     print("EXTRACTING THE LABELS BEFORE PREDICTION")
-    #     last_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_last.txt")
-    #     true, IDs = last_generator.extract_labels()
-    #     print(IDs)
-    #     print(true)
-    #     print("PREDICTING THE MODEL")
-    #     pred = ctx.model.predict(
-    #         last_generator, 
-    #         max_queue_size = 16, 
-    #         workers = ctx.inputs.workers, 
-    #         use_multiprocessing = True,
-    #         verbose = False,
-    #         )
-    #     last_generator.close_file()
-    #     print(pred)
-    #     np.save(f"{ctx.filepath}_prediction_last.npy", pred)
-    #     print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
-    #     with open(f"{ctx.filepath}_true_last.txt", "r") as f:
-    #         for line in f:
-    #             print(line, end="")
-
-    #     #making prediction from best model
-    #     custom_obj = {}
-    #     custom_obj["R2"] = R2
-    #     #if activation is leakyrelu add to custom_obj
-    #     if ctx.HP.ActivationFunction[0] == "leakyrelu":
-    #         custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
-    #     ctx.model = keras.models.load_model(f"{ctx.filepath}_best.hdf5", custom_objects=custom_obj)
-    #     print("PREDICTING THE BEST MODEL")
-    #     best_generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_best.txt")
-    #     pred = ctx.model.predict(
-    #         best_generator, 
-    #         max_queue_size = 16, 
-    #         workers = ctx.inputs.workers, 
-    #         use_multiprocessing = True,
-    #         verbose = False,
-    #         )
-    #     best_generator.close_file()
-    #     print(pred)
-    #     np.save(f"{ctx.filepath}_prediction_best.npy", pred)
-    #     print("LABELS AND VALUES EXTRACTED DURING PREDICTION")
-    #     true = []
-    #     with open(f"{ctx.filepath}_true_best.txt", "r") as f:
-    #         for line in f:
-    #             print(line, end="")
-    #             true.append([float(i) for i in line.rstrip("\n").split(" ")[1:]])
-    #     true = np.array(true)
-
-    #     with open(f"{ctx.filepath}_summary.txt", "w") as f:
-    #         f.write(f"DATA: {str(ctx.Data)}\n")
-    #         f.write(f"HYPARAMETERS: {str(ctx.HP)}\n")
-    #         f.write(f"R2_total: {R2_final(true, pred)}\n")
-    #         for i in range(4):
-    #             print(f"R2: {R2_numpy(true[:, i], pred[:, i])}")
-    #             f.write(f"R2_{i}: {R2_numpy(true[:, i], pred[:, i])}\n")
-    #         f.write("\n")
-    #         stringlist = []
-    #         ctx.model.summary(print_fn=lambda x: stringlist.append(x))
-    #         f.write("\n".join(stringlist))
-    # else:
-    #     #task is killed if other processes finished and the above one on node 0 is still running
-    #     with open(f"{ctx.filepath}_time.txt", "r") as f:
-    #         for epoch_time in f:
-    #             pass
-    #     #wait for a fraction of epoch time
-    #     time.sleep(float(epoch_time) * 0.2)
+        #fit model
+        ctx.model.fit(
+            ctx.generators["train"],
+            validation_data=ctx.generators["validation"],
+            verbose = verbose,
+            max_queue_size = 16,
+            use_multiprocessing = use_multiprocessing,
+            workers = workers,
+            callbacks = callbacks,
+            **ctx.fit_options,
+            )
 
 def predict_large(Type):
     """
@@ -808,37 +880,53 @@ def predict_large(Type):
         custom_obj[ctx.HP.ActivationFunction[0]] = ctx.HP.ActivationFunction[1]["activation"]
     ctx.model = keras.models.load_model(f"{ctx.filepath}_{Type}.hdf5", custom_objects=custom_obj)
     print(f"PREDICTING THE MODEL {Type}")
-    generator_options = {
-        "labels": ctx.Data.labels, 
-        "inputs": ctx.Data.inputs,
-        "dimX": ctx.inputs.X_shape, 
-        "dimY": ctx.inputs.Y_shape,
-        "data_filepath": ctx.inputs.data_location,
-        "model_type": ctx.inputs.model_type,
-        "batch_size": ctx.HP.BatchSize,
-        "load_all": ctx.inputs.load_all,
-        }
-    generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_{Type}.txt")
-    
-    workers = 1 if ctx.inputs.load_all == True else ctx.inputs.workers
-    use_multiprocessing = False if ctx.inputs.load_all == True else True
-    
-    pred = ctx.model.predict(
-        generator, 
-        max_queue_size = 512, 
-        workers = workers, 
-        use_multiprocessing = use_multiprocessing,
-        verbose = False,
-        )
-    generator.close_file()
-    # print(pred)
+
+    if ctx.inputs.tfrecord_database == True:
+        # assumes eager execution
+        true = []
+        for x, y in ctx.Data.test_ds:
+            true.append(y.numpy())
+        true = np.concatenate(true, axis = 0)
+
+        pred = ctx.model.predict(
+            ctx.Data.test_ds,
+            verbose = False,
+            )
+    else:
+        generator_options = {
+            "labels": ctx.Data.labels, 
+            "inputs": ctx.Data.inputs,
+            "dimX": ctx.inputs.X_shape, 
+            "dimY": ctx.inputs.Y_shape,
+            "data_filepath": ctx.inputs.data_location,
+            "model_type": ctx.inputs.model_type,
+            "batch_size": ctx.HP.BatchSize,
+            "load_all": ctx.inputs.load_all,
+            }
+        generator = SimpleDataGenerator(ctx.Data.partition["test"], **generator_options, filename = f"{ctx.filepath}_true_{Type}.txt")
+        
+        workers = 1 if ctx.inputs.load_all == True else ctx.inputs.workers
+        use_multiprocessing = False if ctx.inputs.load_all == True else True
+        
+        pred = ctx.model.predict(
+            generator, 
+            max_queue_size = 512, 
+            workers = workers, 
+            use_multiprocessing = use_multiprocessing,
+            verbose = False,
+            )
+        generator.close_file()
+        # print(pred)
+        # np.save(f"{ctx.filepath}_prediction_{Type}.npy", pred)
+        true = []
+        with open(f"{ctx.filepath}_true_{Type}.txt", "r") as f:
+            for line in f:
+                print(line, end="")
+                true.append([float(i) for i in line.rstrip("\n").split(" ")[1:]])
+        true = np.array(true)
+
     np.save(f"{ctx.filepath}_prediction_{Type}.npy", pred)
-    true = []
-    with open(f"{ctx.filepath}_true_{Type}.txt", "r") as f:
-        for line in f:
-            print(line, end="")
-            true.append([float(i) for i in line.rstrip("\n").split(" ")[1:]])
-    true = np.array(true)
+    np.save(f"{ctx.filepath}_true_{Type}.npy", true)
 
     R2_score = []
     R2_score.append(R2_final(true, pred))
