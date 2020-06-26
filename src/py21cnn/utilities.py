@@ -166,10 +166,10 @@ class LargeData:
 
         if ctx.inputs.noise_rolling == True:
             self.steps_per_epoch = len(self.noise_rolling_partition["train"][0]) // ctx.inputs.gpus // ctx.HP.BatchSize
-            self.validation_steps = len(self.noise_rolling_partition["validation"][0]) // ctx.HP.BatchSize   
+            self.validation_steps = len(self.noise_rolling_partition["validation"][0]) // ctx.inputs.gpus // ctx.HP.BatchSize   
         else:         
             self.steps_per_epoch = len(self.partition["train"]) // ctx.inputs.gpus // ctx.HP.BatchSize
-            self.validation_steps = len(self.partition["validation"]) // ctx.HP.BatchSize
+            self.validation_steps = len(self.partition["validation"]) // ctx.inputs.gpus // ctx.HP.BatchSize
 
 
 class Data_tfrecord:
@@ -310,8 +310,8 @@ class Data_tfrecord:
             batch_size = ctx.HP.BatchSize, 
             buffer_size = 16, 
             workers = ctx.inputs.workers)
-        self.steps_per_epoch = shardsTVT["train"] * 100 // ctx.HP.BatchSize
-        self.validation_steps = shardsTVT{"validation"} * 100 // ctx.HP.BatchSize
+        self.steps_per_epoch = shardsTVT["train"] * 100 // ctx.HP.BatchSize // ctx.inputs.gpus
+        self.validation_steps = shardsTVT["validation"] * 100 // ctx.HP.BatchSize // ctx.inputs.gpus
 
 class AuxiliaryHyperparameters:
     def __init__(
