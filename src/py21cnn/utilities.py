@@ -753,6 +753,9 @@ def run_model(restore_training = True):
     #build callbacks and model
     callbacks = define_callbacks()
     define_model(restore_training)
+
+    print(ctx.compile_options)
+    print(ctx.fit_options)
     if len(ctx.compile_options) > 0:
         ctx.model.compile(**ctx.compile_options)
 
