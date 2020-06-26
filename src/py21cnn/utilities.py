@@ -310,8 +310,8 @@ class Data_tfrecord:
             batch_size = ctx.HP.BatchSize, 
             buffer_size = 16, 
             workers = ctx.inputs.workers)
-        self.steps_per_epoch = len(self.filenames["train"]) * 100 // ctx.HP.BatchSize
-        self.validation_steps = len(self.filenames["validation"]) * 100 // ctx.HP.BatchSize
+        self.steps_per_epoch = shardsTVT["train"] * 100 // ctx.HP.BatchSize
+        self.validation_steps = shardsTVT{"validation"} * 100 // ctx.HP.BatchSize
 
 class AuxiliaryHyperparameters:
     def __init__(
