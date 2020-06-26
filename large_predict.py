@@ -50,7 +50,7 @@ if inputs.tfrecord_database == True:
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
-if inputs.tf_record_database == True:
+if inputs.tfrecord_database == True:
     if inputs.pTVT != "0.8,0.1,0.1":
         raise ValueError("tfrecord databases fixes pTVT to 0.8,0.1,0.1")
 inputs.pTVT = [float(i) for i in inputs.pTVT.split(',')]
