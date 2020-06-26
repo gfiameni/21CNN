@@ -287,7 +287,7 @@ class Data_tfrecord:
             }
         for key in self.filenames.keys():
             for seed in range(ctx.inputs.N_noise):
-                self.filenames[key].append([ctx.inputs.X_fstring.format(key, seed, i, shardsTVT[key]-1) for i in range(shardsTVT[key])])
+                self.filenames[key].append([f"{ctx.inputs.data_location}{ctx.inputs.X_fstring.format(key, seed, i, shardsTVT[key]-1)}" for i in range(shardsTVT[key])])
 
         self.train_ds = self.get_dataset(
             "train",
