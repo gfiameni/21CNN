@@ -276,9 +276,9 @@ class Data_tfrecord:
 
     def load(self):
         shardsTVT = {
-            "train": int(ctx.inputs.N_walkers * ctx.inputs.N_slices * ctx.inputs.pTVT[0]) // 100,
-            "validation": int(ctx.inputs.N_walkers * ctx.inputs.N_slices * ctx.inputs.pTVT[1]) // 100,
-            "test": int(ctx.inputs.N_walkers * ctx.inputs.N_slices * ctx.inputs.pTVT[1]) // 100,
+            "train": int(ctx.inputs.N_walker * ctx.inputs.N_slice * ctx.inputs.pTVT[0]) // 100,
+            "validation": int(ctx.inputs.N_walker * ctx.inputs.N_slice * ctx.inputs.pTVT[1]) // 100,
+            "test": int(ctx.inputs.N_walker * ctx.inputs.N_slice * ctx.inputs.pTVT[1]) // 100,
             }
         self.filenames = {
             "train": [],
