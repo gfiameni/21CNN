@@ -248,11 +248,11 @@ class Data_tfrecord:
 
     def create_shards(self, filenames, ds_type):
         shards = tf.data.Dataset.from_tensor_slices(filenames[0])
-        if ds_type == "train":
+        if ds_type == "train" or ds_type == "validation":
             shards = shards.shuffle(len(filenames[0]))
         for i in range(1, len(filenames)):
             t_shards = tf.data.Dataset.from_tensor_slices(filenames[i])
-            if ds_type == "train":
+            if ds_type == "train" or ds_type == "validation":
                 t_shards = t_shards.shuffle(len(filenames[i]))
             shards = shards.concatenate(t_shards)
         #in the case of test database repeat only once, else repeat indefinitely
@@ -265,7 +265,7 @@ class Data_tfrecord:
     def get_dataset(self, ds_type, filenames, model_type, batch_size, buffer_size, workers):
         """Read TFRecords files and turn them into a TFRecordDataset."""
         shards = self.create_shards(filenames, ds_type)
-        if ds_type == "train":
+        if ds_type == "train" or ds_type == "validation":
             dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length = 5, block_length = 1)
         else:
             dataset = shards.interleave(tf.data.TFRecordDataset, cycle_length = 1, block_length = 1)
