@@ -17,7 +17,7 @@ parser.add_argument('--Y_filename', type=str, default = "NormalizedParams")
 parser.add_argument('--N_walker', type=int, default=10000)
 parser.add_argument('--N_slice', type=int, default=4)
 parser.add_argument('--N_noise', type=int, default=10)
-parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 0)
+parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 1)
 parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
 parser.add_argument('--workers', type=int, default=24)
 
