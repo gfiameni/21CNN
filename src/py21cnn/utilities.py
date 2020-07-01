@@ -896,6 +896,8 @@ def predict_large(Type):
         pred = ctx.model.predict(
             ctx.Data.test_ds,
             verbose = False,
+            workers = 1,
+            use_multiprocessing = False,
             )
     else:
         generator_options = {
