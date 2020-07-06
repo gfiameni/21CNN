@@ -303,7 +303,7 @@ class Data_tfrecord:
             batch_size = ctx.HP.BatchSize, 
             buffer_size = 16, 
             workers = ctx.inputs.workers)
-        self.validation_ds = self.get_dataset(
+        self.test_ds = self.get_dataset(
             "test",
             self.filenames["train"], 
             ctx.inputs.model_type,
