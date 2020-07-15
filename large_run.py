@@ -82,13 +82,13 @@ if ctx.inputs.tf == 1:
     # tf.compat.v1.enable_eager_execution()
     if ctx.inputs.gpus == 1:
         # #setting up GPU
-        config = tf.compat.v1.ConfigProto()
-        config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
-        config.gpu_options.visible_device_list = "0" #for picking only some devices
-        config.gpu_options.allow_growth = True
+        config = tf.compat.v1.ConfigProto(inter_op_parallelism_threads=1, intra_op_parallelism_threads=1)
+        # config.gpu_options.per_process_gpu_memory_fraction = 1. #setting the percentage of GPU usage
+        # config.gpu_options.visible_device_list = "0" #for picking only some devices
+        # config.gpu_options.allow_growth = True
         # config.log_device_placement=True
         tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-        # tf.compat.v1.enable_eager_execution(config=config)
+        #tf.compat.v1.enable_eager_execution(config=config)
     elif ctx.inputs.gpus > 1:
         #init Horovod
         hvd.init()
