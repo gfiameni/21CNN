@@ -3,10 +3,16 @@
 ###############################################################################
 from src.py21cnn import ctx
 ctx.init()
+
+
 ###############################################################################
 #parsing inputs
 ###############################################################################
 import argparse
+
+from __future__ import absolute_import, division, print_function
+from timeutil import timeme
+
 parser = argparse.ArgumentParser(prog = 'Large Database Model Run')
 
 parser.add_argument('--simple_run', type=int, choices=[0, 1], default = 0)
@@ -121,6 +127,10 @@ if ctx.inputs.gpus > 1:
     ctx.main_process = True if hvd.rank() == 0 else False
 else:
     ctx.main_process = True
+    
+# Configure to use XLA compiler 
+USE_XLA = True
+tf.config.optimizer.set_jit(USE_XLA)
 
 ###############################################################################
 #seting hyperparameters
