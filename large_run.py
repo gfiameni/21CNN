@@ -17,13 +17,15 @@ parser.add_argument('--Y_filename', type=str, default = "NormalizedParams")
 parser.add_argument('--N_walker', type=int, default=10000)
 parser.add_argument('--N_slice', type=int, default=4)
 parser.add_argument('--N_noise', type=int, default=10)
-parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 0)
+parser.add_argument('--noise_rolling', type=int, choices=[0, 1], default = 1)
 parser.add_argument('--pTVT', type=str, default = "0.8,0.1,0.1")
 parser.add_argument('--workers', type=int, default=24)
 parser.add_argument('--load_all', type=int, default=0)
 parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=2)
 
 parser.add_argument('--data_location', type=str, default="data/")
+parser.add_argument('--tfrecord_database', type=int, choices = [0, 1], default=0)
+
 parser.add_argument('--saving_location', type=str, default="models/")
 parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
@@ -44,9 +46,17 @@ inputs.LR_correction = bool(inputs.LR_correction)
 inputs.simple_run = bool(inputs.simple_run)
 inputs.noise_rolling = bool(inputs.noise_rolling)
 inputs.load_all = bool(inputs.load_all)
+inputs.tfrecord_database = bool(inputs.tfrecord_database)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]
+if inputs.tfrecord_database == True:
+    if inputs.noise_rolling == False:
+        raise ValueError("tfrecord_database is only compatible with noise rolling")
+    if inputs.N_walker != 10000 or inputs.N_slice != 4:
+        raise ValueError("for tfrecord database all walkers(10000) and slices(4) need to be chosen.")
+    if inputs.pTVT != "0.8,0.1,0.1":
+        raise ValueError("tfrecord databases fixes pTVT to 0.8,0.1,0.1")
 inputs.pTVT = [float(i) for i in inputs.pTVT.split(',')]
 inputs.X_shape = tuple([int(i) for i in inputs.X_shape.split(',')])
 if inputs.max_epochs == -1:
@@ -146,7 +156,9 @@ ctx.HP = HP
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
 data_shape = ctx.inputs.X_shape[::-1] + (1,) if ctx.inputs.model_type == "RNN" else ctx.inputs.X_shape + (1,)
-Data = utilities.LargeData(dimensionality = 3, shape = data_shape, load_all = ctx.inputs.load_all)
+data_class = utilities.Data_tfrecord if ctx.inputs.tfrecord_database == True else utilities.LargeData
+Data = data_class(dimensionality = 3, shape = data_shape, load_all = ctx.inputs.load_all)
+Data.load()
 
 print("DATA:", str(Data))
 ctx.Data = Data
