@@ -687,18 +687,6 @@ def define_callbacks():
 def define_model(restore_training):
     model_exists = os.path.exists(f"{ctx.filepath}_last.hdf5")
     #define in what case to load the model
-    # if model_exists == True and restore_training == True:
-    #     if ctx.inputs.gpus == 1:
-    #         load_model = True
-    #         load_function = keras.models.load_model
-    #     else:
-    #         if hvd.rank() == 0:
-    #             load_model = True
-    #             load_function = hvd.load_model
-    #         else:
-    #             load_model = False
-    # else:
-    #     load_model = False
     if model_exists == True and restore_training == True:
         load_model = True
         if ctx.inputs.gpus == 1:
