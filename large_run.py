@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+# from timeutil import timeme
+
 ###############################################################################
 #define context, module with important variables
 ###############################################################################
@@ -9,9 +12,6 @@ ctx.init()
 #parsing inputs
 ###############################################################################
 import argparse
-
-from __future__ import absolute_import, division, print_function
-# from timeutil import timeme
 
 parser = argparse.ArgumentParser(prog = 'Large Database Model Run')
 
