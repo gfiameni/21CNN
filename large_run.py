@@ -11,7 +11,7 @@ ctx.init()
 import argparse
 
 from __future__ import absolute_import, division, print_function
-from timeutil import timeme
+# from timeutil import timeme
 
 parser = argparse.ArgumentParser(prog = 'Large Database Model Run')
 
@@ -33,6 +33,7 @@ parser.add_argument('--data_location', type=str, default="data/")
 parser.add_argument('--tfrecord_database', type=int, choices = [0, 1], default=0)
 
 parser.add_argument('--saving_location', type=str, default="models/")
+parser.add_argument('--tensorboard', type=int, choices=[0, 1], default=1)
 parser.add_argument('--logs_location', type=str, default="logs/")
 parser.add_argument('--model', type=str, default="RNN.SummarySpace3D")
 parser.add_argument('--model_type', type=str, default="")
@@ -53,6 +54,7 @@ inputs.simple_run = bool(inputs.simple_run)
 inputs.noise_rolling = bool(inputs.noise_rolling)
 inputs.load_all = bool(inputs.load_all)
 inputs.tfrecord_database = bool(inputs.tfrecord_database)
+inputs.tensorboard = bool(inputs.tensorboard)
 inputs.model = inputs.model.split('.')
 if len(inputs.model_type) == 0:
     inputs.model_type = inputs.model[0]

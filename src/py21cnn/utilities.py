@@ -652,7 +652,6 @@ def define_callbacks():
 
     if saving_callbacks == True:
         saving_callbacks = [
-            # keras.callbacks.TensorBoard(ctx.logdir, update_freq="epoch"),
             # hp.KerasCallback(logdir, HP_TensorBoard),
             TimeHistory(f"{ctx.filepath}_time.txt"),
             keras.callbacks.ModelCheckpoint(f"{ctx.filepath}_best.hdf5", monitor='val_loss', save_best_only=True, verbose=True),
@@ -660,6 +659,9 @@ def define_callbacks():
             keras.callbacks.CSVLogger(f"{ctx.filepath}.log", separator=',', append=True),
             LR_tracer(),
             ]
+        if ctx.inputs.tensorboard == True:
+            saving_callbacks.append(keras.callbacks.TensorBoard(ctx.logdir, update_freq="epoch"))
+
     else:
         saving_callbacks = []
     if horovod_callbacks == True:
