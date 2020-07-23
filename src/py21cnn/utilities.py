@@ -747,7 +747,7 @@ def run_model(restore_training = True):
     print(ctx.compile_options)
     print(ctx.fit_options)
     if len(ctx.compile_options) > 0:
-        ctx.model.compile(**ctx.compile_options)
+        ctx.model.compile(**ctx.compile_options, experimental_run_tf_function=False)
 
     verbose = ctx.inputs.verbose if ctx.main_process == True else 0
     # verbose = 2
