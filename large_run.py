@@ -102,6 +102,30 @@ USE_XLA = True
 tf.config.optimizer.set_jit(USE_XLA)
 
 ###############################################################################
+# Eager mode and logging
+###############################################################################
+print(tf.__version__)
+
+DEBUG = False
+tf.debugging.set_log_device_placement(DEBUG)
+#tf.executing_eagerly()
+
+
+###############################################################################
+# Determinism
+###############################################################################
+
+import os, random
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+
+import numpy as np
+SEED = 123
+os.environ['PYTHONHASHSEED']=str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+
+###############################################################################
 #seting hyperparameters
 ###############################################################################
 import copy
