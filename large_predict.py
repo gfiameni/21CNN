@@ -126,8 +126,11 @@ ctx.HP = HP
 #constructing TVT partitions of the data and assigning labels
 ###############################################################################
 data_shape = ctx.inputs.X_shape[::-1] + (1,) if ctx.inputs.model_type == "RNN" else ctx.inputs.X_shape + (1,)
-data_class = utilities.Data_tfrecord if ctx.inputs.tfrecord_database == True else utilities.LargeData
-Data = data_class(dimensionality = 3, shape = data_shape, load_all = ctx.inputs.load_all)
+if ctx.inputs.tfrecord_database == True:
+    Data = utilities.Data_tfrecord(dimensionality = 3, shape = data_shape, load_all = ctx.inputs.load_all)
+    Data.load()
+else:
+    Data = utilities.LargeData(dimensionality = 3, shape = data_shape, load_all = ctx.inputs.load_all)
 
 print("DATA:", str(Data))
 ctx.Data = Data
